@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: ysn-university-backend
+  profiles:
+    default: local
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:ysn_university}
+    username: ${DB_USERNAME:ysn_app}
+    password: ${DB_PASSWORD:ysn_app}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:change-me}
+      access-token-ttl-seconds: ${JWT_ACCESS_TOKEN_TTL_SECONDS:900}
+      refresh-token-ttl-seconds: ${JWT_REFRESH_TOKEN_TTL_SECONDS:2592000}
+  storage:
+    base-path: ${FILE_STORAGE_PATH:./storage}

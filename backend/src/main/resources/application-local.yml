@@ -1,0 +1,9 @@
+spring:
+  docker:
+    compose:
+      enabled: false
+
+logging:
+  level:
+    com.platform: DEBUG
+    org.springframework.security: INFO
