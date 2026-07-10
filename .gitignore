@@ -1,0 +1,36 @@
+# Project documentation kept outside the public repository
+docs/
+docs (copy)/
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Local environment files
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Java
+**/target/
+*.class
+
+# Node and frontend build output
+**/node_modules/
+**/dist/
+**/coverage/
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Local infrastructure and uploaded files
+infra/compose/.data/
+storage/
