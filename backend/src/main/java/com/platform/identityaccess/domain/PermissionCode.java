@@ -3,6 +3,8 @@ package com.platform.identityaccess.domain;
 public enum PermissionCode {
     DEPARTMENT_VIEW,
     DEPARTMENT_CREATE,
+    DEPARTMENT_UPDATE,
+    DEPARTMENT_DELETE,
     PROGRAM_FILIERE_VIEW,
     PROGRAM_FILIERE_CREATE,
     DEGREE_CYCLE_VIEW,

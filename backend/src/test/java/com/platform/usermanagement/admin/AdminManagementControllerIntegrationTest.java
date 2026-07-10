@@ -46,6 +46,7 @@ import com.platform.identityaccess.infrastructure.UserProfileRepository;
 import com.platform.platform.PlatformApplication;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.universitygovernance.establishment.domain.Establishment;
+import com.platform.universitygovernance.department.infrastructure.DepartmentRepository;
 import com.platform.universitygovernance.establishment.domain.EstablishmentStatus;
 import com.platform.universitygovernance.establishment.domain.EstablishmentType;
 import com.platform.universitygovernance.establishment.infrastructure.EstablishmentRepository;
@@ -99,6 +100,9 @@ class AdminManagementControllerIntegrationTest {
     private EstablishmentRepository establishmentRepository;
 
     @Autowired
+    private DepartmentRepository departmentRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @LocalServerPort
@@ -112,6 +116,7 @@ class AdminManagementControllerIntegrationTest {
     void setUp() {
         ((InMemoryRefreshTokenSessionStore) refreshTokenSessionStore).clear();
         adminPermissionGrantRepository.deleteAll();
+        departmentRepository.deleteAll();
         adminRepository.deleteAll();
         superAdminRepository.deleteAll();
         establishmentRepository.deleteAll();
