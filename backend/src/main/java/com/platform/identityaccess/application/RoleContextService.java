@@ -4,9 +4,11 @@ import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.Admin;
 import com.platform.identityaccess.domain.RootSuperAdmin;
 import com.platform.identityaccess.domain.SuperAdmin;
+import com.platform.identityaccess.domain.Student;
 import com.platform.identityaccess.domain.UserAccount;
 import com.platform.identityaccess.infrastructure.AdminRepository;
 import com.platform.identityaccess.infrastructure.RootSuperAdminRepository;
+import com.platform.identityaccess.infrastructure.StudentRepository;
 import com.platform.identityaccess.infrastructure.SuperAdminRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -19,15 +21,18 @@ public class RoleContextService {
     private final RootSuperAdminRepository rootSuperAdminRepository;
     private final SuperAdminRepository superAdminRepository;
     private final AdminRepository adminRepository;
+    private final StudentRepository studentRepository;
 
     public RoleContextService(
         RootSuperAdminRepository rootSuperAdminRepository,
         SuperAdminRepository superAdminRepository,
-        AdminRepository adminRepository
+        AdminRepository adminRepository,
+        StudentRepository studentRepository
     ) {
         this.rootSuperAdminRepository = rootSuperAdminRepository;
         this.superAdminRepository = superAdminRepository;
         this.adminRepository = adminRepository;
+        this.studentRepository = studentRepository;
     }
 
     @Transactional(readOnly = true)
@@ -40,7 +45,8 @@ public class RoleContextService {
             case ROOT_SUPER_ADMIN -> buildRootSuperAdminContext(account);
             case SUPER_ADMIN -> buildSuperAdminContext(account);
             case ADMIN -> buildAdminContext(account);
-            case PROFESSOR, STUDENT ->
+            case STUDENT -> buildStudentContext(account);
+            case PROFESSOR ->
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Role is not supported yet");
         };
     }
@@ -64,5 +70,12 @@ public class RoleContextService {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin profile not found"));
 
         return new RoleContext(admin.getId(), admin.getEstablishment().getId());
+    }
+
+    private RoleContext buildStudentContext(UserAccount account) {
+        Student student = studentRepository.findByUserAccountId(account.getId())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Student profile not found"));
+
+        return new RoleContext(student.getId(), student.getEstablishment().getId());
     }
 }
