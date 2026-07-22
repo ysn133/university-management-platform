@@ -10,6 +10,7 @@ import com.platform.academicregistration.registration.presentation.dto.AcademicR
 import com.platform.academicregistration.registration.presentation.dto.CreateAcademicRegistrationRequest;
 import com.platform.academicregistration.registration.presentation.dto.UpdateAcademicRegistrationRequest;
 import com.platform.academicregistration.semesterregistration.infrastructer.SemesterRegestrationRepository;
+import com.platform.academicregistration.subjectmoduleregestration.infrastructure.SubjectRegestrationRepository;
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.AccountStatus;
 import com.platform.identityaccess.domain.Student;
@@ -37,6 +38,8 @@ import com.platform.universitygovernance.programpath.domain.ProgramPath;
 import com.platform.universitygovernance.programpath.infrastructure.ProgramPathRepository;
 import com.platform.universitygovernance.semester.domain.Semester;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
+import com.platform.universitygovernance.subjectmodules.domain.SubjectModule;
+import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleRepository;
 import com.platform.universitygovernance.university.domain.University;
 import com.platform.universitygovernance.university.infrastructure.UniversityRepository;
 import java.util.UUID;
@@ -63,6 +66,12 @@ class AcademicRegistrationServiceIntegrationTest {
 
     @Autowired
     private SemesterRepository semesterRepository;
+
+    @Autowired
+    private SubjectRegestrationRepository subjectRegestrationRepository;
+
+    @Autowired
+    private SubjectModuleRepository subjectModuleRepository;
 
     @Autowired
     private StudentRepository studentRepository;
@@ -119,10 +128,14 @@ class AcademicRegistrationServiceIntegrationTest {
         secondLevel = saveLevel(secondProgram, "L1", 1);
         firstYear = saveYear(firstEstablishment, "2026-2027", 2026);
         secondYear = saveYear(firstEstablishment, "2027-2028", 2027);
-        saveSemester(firstLevel, firstYear, "S1", 1);
-        saveSemester(firstLevel, firstYear, "S2", 2);
-        saveSemester(firstLevel, secondYear, "S1", 1);
-        saveSemester(firstLevel, secondYear, "S2", 2);
+        Semester firstYearS1 = saveSemester(firstLevel, firstYear, "S1", 1);
+        Semester firstYearS2 = saveSemester(firstLevel, firstYear, "S2", 2);
+        Semester secondYearS1 = saveSemester(firstLevel, secondYear, "S1", 1);
+        Semester secondYearS2 = saveSemester(firstLevel, secondYear, "S2", 2);
+        saveSubjectModule(firstYearS1, "ALG", "Algorithms");
+        saveSubjectModule(firstYearS2, "DB", "Databases");
+        saveSubjectModule(secondYearS1, "AI", "Artificial Intelligence");
+        saveSubjectModule(secondYearS2, "SEC", "Security");
         student = saveStudent(firstEstablishment, "student@ensa.uiz.ac.ma");
     }
 
@@ -150,6 +163,17 @@ class AcademicRegistrationServiceIntegrationTest {
                 .getId()
                 .equals(first.id()))
             .hasSize(2);
+        assertThat(subjectRegestrationRepository.findAll())
+            .filteredOn(registration -> registration
+                .getSemesterRegestration()
+                .getAcademicRegistration()
+                .getId()
+                .equals(first.id()))
+            .hasSize(2)
+            .allSatisfy(registration -> {
+                assertThat(registration.getInscriptionNumber()).isEqualTo(1);
+                assertThat(registration.getOriginAcademicLevel()).isNull();
+            });
         assertThat(academicRegistrationService.getAcademicRegistration(root, first.id()).id())
             .isEqualTo(first.id());
 
@@ -306,6 +330,14 @@ class AcademicRegistrationServiceIntegrationTest {
         return semesterRepository.save(semester);
     }
 
+    private SubjectModule saveSubjectModule(Semester semester, String code, String title) {
+        SubjectModule subjectModule = new SubjectModule();
+        subjectModule.setSemester(semester);
+        subjectModule.setCode(code);
+        subjectModule.setTitle(title);
+        return subjectModuleRepository.save(subjectModule);
+    }
+
     private Student saveStudent(Establishment establishment, String email) {
         UserAccount account = new UserAccount();
         account.setUniversityEmail(email);
@@ -334,10 +366,12 @@ class AcademicRegistrationServiceIntegrationTest {
         var studentAccounts = studentRepository.findAll().stream()
             .map(Student::getUserAccount)
             .toList();
+        subjectRegestrationRepository.deleteAll();
         semesterRegestrationRepository.deleteAll();
         academicRegistrationRepository.deleteAll();
         studentRepository.deleteAll();
         userAccountRepository.deleteAll(studentAccounts);
+        subjectModuleRepository.deleteAll();
         semesterRepository.deleteAll();
         academicLevelRepository.deleteAll();
         academicYearRepository.deleteAll();

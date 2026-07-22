@@ -11,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.platform.academicregistration.registration.domain.AcademicRegistration;
 import com.platform.academicregistration.semesterregistration.domain.SemesterRegestration;
 import com.platform.academicregistration.semesterregistration.infrastructer.SemesterRegestrationRepository;
+import com.platform.academicregistration.subjectmoduleregestration.application.SubjectModuleRegestrationService;
 import com.platform.universitygovernance.semester.domain.Semester;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
 
@@ -20,13 +21,16 @@ public class SemesterRegestrationService {
 
     private final SemesterRepository semesterRepository;
     private final SemesterRegestrationRepository semesterRegestrationRepository;
+    private final SubjectModuleRegestrationService subjectModuleRegestration;
 
 
     public SemesterRegestrationService(SemesterRepository semesterRepository , 
-        SemesterRegestrationRepository semesterRegestrationRepository
+        SemesterRegestrationRepository semesterRegestrationRepository,
+        SubjectModuleRegestrationService subjectModuleRegestration
     ){
         this.semesterRegestrationRepository=semesterRegestrationRepository;
         this.semesterRepository=semesterRepository;
+        this.subjectModuleRegestration=subjectModuleRegestration;
     }
 
     public List<SemesterRegestration> createSemesterRegestration(AcademicRegistration academicRegistration){
@@ -52,11 +56,17 @@ public class SemesterRegestrationService {
             SemesterRegestration semesterRegestration  = new SemesterRegestration();
             semesterRegestration.setAcademicRegistration(academicRegistration);
             semesterRegestration.setSemester(semester);
+            SemesterRegestration savedSemesterRegestration=semesterRegestrationRepository.save(semesterRegestration);
+            subjectModuleRegestration.createModuleRegestration(
+                semester,
+                savedSemesterRegestration
+            );
 
-            semesterRegistrations.add(semesterRegestrationRepository.save(semesterRegestration));
+            semesterRegistrations.add(savedSemesterRegestration);
 
 
         }
+
 
 
         return semesterRegistrations;
