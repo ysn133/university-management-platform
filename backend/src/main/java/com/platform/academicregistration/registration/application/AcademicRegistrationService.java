@@ -6,6 +6,7 @@ import com.platform.academicregistration.registration.infrastructure.AcademicReg
 import com.platform.academicregistration.registration.presentation.dto.AcademicRegistrationResponse;
 import com.platform.academicregistration.registration.presentation.dto.CreateAcademicRegistrationRequest;
 import com.platform.academicregistration.registration.presentation.dto.UpdateAcademicRegistrationRequest;
+import com.platform.academicregistration.semesterregistration.application.SemesterRegestrationService;
 import com.platform.identityaccess.application.AdminPermissionAuthorizationService;
 import com.platform.identityaccess.domain.PermissionCode;
 import com.platform.identityaccess.domain.Student;
@@ -19,6 +20,7 @@ import com.platform.universitygovernance.establishment.domain.Establishment;
 import com.platform.universitygovernance.establishment.infrastructure.EstablishmentRepository;
 import com.platform.universitygovernance.programfiliere.domain.ProgramFiliere;
 import com.platform.universitygovernance.programfiliere.infrastructure.ProgramFiliereRepository;
+
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -31,11 +33,13 @@ public class AcademicRegistrationService {
 
     private final AcademicRegistrationRepository academicRegistrationRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
+
     private final StudentRepository studentRepository;
     private final ProgramFiliereRepository programFiliereRepository;
     private final AcademicLevelRepository academicLevelRepository;
     private final AcademicYearRepository academicYearRepository;
     private final EstablishmentRepository establishmentRepository;
+    private final SemesterRegestrationService semesterRegestrationService;
 
     public AcademicRegistrationService(
         AcademicRegistrationRepository academicRegistrationRepository,
@@ -44,7 +48,9 @@ public class AcademicRegistrationService {
         AcademicLevelRepository academicLevelRepository,
         AcademicYearRepository academicYearRepository,
         EstablishmentRepository establishmentRepository,
-        AdminPermissionAuthorizationService permissionAuthorizationService
+        AdminPermissionAuthorizationService permissionAuthorizationService,
+        SemesterRegestrationService semesterRegestrationService
+
     ) {
         this.academicRegistrationRepository = academicRegistrationRepository;
         this.studentRepository = studentRepository;
@@ -53,6 +59,8 @@ public class AcademicRegistrationService {
         this.academicYearRepository = academicYearRepository;
         this.establishmentRepository = establishmentRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
+        this.semesterRegestrationService = semesterRegestrationService;
+
     }
 
     @Transactional
@@ -88,8 +96,12 @@ public class AcademicRegistrationService {
         academicRegistration.setAcademicLevel(academicLevel);
         academicRegistration.setAcademicYear(academicYear);
         academicRegistration.setStatus(AcademicRegistrationStatus.ACTIVE);
+        AcademicRegistration savedRegistration=academicRegistrationRepository.save(academicRegistration);
 
-        return toResponse(academicRegistrationRepository.save(academicRegistration));
+        semesterRegestrationService.createSemesterRegestration(savedRegistration);
+
+
+        return toResponse(savedRegistration);
     }
 
     @Transactional(readOnly = true)
