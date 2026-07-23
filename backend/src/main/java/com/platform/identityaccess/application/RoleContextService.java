@@ -2,11 +2,13 @@ package com.platform.identityaccess.application;
 
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.Admin;
+import com.platform.identityaccess.domain.Professor;
 import com.platform.identityaccess.domain.RootSuperAdmin;
 import com.platform.identityaccess.domain.SuperAdmin;
 import com.platform.identityaccess.domain.Student;
 import com.platform.identityaccess.domain.UserAccount;
 import com.platform.identityaccess.infrastructure.AdminRepository;
+import com.platform.identityaccess.infrastructure.ProfessorRepository;
 import com.platform.identityaccess.infrastructure.RootSuperAdminRepository;
 import com.platform.identityaccess.infrastructure.StudentRepository;
 import com.platform.identityaccess.infrastructure.SuperAdminRepository;
@@ -21,17 +23,20 @@ public class RoleContextService {
     private final RootSuperAdminRepository rootSuperAdminRepository;
     private final SuperAdminRepository superAdminRepository;
     private final AdminRepository adminRepository;
+    private final ProfessorRepository professorRepository;
     private final StudentRepository studentRepository;
 
     public RoleContextService(
         RootSuperAdminRepository rootSuperAdminRepository,
         SuperAdminRepository superAdminRepository,
         AdminRepository adminRepository,
+        ProfessorRepository professorRepository,
         StudentRepository studentRepository
     ) {
         this.rootSuperAdminRepository = rootSuperAdminRepository;
         this.superAdminRepository = superAdminRepository;
         this.adminRepository = adminRepository;
+        this.professorRepository = professorRepository;
         this.studentRepository = studentRepository;
     }
 
@@ -46,8 +51,7 @@ public class RoleContextService {
             case SUPER_ADMIN -> buildSuperAdminContext(account);
             case ADMIN -> buildAdminContext(account);
             case STUDENT -> buildStudentContext(account);
-            case PROFESSOR ->
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Role is not supported yet");
+            case PROFESSOR -> buildProfessorContext(account);
         };
     }
 
@@ -77,5 +81,15 @@ public class RoleContextService {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Student profile not found"));
 
         return new RoleContext(student.getId(), student.getEstablishment().getId());
+    }
+
+    private RoleContext buildProfessorContext(UserAccount account) {
+        Professor professor = professorRepository.findByUserAccountId(account.getId())
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Professor profile not found"
+            ));
+
+        return new RoleContext(professor.getId(), professor.getEstablishment().getId());
     }
 }
