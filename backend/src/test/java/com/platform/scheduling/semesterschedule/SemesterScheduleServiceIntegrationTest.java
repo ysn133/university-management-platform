@@ -9,6 +9,7 @@ import com.platform.identityaccess.domain.Admin;
 import com.platform.identityaccess.domain.AdminPermissionGrant;
 import com.platform.identityaccess.domain.Permission;
 import com.platform.identityaccess.domain.PermissionCode;
+import com.platform.identityaccess.domain.Professor;
 import com.platform.identityaccess.domain.UserAccount;
 import com.platform.identityaccess.infrastructure.AdminPermissionGrantRepository;
 import com.platform.identityaccess.infrastructure.AdminRepository;
@@ -21,16 +22,27 @@ import com.platform.identityaccess.infrastructure.UserAccountRepository;
 import com.platform.identityaccess.infrastructure.UserProfileRepository;
 import com.platform.platform.PlatformApplication;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
+import com.platform.scheduling.semesterschedule.application.ScheduleEntryService;
 import com.platform.scheduling.semesterschedule.application.SemesterScheduleService;
 import com.platform.scheduling.semesterschedule.domain.SchedulePublicationStatus;
+import com.platform.scheduling.semesterschedule.infrastructure.ScheduleEntryRepository;
 import com.platform.scheduling.semesterschedule.infrastructure.SemesterScheduleRepository;
+import com.platform.scheduling.semesterschedule.presentation.dto.CreateScheduleEntryRequest;
 import com.platform.scheduling.semesterschedule.presentation.dto.CreateSemesterScheduleRequest;
+import com.platform.scheduling.semesterschedule.presentation.dto.ScheduleEntryResponse;
 import com.platform.scheduling.semesterschedule.presentation.dto.SemesterScheduleResponse;
+import com.platform.scheduling.semesterschedule.presentation.dto.UpdateScheduleEntryRequest;
+import com.platform.teachingassignment.domain.TeachingAssignment;
+import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
+import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
 import com.platform.universitygovernance.academiclevel.domain.AcademicLevel;
 import com.platform.universitygovernance.academiclevel.infrastructure.AcademicLevelRepository;
 import com.platform.universitygovernance.academicyear.domain.AcademicYear;
 import com.platform.universitygovernance.academicyear.domain.AcademicYearStatus;
 import com.platform.universitygovernance.academicyear.infrastructure.AcademicYearRepository;
+import com.platform.universitygovernance.classgroup.domain.ClassGroup;
+import com.platform.universitygovernance.classgroup.domain.ClassGroupStatus;
+import com.platform.universitygovernance.classgroup.infrastructure.ClassGroupRepository;
 import com.platform.universitygovernance.degreecycle.domain.DegreeCycle;
 import com.platform.universitygovernance.degreecycle.infrastructure.DegreeCycleRepository;
 import com.platform.universitygovernance.department.domain.Department;
@@ -45,8 +57,12 @@ import com.platform.universitygovernance.programpath.domain.ProgramPath;
 import com.platform.universitygovernance.programpath.infrastructure.ProgramPathRepository;
 import com.platform.universitygovernance.semester.domain.Semester;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
+import com.platform.universitygovernance.subjectmodules.domain.SubjectModule;
+import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleRepository;
 import com.platform.universitygovernance.university.domain.University;
 import com.platform.universitygovernance.university.infrastructure.UniversityRepository;
+import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -65,7 +81,16 @@ class SemesterScheduleServiceIntegrationTest {
     private SemesterScheduleService semesterScheduleService;
 
     @Autowired
+    private ScheduleEntryService scheduleEntryService;
+
+    @Autowired
     private SemesterScheduleRepository semesterScheduleRepository;
+
+    @Autowired
+    private ScheduleEntryRepository scheduleEntryRepository;
+
+    @Autowired
+    private TeachingAssignmentRepository teachingAssignmentRepository;
 
     @Autowired
     private PermissionRepository permissionRepository;
@@ -98,6 +123,12 @@ class SemesterScheduleServiceIntegrationTest {
     private SemesterRepository semesterRepository;
 
     @Autowired
+    private SubjectModuleRepository subjectModuleRepository;
+
+    @Autowired
+    private ClassGroupRepository classGroupRepository;
+
+    @Autowired
     private AcademicLevelRepository academicLevelRepository;
 
     @Autowired
@@ -125,6 +156,7 @@ class SemesterScheduleServiceIntegrationTest {
     private Establishment secondEstablishment;
     private AcademicYear academicYear;
     private Semester semester;
+    private AcademicLevel academicLevel;
 
     @BeforeEach
     void setUp() {
@@ -137,9 +169,9 @@ class SemesterScheduleServiceIntegrationTest {
         firstEstablishment = saveEstablishment(university, "ENSA Agadir");
         secondEstablishment = saveEstablishment(university, "Faculty of Sciences");
         ProgramFiliere program = saveProgram(firstEstablishment, "IL");
-        AcademicLevel level = saveLevel(program, "M1");
+        academicLevel = saveLevel(program, "M1");
         academicYear = saveYear(firstEstablishment, "2026-2027", 2026);
-        semester = saveSemester(level, academicYear, "S1");
+        semester = saveSemester(academicLevel, academicYear, "S1");
     }
 
     @AfterEach
@@ -241,8 +273,135 @@ class SemesterScheduleServiceIntegrationTest {
             .hasMessageContaining("403 FORBIDDEN");
     }
 
+    @Test
+    void rootCanManageDraftEntriesAndPublicationFreezesThem() {
+        AuthenticatedUserPrincipal root = principal(
+            AccountRoleType.ROOT_SUPER_ADMIN,
+            UUID.randomUUID(),
+            null
+        );
+        SemesterScheduleResponse schedule = semesterScheduleService
+            .createSemesterSchedule(root, firstEstablishment.getId(), request());
+        TeachingAssignment assignment = saveTeachingAssignment();
+
+        ScheduleEntryResponse created = scheduleEntryService.createScheduleEntry(
+            root,
+            schedule.id(),
+            new CreateScheduleEntryRequest(
+                assignment.getId(),
+                DayOfWeek.MONDAY,
+                LocalTime.of(8, 0),
+                LocalTime.of(10, 0),
+                " Room A "
+            )
+        );
+
+        assertThat(created.location()).isEqualTo("Room A");
+        assertThat(scheduleEntryService.getScheduleEntry(root, created.id()).id())
+            .isEqualTo(created.id());
+        assertThat(scheduleEntryService.getScheduleEntries(root, schedule.id()))
+            .extracting(ScheduleEntryResponse::id)
+            .containsExactly(created.id());
+
+        ScheduleEntryResponse updated = scheduleEntryService.updateScheduleEntry(
+            root,
+            created.id(),
+            new UpdateScheduleEntryRequest(
+                assignment.getId(),
+                DayOfWeek.MONDAY,
+                LocalTime.of(9, 0),
+                LocalTime.of(11, 0),
+                "Room B"
+            )
+        );
+        assertThat(updated.startTime()).isEqualTo(LocalTime.of(9, 0));
+        assertThat(updated.location()).isEqualTo("Room B");
+
+        assertThatThrownBy(() -> scheduleEntryService.createScheduleEntry(
+            root,
+            schedule.id(),
+            new CreateScheduleEntryRequest(
+                assignment.getId(),
+                DayOfWeek.MONDAY,
+                LocalTime.of(10, 0),
+                LocalTime.of(12, 0),
+                null
+            )
+        ))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("409 CONFLICT");
+
+        assertThatThrownBy(() -> scheduleEntryService.createScheduleEntry(
+            root,
+            schedule.id(),
+            new CreateScheduleEntryRequest(
+                assignment.getId(),
+                DayOfWeek.TUESDAY,
+                LocalTime.of(12, 0),
+                LocalTime.of(11, 0),
+                null
+            )
+        ))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("400 BAD_REQUEST");
+
+        semesterScheduleService.publishSemesterSchedule(root, schedule.id());
+        assertThatThrownBy(() -> scheduleEntryService.deleteScheduleEntry(
+            root,
+            created.id()
+        ))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("409 CONFLICT");
+    }
+
     private CreateSemesterScheduleRequest request() {
         return new CreateSemesterScheduleRequest(academicYear.getId(), semester.getId());
+    }
+
+    private TeachingAssignment saveTeachingAssignment() {
+        Professor professor = saveProfessor("professor@ensa.uiz.ac.ma");
+        SubjectModule subjectModule = saveSubjectModule();
+        ClassGroup classGroup = saveClassGroup();
+
+        TeachingAssignment assignment = new TeachingAssignment();
+        assignment.setProfessor(professor);
+        assignment.setSubjectModule(subjectModule);
+        assignment.setClassGroup(classGroup);
+        assignment.setAcademicYear(academicYear);
+        assignment.setSemester(semester);
+        assignment.setStatus(TeachingAssignmentStatus.ACTIVE);
+        return teachingAssignmentRepository.save(assignment);
+    }
+
+    private Professor saveProfessor(String email) {
+        UserAccount account = new UserAccount();
+        account.setUniversityEmail(email);
+        account.setPasswordHash("not-used-by-this-test");
+        account.setRole(AccountRoleType.PROFESSOR);
+        account.setAccountStatus(AccountStatus.ACTIVE);
+        account = userAccountRepository.save(account);
+
+        Professor professor = new Professor();
+        professor.setUserAccount(account);
+        professor.setEstablishment(firstEstablishment);
+        return professorRepository.save(professor);
+    }
+
+    private SubjectModule saveSubjectModule() {
+        SubjectModule subjectModule = new SubjectModule();
+        subjectModule.setSemester(semester);
+        subjectModule.setCode("ALG");
+        subjectModule.setTitle("Algorithms");
+        return subjectModuleRepository.save(subjectModule);
+    }
+
+    private ClassGroup saveClassGroup() {
+        ClassGroup classGroup = new ClassGroup();
+        classGroup.setAcademicLevel(academicLevel);
+        classGroup.setAcademicYear(academicYear);
+        classGroup.setName("Group A");
+        classGroup.setStatus(ClassGroupStatus.ACTIVE);
+        return classGroupRepository.save(classGroup);
     }
 
     private Admin saveAdmin(Establishment establishment) {
@@ -351,8 +510,12 @@ class SemesterScheduleServiceIntegrationTest {
     }
 
     private void clearBusinessData() {
+        scheduleEntryRepository.deleteAll();
+        teachingAssignmentRepository.deleteAll();
         semesterScheduleRepository.deleteAll();
         adminPermissionGrantRepository.deleteAll();
+        subjectModuleRepository.deleteAll();
+        classGroupRepository.deleteAll();
         professorRepository.deleteAll();
         studentRepository.deleteAll();
         adminRepository.deleteAll();
