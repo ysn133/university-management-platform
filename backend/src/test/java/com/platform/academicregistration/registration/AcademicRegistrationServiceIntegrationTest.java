@@ -21,9 +21,16 @@ import com.platform.platform.PlatformApplication;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.universitygovernance.academiclevel.domain.AcademicLevel;
 import com.platform.universitygovernance.academiclevel.infrastructure.AcademicLevelRepository;
+import com.platform.universitygovernance.academiclevelruleassignment.domain.AcademicLevelRuleAssignment;
+import com.platform.universitygovernance.academiclevelruleassignment.domain.AcademicLevelRuleAssignmentStatus;
+import com.platform.universitygovernance.academiclevelruleassignment.infrastructure.AcademicLevelRuleAssignmentRepository;
 import com.platform.universitygovernance.academicyear.domain.AcademicYear;
 import com.platform.universitygovernance.academicyear.domain.AcademicYearStatus;
 import com.platform.universitygovernance.academicyear.infrastructure.AcademicYearRepository;
+import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfile;
+import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfileStatus;
+import com.platform.universitygovernance.academicruleprofile.domain.SessionGradePolicy;
+import com.platform.universitygovernance.academicruleprofile.infrastructure.AcademicRuleProfileRepository;
 import com.platform.universitygovernance.degreecycle.domain.DegreeCycle;
 import com.platform.universitygovernance.degreecycle.infrastructure.DegreeCycleRepository;
 import com.platform.universitygovernance.department.domain.Department;
@@ -42,6 +49,7 @@ import com.platform.universitygovernance.subjectmodules.domain.SubjectModule;
 import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleRepository;
 import com.platform.universitygovernance.university.domain.University;
 import com.platform.universitygovernance.university.infrastructure.UniversityRepository;
+import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,6 +91,12 @@ class AcademicRegistrationServiceIntegrationTest {
     private AcademicLevelRepository academicLevelRepository;
 
     @Autowired
+    private AcademicLevelRuleAssignmentRepository ruleAssignmentRepository;
+
+    @Autowired
+    private AcademicRuleProfileRepository academicRuleProfileRepository;
+
+    @Autowired
     private AcademicYearRepository academicYearRepository;
 
     @Autowired
@@ -111,6 +125,7 @@ class AcademicRegistrationServiceIntegrationTest {
     private AcademicLevel secondLevel;
     private AcademicYear firstYear;
     private AcademicYear secondYear;
+    private AcademicRuleProfile firstRuleProfile;
 
     @BeforeEach
     void setUp() {
@@ -128,6 +143,9 @@ class AcademicRegistrationServiceIntegrationTest {
         secondLevel = saveLevel(secondProgram, "L1", 1);
         firstYear = saveYear(firstEstablishment, "2026-2027", 2026);
         secondYear = saveYear(firstEstablishment, "2027-2028", 2027);
+        firstRuleProfile = saveRuleProfile(firstEstablishment, "Standard Master Rules");
+        saveRuleAssignment(firstLevel, firstYear, firstRuleProfile);
+        saveRuleAssignment(firstLevel, secondYear, firstRuleProfile);
         Semester firstYearS1 = saveSemester(firstLevel, firstYear, "S1", 1);
         Semester firstYearS2 = saveSemester(firstLevel, firstYear, "S2", 2);
         Semester secondYearS1 = saveSemester(firstLevel, secondYear, "S1", 1);
@@ -222,6 +240,7 @@ class AcademicRegistrationServiceIntegrationTest {
             "2028-2029",
             2028
         );
+        saveRuleAssignment(firstLevel, yearWithoutSemesters, firstRuleProfile);
 
         assertThatThrownBy(() -> academicRegistrationService.createAcademicRegistration(
             root,
@@ -249,6 +268,25 @@ class AcademicRegistrationServiceIntegrationTest {
         ))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("400 BAD_REQUEST");
+    }
+
+    @Test
+    void registrationRequiresAnActiveRuleAssignment() {
+        AuthenticatedUserPrincipal root = rootPrincipal();
+        AcademicYear yearWithoutAssignment = saveYear(
+            firstEstablishment,
+            "2029-2030",
+            2029
+        );
+
+        assertThatThrownBy(() -> academicRegistrationService.createAcademicRegistration(
+            root,
+            firstEstablishment.getId(),
+            request(yearWithoutAssignment, firstProgram, firstLevel)
+        ))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("400 BAD_REQUEST")
+            .hasMessageContaining("active rule assignment");
     }
 
     private CreateAcademicRegistrationRequest request(
@@ -316,6 +354,36 @@ class AcademicRegistrationServiceIntegrationTest {
         return academicYearRepository.save(year);
     }
 
+    private AcademicRuleProfile saveRuleProfile(Establishment establishment, String name) {
+        AcademicRuleProfile profile = new AcademicRuleProfile();
+        profile.setEstablishment(establishment);
+        profile.setName(name);
+        profile.setVersion(1);
+        profile.setModuleValidationThreshold(new BigDecimal("10.00"));
+        profile.setCompensationMinimumThreshold(new BigDecimal("7.00"));
+        profile.setSemesterValidationAverage(new BigDecimal("10.00"));
+        profile.setAnnualValidationAverage(new BigDecimal("10.00"));
+        profile.setMaximumModuleInscriptions(2);
+        profile.setSessionGradePolicy(SessionGradePolicy.BEST_GRADE);
+        profile.setAllowProgressionWithDebt(true);
+        profile.setMaximumCarriedModules(2);
+        profile.setStatus(AcademicRuleProfileStatus.ACTIVE);
+        return academicRuleProfileRepository.save(profile);
+    }
+
+    private AcademicLevelRuleAssignment saveRuleAssignment(
+        AcademicLevel academicLevel,
+        AcademicYear academicYear,
+        AcademicRuleProfile profile
+    ) {
+        AcademicLevelRuleAssignment assignment = new AcademicLevelRuleAssignment();
+        assignment.setAcademicLevel(academicLevel);
+        assignment.setAcademicYear(academicYear);
+        assignment.setAcademicRuleProfile(profile);
+        assignment.setStatus(AcademicLevelRuleAssignmentStatus.ACTIVE);
+        return ruleAssignmentRepository.save(assignment);
+    }
+
     private Semester saveSemester(
         AcademicLevel academicLevel,
         AcademicYear academicYear,
@@ -369,12 +437,14 @@ class AcademicRegistrationServiceIntegrationTest {
         subjectRegestrationRepository.deleteAll();
         semesterRegestrationRepository.deleteAll();
         academicRegistrationRepository.deleteAll();
+        ruleAssignmentRepository.deleteAll();
         studentRepository.deleteAll();
         userAccountRepository.deleteAll(studentAccounts);
         subjectModuleRepository.deleteAll();
         semesterRepository.deleteAll();
         academicLevelRepository.deleteAll();
         academicYearRepository.deleteAll();
+        academicRuleProfileRepository.deleteAll();
         programFiliereRepository.deleteAll();
         degreeCycleRepository.deleteAll();
         programPathRepository.deleteAll();
