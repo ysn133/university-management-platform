@@ -18,6 +18,11 @@ public interface GradeRecordRepository extends JpaRepository<GradeRecord, UUID> 
         UUID moduleRegistrationId
     );
 
+    List<GradeRecord> findByModuleRegistrationIdAndWorkflowStatus(
+        UUID moduleRegistrationId,
+        GradeWorkflowStatus workflowStatus
+    );
+
     @Query("""
         select grade
         from GradeRecord grade

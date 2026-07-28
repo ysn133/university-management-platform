@@ -21,6 +21,14 @@ import com.platform.assessment.graderecord.infrastructure.GradeRecordRepository;
 import com.platform.assessment.graderecord.presentation.dto.GradeItemRequest;
 import com.platform.assessment.graderecord.presentation.dto.GradeSheetResponse;
 import com.platform.assessment.graderecord.presentation.dto.SaveGradeSheetRequest;
+import com.platform.assessment.moduleresult.domain.ModuleResultStatus;
+import com.platform.assessment.moduleresult.domain.ModuleResult;
+import com.platform.assessment.moduleresult.infrastructure.ModuleResultRepository;
+import com.platform.assessment.progressiondecision.domain.ProgressionDecisionStatus;
+import com.platform.assessment.progressiondecision.infrastructure.ProgressionDecisionRepository;
+import com.platform.assessment.semesterresult.application.SemesterResultService;
+import com.platform.assessment.semesterresult.domain.SemesterResultStatus;
+import com.platform.assessment.semesterresult.infrastructure.SemesterResultRepository;
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.AccountStatus;
 import com.platform.identityaccess.domain.Admin;
@@ -55,6 +63,13 @@ import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
 import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
 import com.platform.universitygovernance.academiclevel.domain.AcademicLevel;
 import com.platform.universitygovernance.academiclevel.infrastructure.AcademicLevelRepository;
+import com.platform.universitygovernance.academiclevelruleassignment.domain.AcademicLevelRuleAssignment;
+import com.platform.universitygovernance.academiclevelruleassignment.domain.AcademicLevelRuleAssignmentStatus;
+import com.platform.universitygovernance.academiclevelruleassignment.infrastructure.AcademicLevelRuleAssignmentRepository;
+import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfile;
+import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfileStatus;
+import com.platform.universitygovernance.academicruleprofile.domain.SessionGradePolicy;
+import com.platform.universitygovernance.academicruleprofile.infrastructure.AcademicRuleProfileRepository;
 import com.platform.universitygovernance.academicyear.domain.AcademicYear;
 import com.platform.universitygovernance.academicyear.domain.AcademicYearStatus;
 import com.platform.universitygovernance.academicyear.infrastructure.AcademicYearRepository;
@@ -102,6 +117,12 @@ class GradeRecordServiceIntegrationTest {
     @Autowired private ExamScheduleService examScheduleService;
     @Autowired private ModuleExamService moduleExamService;
     @Autowired private GradeRecordRepository gradeRecordRepository;
+    @Autowired private ModuleResultRepository moduleResultRepository;
+    @Autowired private SemesterResultRepository semesterResultRepository;
+    @Autowired private ProgressionDecisionRepository progressionDecisionRepository;
+    @Autowired private SemesterResultService semesterResultService;
+    @Autowired private AcademicLevelRuleAssignmentRepository ruleAssignmentRepository;
+    @Autowired private AcademicRuleProfileRepository ruleProfileRepository;
     @Autowired private StudentClassAssignmentRepository classAssignmentRepository;
     @Autowired private ModuleExamRepository moduleExamRepository;
     @Autowired private ExamScheduleRepository examScheduleRepository;
@@ -143,6 +164,7 @@ class GradeRecordServiceIntegrationTest {
     private SubjectModuleRegestration firstModuleRegistration;
     private SubjectModuleRegestration secondModuleRegistration;
     private Student firstStudent;
+    private AcademicRuleProfile ruleProfile;
     private AuthenticatedUserPrincipal root;
     private AuthenticatedUserPrincipal professorPrincipal;
 
@@ -157,6 +179,7 @@ class GradeRecordServiceIntegrationTest {
         program = saveProgram(establishment);
         academicLevel = saveLevel(program);
         academicYear = saveYear(establishment);
+        saveRuleAssignment();
         semester = saveSemester(academicLevel, academicYear);
         subjectModule = saveSubjectModule(semester);
         classGroup = saveClassGroup(academicLevel, academicYear);
@@ -263,6 +286,12 @@ class GradeRecordServiceIntegrationTest {
                     .isEqualTo(firstModuleRegistration.getId());
                 assertThat(grade.gradeValue()).isEqualByComparingTo("14.50");
                 assertThat(grade.publishedAt()).isNotNull();
+                assertThat(grade.subjectModuleCode()).isEqualTo("ALG");
+                assertThat(grade.subjectModuleTitle()).isEqualTo("Algorithms");
+                assertThat(grade.finalGradeValue()).isEqualByComparingTo("14.50");
+                assertThat(grade.moduleResultStatus()).isEqualTo(ModuleResultStatus.V);
+                assertThat(grade.academicRuleProfileId()).isNotNull();
+                assertThat(grade.moduleResultCalculatedAt()).isNotNull();
             });
         assertThat(gradeRecordService.getStudentGrades(
             root,
@@ -279,6 +308,193 @@ class GradeRecordServiceIntegrationTest {
         ))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("409 CONFLICT");
+    }
+
+    @Test
+    void rattrapageGradeIsCappedAtTheModuleValidationThreshold() {
+        assertSessionPolicyResult(
+            SessionGradePolicy.RATTRAPAGE_CAPPED_AT_VALIDATION_THRESHOLD,
+            "8.00",
+            "18.00",
+            "10.00",
+            ModuleResultStatus.V
+        );
+    }
+
+    @Test
+    void bestGradePolicyKeepsTheHigherSessionGrade() {
+        assertSessionPolicyResult(
+            SessionGradePolicy.BEST_GRADE,
+            "8.00",
+            "12.00",
+            "12.00",
+            ModuleResultStatus.V
+        );
+    }
+
+    @Test
+    void replacementPolicyUsesTheRattrapageGrade() {
+        assertSessionPolicyResult(
+            SessionGradePolicy.RATTRAPAGE_REPLACES_NORMAL,
+            "9.00",
+            "7.00",
+            "7.00",
+            ModuleResultStatus.NV
+        );
+    }
+
+    @Test
+    void semesterCompensationMarksEligibleModuleAsAvAndValidatesSemester() {
+        SubjectModule secondSubject = saveSubjectModule(semester, "DB", "Databases");
+        SubjectModuleRegestration compensableRegistration = saveModuleRegistration(
+            firstModuleRegistration.getSemesterRegestration(),
+            secondSubject,
+            1
+        );
+        saveModuleResult(firstModuleRegistration, "12.00");
+        saveModuleResult(compensableRegistration, "8.00");
+
+        semesterResultService.recalculateIfComplete(
+            firstModuleRegistration.getSemesterRegestration(),
+            ruleProfile
+        );
+
+        assertThat(moduleResultRepository.findByModuleRegistrationId(
+            compensableRegistration.getId()
+        ))
+            .get()
+            .satisfies(result -> {
+                assertThat(result.getFinalGradeValue()).isEqualByComparingTo("8.00");
+                assertThat(result.getResultStatus()).isEqualTo(ModuleResultStatus.AV);
+            });
+        assertThat(semesterResultRepository.findBySemesterRegistrationId(
+            firstModuleRegistration.getSemesterRegestration().getId()
+        ))
+            .get()
+            .satisfies(result -> {
+                assertThat(result.getSemesterAverage()).isEqualByComparingTo("10.00");
+                assertThat(result.getResultStatus()).isEqualTo(
+                    SemesterResultStatus.VALIDATED
+                );
+            });
+        assertThat(progressionDecisionRepository.findByAcademicRegistrationId(
+            firstModuleRegistration.getSemesterRegestration()
+                .getAcademicRegistration()
+                .getId()
+        ))
+            .get()
+            .extracting(decision -> decision.getDecisionStatus())
+            .isEqualTo(ProgressionDecisionStatus.PROMOTED);
+    }
+
+    @Test
+    void nonValidatedSemesterCanProducePromotionWithDebt() {
+        saveModuleResult(firstModuleRegistration, "6.00");
+
+        semesterResultService.recalculateIfComplete(
+            firstModuleRegistration.getSemesterRegestration(),
+            ruleProfile
+        );
+
+        assertThat(semesterResultRepository.findBySemesterRegistrationId(
+            firstModuleRegistration.getSemesterRegestration().getId()
+        ))
+            .get()
+            .extracting(result -> result.getResultStatus())
+            .isEqualTo(SemesterResultStatus.NON_VALIDATED);
+        assertThat(progressionDecisionRepository.findByAcademicRegistrationId(
+            firstModuleRegistration.getSemesterRegestration()
+                .getAcademicRegistration()
+                .getId()
+        ))
+            .get()
+            .satisfies(decision -> {
+                assertThat(decision.getDecisionStatus()).isEqualTo(
+                    ProgressionDecisionStatus.PROMOTED_WITH_DEBT
+                );
+                assertThat(decision.getOutstandingModuleCount()).isEqualTo(1);
+            });
+    }
+
+    @Test
+    void exhaustedModuleInscriptionProducesFailure() {
+        firstModuleRegistration.setInscriptionNumber(2);
+        moduleRegistrationRepository.save(firstModuleRegistration);
+        saveModuleResult(firstModuleRegistration, "6.00");
+
+        semesterResultService.recalculateIfComplete(
+            firstModuleRegistration.getSemesterRegestration(),
+            ruleProfile
+        );
+
+        assertThat(progressionDecisionRepository.findByAcademicRegistrationId(
+            firstModuleRegistration.getSemesterRegestration()
+                .getAcademicRegistration()
+                .getId()
+        ))
+            .get()
+            .extracting(decision -> decision.getDecisionStatus())
+            .isEqualTo(ProgressionDecisionStatus.FAILED);
+    }
+
+    private void assertSessionPolicyResult(
+        SessionGradePolicy policy,
+        String normalGrade,
+        String rattrapageGrade,
+        String expectedFinalGrade,
+        ModuleResultStatus expectedStatus
+    ) {
+        ruleProfile.setSessionGradePolicy(policy);
+        ruleProfileRepository.save(ruleProfile);
+
+        completeAndPublishGradeSheet(
+            moduleExam.id(),
+            gradeRequest(normalGrade, "7.00")
+        );
+        ModuleExamResponse rattrapageExam = createRattrapageExam();
+        completeAndPublishGradeSheet(
+            rattrapageExam.id(),
+            gradeRequest(rattrapageGrade, "9.00")
+        );
+
+        assertThat(moduleResultRepository.findByModuleRegistrationId(
+            firstModuleRegistration.getId()
+        ))
+            .get()
+            .satisfies(moduleResult -> {
+                assertThat(moduleResult.getFinalGradeValue())
+                    .isEqualByComparingTo(expectedFinalGrade);
+                assertThat(moduleResult.getResultStatus()).isEqualTo(expectedStatus);
+                assertThat(moduleResult.getAcademicRuleProfile().getId())
+                    .isEqualTo(ruleProfile.getId());
+            });
+    }
+
+    private ModuleExamResponse createRattrapageExam() {
+        ExamScheduleResponse schedule = examScheduleService.createExamSchedule(
+            root,
+            establishment.getId(),
+            new CreateExamSchedule(
+                academicYear.getId(),
+                semester.getId(),
+                ExamSessionType.RATTRAPAGE
+            )
+        );
+        ModuleExamResponse exam = moduleExamService.createModuleExam(
+            root,
+            schedule.id(),
+            new CreateModuleExamRequest(
+                subjectModule.getId(),
+                classGroup.getId(),
+                teachingAssignment.getId(),
+                LocalDate.of(2027, 2, 10),
+                LocalTime.of(9, 0),
+                LocalTime.of(11, 0),
+                "Room A"
+            )
+        );
+        examScheduleService.publishExamSchedule(root, schedule.id());
+        return exam;
     }
 
     @Test
@@ -372,6 +588,92 @@ class GradeRecordServiceIntegrationTest {
         ));
     }
 
+    private SubjectModuleRegestration saveModuleRegistration(
+        SemesterRegestration semesterRegistration,
+        SubjectModule module,
+        int inscriptionNumber
+    ) {
+        SubjectModuleRegestration registration = new SubjectModuleRegestration();
+        registration.setSemesterRegestration(semesterRegistration);
+        registration.setSubjectModule(module);
+        registration.setOriginAcademicLevel(null);
+        registration.setInscriptionNumber(inscriptionNumber);
+        registration.setStatus(SubjectModuleRegistrationStatus.ACTIVE);
+        return moduleRegistrationRepository.save(registration);
+    }
+
+    private ModuleResult saveModuleResult(
+        SubjectModuleRegestration registration,
+        String finalGrade
+    ) {
+        ModuleResult result = new ModuleResult();
+        result.setModuleRegistration(registration);
+        result.setAcademicRuleProfile(ruleProfile);
+        result.setFinalGradeValue(new BigDecimal(finalGrade));
+        result.setResultStatus(ModuleResultStatus.NV);
+        result.setCalculatedAt(java.time.Instant.now());
+        return moduleResultRepository.save(result);
+    }
+
+    private SaveGradeSheetRequest gradeRequest(
+        String firstGrade,
+        String secondGrade
+    ) {
+        return new SaveGradeSheetRequest(List.of(
+            new GradeItemRequest(
+                firstModuleRegistration.getId(),
+                new BigDecimal(firstGrade),
+                null
+            ),
+            new GradeItemRequest(
+                secondModuleRegistration.getId(),
+                new BigDecimal(secondGrade),
+                null
+            )
+        ));
+    }
+
+    private void completeAndPublishGradeSheet(
+        UUID moduleExamId,
+        SaveGradeSheetRequest request
+    ) {
+        gradeRecordService.saveDraftGradeSheet(
+            professorPrincipal,
+            moduleExamId,
+            request
+        );
+        gradeRecordService.submitGradeSheet(professorPrincipal, moduleExamId);
+        gradeRecordService.reviewGradeSheet(root, moduleExamId);
+        gradeRecordService.approveGradeSheet(root, moduleExamId);
+        gradeRecordService.publishGradeSheet(root, moduleExamId);
+    }
+
+    private void saveRuleAssignment() {
+        ruleProfile = new AcademicRuleProfile();
+        ruleProfile.setEstablishment(establishment);
+        ruleProfile.setName("Master Rules");
+        ruleProfile.setVersion(1);
+        ruleProfile.setModuleValidationThreshold(new BigDecimal("10.00"));
+        ruleProfile.setCompensationMinimumThreshold(new BigDecimal("7.00"));
+        ruleProfile.setSemesterValidationAverage(new BigDecimal("10.00"));
+        ruleProfile.setAnnualValidationAverage(null);
+        ruleProfile.setMaximumModuleInscriptions(2);
+        ruleProfile.setSessionGradePolicy(
+            SessionGradePolicy.RATTRAPAGE_CAPPED_AT_VALIDATION_THRESHOLD
+        );
+        ruleProfile.setAllowProgressionWithDebt(true);
+        ruleProfile.setMaximumCarriedModules(2);
+        ruleProfile.setStatus(AcademicRuleProfileStatus.ACTIVE);
+        ruleProfile = ruleProfileRepository.save(ruleProfile);
+
+        AcademicLevelRuleAssignment assignment = new AcademicLevelRuleAssignment();
+        assignment.setAcademicLevel(academicLevel);
+        assignment.setAcademicYear(academicYear);
+        assignment.setAcademicRuleProfile(ruleProfile);
+        assignment.setStatus(AcademicLevelRuleAssignmentStatus.ACTIVE);
+        ruleAssignmentRepository.save(assignment);
+    }
+
     private SubjectModuleRegestration registerStudent(Student student) {
         AcademicRegistration registration = new AcademicRegistration();
         registration.setStudent(student);
@@ -459,10 +761,18 @@ class GradeRecordServiceIntegrationTest {
     }
 
     private SubjectModule saveSubjectModule(Semester savedSemester) {
+        return saveSubjectModule(savedSemester, "ALG", "Algorithms");
+    }
+
+    private SubjectModule saveSubjectModule(
+        Semester savedSemester,
+        String code,
+        String title
+    ) {
         SubjectModule module = new SubjectModule();
         module.setSemester(savedSemester);
-        module.setCode("ALG");
-        module.setTitle("Algorithms");
+        module.setCode(code);
+        module.setTitle(title);
         return subjectModuleRepository.save(module);
     }
 
@@ -551,6 +861,9 @@ class GradeRecordServiceIntegrationTest {
     }
 
     private void clearBusinessData() {
+        progressionDecisionRepository.deleteAll();
+        semesterResultRepository.deleteAll();
+        moduleResultRepository.deleteAll();
         gradeRecordRepository.deleteAll();
         moduleExamRepository.deleteAll();
         examScheduleRepository.deleteAll();
@@ -568,6 +881,8 @@ class GradeRecordServiceIntegrationTest {
         superAdminRepository.deleteAll();
         rootSuperAdminRepository.deleteAll();
         semesterRepository.deleteAll();
+        ruleAssignmentRepository.deleteAll();
+        ruleProfileRepository.deleteAll();
         academicLevelRepository.deleteAll();
         academicYearRepository.deleteAll();
         programFiliereRepository.deleteAll();

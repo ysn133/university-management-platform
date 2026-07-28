@@ -3,6 +3,9 @@ package com.platform.assessment.graderecord.application;
 import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegestration;
 import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegistrationStatus;
 import com.platform.academicregistration.subjectmoduleregestration.infrastructure.SubjectRegestrationRepository;
+import com.platform.assessment.moduleresult.application.ModuleResultService;
+import com.platform.assessment.moduleresult.domain.ModuleResult;
+import com.platform.assessment.moduleresult.infrastructure.ModuleResultRepository;
 import com.platform.assessment.graderecord.domain.GradeRecord;
 import com.platform.assessment.graderecord.domain.GradeWorkflowStatus;
 import com.platform.assessment.graderecord.domain.ZeroGradeReason;
@@ -46,19 +49,25 @@ public class GradeRecordService {
     private final SubjectRegestrationRepository moduleRegistrationRepository;
     private final StudentRepository studentRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
+    private final ModuleResultService moduleResultService;
+    private final ModuleResultRepository moduleResultRepository;
 
     public GradeRecordService(
         GradeRecordRepository gradeRecordRepository,
         ModuleExamRepository moduleExamRepository,
         SubjectRegestrationRepository moduleRegistrationRepository,
         StudentRepository studentRepository,
-        AdminPermissionAuthorizationService permissionAuthorizationService
+        AdminPermissionAuthorizationService permissionAuthorizationService,
+        ModuleResultService moduleResultService,
+        ModuleResultRepository moduleResultRepository
     ) {
         this.gradeRecordRepository = gradeRecordRepository;
         this.moduleExamRepository = moduleExamRepository;
         this.moduleRegistrationRepository = moduleRegistrationRepository;
         this.studentRepository = studentRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
+        this.moduleResultService = moduleResultService;
+        this.moduleResultRepository = moduleResultRepository;
     }
 
     @Transactional(readOnly = true)
@@ -174,14 +183,17 @@ public class GradeRecordService {
         AuthenticatedUserPrincipal principal,
         UUID moduleExamId
     ) {
-        return managementTransition(
-            principal,
-            moduleExamId,
-            PermissionCode.GRADE_PUBLISH,
+        ModuleExam moduleExam = findModuleExam(moduleExamId);
+        requireManagementPermission(principal, moduleExam, PermissionCode.GRADE_PUBLISH);
+        List<GradeRecord> records = requireCompleteStoredSheet(moduleExam);
+        transition(
+            records,
             GradeWorkflowStatus.APPROVED,
             GradeWorkflowStatus.PUBLISHED,
             Instant.now()
         );
+        moduleResultService.recalculateForPublishedRecords(records);
+        return buildGradeSheet(moduleExam);
     }
 
     @Transactional(readOnly = true)
@@ -232,13 +244,32 @@ public class GradeRecordService {
         UUID academicLevelId,
         UUID semesterId
     ) {
-        return gradeRecordRepository.findStudentGrades(
+        List<GradeRecord> records = gradeRecordRepository.findStudentGrades(
             studentId,
             GradeWorkflowStatus.PUBLISHED,
             academicYearId,
             academicLevelId,
             semesterId
-        ).stream().map(this::toStudentGradeResponse).toList();
+        );
+        if (records.isEmpty()) {
+            return List.of();
+        }
+        Set<UUID> moduleRegistrationIds = records.stream()
+            .map(record -> record.getModuleRegistration().getId())
+            .collect(Collectors.toSet());
+        Map<UUID, ModuleResult> moduleResults = moduleResultRepository
+            .findByModuleRegistrationIdIn(moduleRegistrationIds)
+            .stream()
+            .collect(Collectors.toMap(
+                moduleResult -> moduleResult.getModuleRegistration().getId(),
+                Function.identity()
+            ));
+        return records.stream()
+            .map(record -> toStudentGradeResponse(
+                record,
+                moduleResults.get(record.getModuleRegistration().getId())
+            ))
+            .toList();
     }
 
     private GradeSheetResponse managementTransition(
@@ -457,13 +488,18 @@ public class GradeRecordService {
         );
     }
 
-    private StudentGradeResponse toStudentGradeResponse(GradeRecord record) {
+    private StudentGradeResponse toStudentGradeResponse(
+        GradeRecord record,
+        ModuleResult moduleResult
+    ) {
         SubjectModuleRegestration registration = record.getModuleRegistration();
         return new StudentGradeResponse(
             record.getId(),
             registration.getId(),
             record.getModuleExam().getId(),
             registration.getSubjectModule().getId(),
+            registration.getSubjectModule().getCode(),
+            registration.getSubjectModule().getTitle(),
             registration.getSemesterRegestration()
                 .getAcademicRegistration()
                 .getAcademicYear()
@@ -473,7 +509,12 @@ public class GradeRecordService {
             registration.getInscriptionNumber(),
             record.getGradeValue(),
             record.getZeroGradeReason(),
-            record.getPublishedAt()
+            record.getPublishedAt(),
+            moduleResult == null ? null : moduleResult.getId(),
+            moduleResult == null ? null : moduleResult.getFinalGradeValue(),
+            moduleResult == null ? null : moduleResult.getResultStatus(),
+            moduleResult == null ? null : moduleResult.getAcademicRuleProfile().getId(),
+            moduleResult == null ? null : moduleResult.getCalculatedAt()
         );
     }
 

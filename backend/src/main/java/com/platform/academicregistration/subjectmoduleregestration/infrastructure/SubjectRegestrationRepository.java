@@ -10,6 +10,11 @@ import org.springframework.data.repository.query.Param;
 
 public interface SubjectRegestrationRepository extends JpaRepository<SubjectModuleRegestration ,UUID>{
 
+    List<SubjectModuleRegestration> findBySemesterRegestrationIdAndStatus(
+        UUID semesterRegistrationId,
+        SubjectModuleRegistrationStatus status
+    );
+
     @Query("""
         select registration
         from SubjectModuleRegestration registration
