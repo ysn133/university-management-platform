@@ -9,6 +9,7 @@ import com.platform.universitygovernance.academiclevel.infrastructure.AcademicLe
 import com.platform.universitygovernance.academiclevel.presentation.dto.AcademicLevelResponse;
 import com.platform.universitygovernance.academiclevel.presentation.dto.CreateAcademicLevelRequest;
 import com.platform.universitygovernance.academiclevel.presentation.dto.UpdateAcademicLevelRequest;
+import com.platform.universitygovernance.academiclevelruleassignment.application.AcademicLevelRuleAssignmentService;
 import com.platform.universitygovernance.programfiliere.domain.ProgramFiliere;
 import com.platform.universitygovernance.programfiliere.infrastructure.ProgramFiliereRepository;
 import java.util.List;
@@ -24,15 +25,18 @@ public class AcademicLevelService {
     private final AcademicLevelRepository academicLevelRepository;
     private final ProgramFiliereRepository programFiliereRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
+    private final AcademicLevelRuleAssignmentService ruleAssignmentService;
 
     public AcademicLevelService(
         AcademicLevelRepository academicLevelRepository,
         ProgramFiliereRepository programFiliereRepository,
-        AdminPermissionAuthorizationService permissionAuthorizationService
+        AdminPermissionAuthorizationService permissionAuthorizationService,
+        AcademicLevelRuleAssignmentService ruleAssignmentService
     ) {
         this.academicLevelRepository = academicLevelRepository;
         this.programFiliereRepository = programFiliereRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
+        this.ruleAssignmentService = ruleAssignmentService;
     }
 
     @Transactional
@@ -51,7 +55,14 @@ public class AcademicLevelService {
         academicLevel.setProgramFiliere(programFiliere);
         academicLevel.setName(name);
         academicLevel.setLevelOrder(request.levelOrder());
-        return toResponse(academicLevelRepository.save(academicLevel));
+        AcademicLevel savedAcademicLevel = academicLevelRepository.save(academicLevel);
+        ruleAssignmentService.createInitialAssignment(
+            principal,
+            savedAcademicLevel,
+            request.initialAcademicYearId(),
+            request.academicRuleProfileId()
+        );
+        return toResponse(savedAcademicLevel);
     }
 
     @Transactional(readOnly = true)

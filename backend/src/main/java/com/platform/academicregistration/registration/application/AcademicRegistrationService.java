@@ -14,6 +14,8 @@ import com.platform.identityaccess.infrastructure.StudentRepository;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.universitygovernance.academiclevel.domain.AcademicLevel;
 import com.platform.universitygovernance.academiclevel.infrastructure.AcademicLevelRepository;
+import com.platform.universitygovernance.academiclevelruleassignment.domain.AcademicLevelRuleAssignmentStatus;
+import com.platform.universitygovernance.academiclevelruleassignment.infrastructure.AcademicLevelRuleAssignmentRepository;
 import com.platform.universitygovernance.academicyear.domain.AcademicYear;
 import com.platform.universitygovernance.academicyear.infrastructure.AcademicYearRepository;
 import com.platform.universitygovernance.establishment.domain.Establishment;
@@ -40,6 +42,7 @@ public class AcademicRegistrationService {
     private final AcademicYearRepository academicYearRepository;
     private final EstablishmentRepository establishmentRepository;
     private final SemesterRegestrationService semesterRegestrationService;
+    private final AcademicLevelRuleAssignmentRepository ruleAssignmentRepository;
 
     public AcademicRegistrationService(
         AcademicRegistrationRepository academicRegistrationRepository,
@@ -49,7 +52,8 @@ public class AcademicRegistrationService {
         AcademicYearRepository academicYearRepository,
         EstablishmentRepository establishmentRepository,
         AdminPermissionAuthorizationService permissionAuthorizationService,
-        SemesterRegestrationService semesterRegestrationService
+        SemesterRegestrationService semesterRegestrationService,
+        AcademicLevelRuleAssignmentRepository ruleAssignmentRepository
 
     ) {
         this.academicRegistrationRepository = academicRegistrationRepository;
@@ -60,6 +64,7 @@ public class AcademicRegistrationService {
         this.establishmentRepository = establishmentRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
         this.semesterRegestrationService = semesterRegestrationService;
+        this.ruleAssignmentRepository = ruleAssignmentRepository;
 
     }
 
@@ -88,6 +93,7 @@ public class AcademicRegistrationService {
             academicLevel,
             academicYear
         );
+        ensureActiveRuleAssignment(academicLevel.getId(), academicYear.getId());
         ensureStudentNotRegistered(student.getId(), academicYear.getId());
 
         AcademicRegistration academicRegistration = new AcademicRegistration();
@@ -267,6 +273,19 @@ public class AcademicRegistrationService {
             throw new ResponseStatusException(
                 HttpStatus.CONFLICT,
                 "Student is already registered for this academic year"
+            );
+        }
+    }
+
+    private void ensureActiveRuleAssignment(UUID academicLevelId, UUID academicYearId) {
+        if (!ruleAssignmentRepository.existsByAcademicLevelIdAndAcademicYearIdAndStatus(
+            academicLevelId,
+            academicYearId,
+            AcademicLevelRuleAssignmentStatus.ACTIVE
+        )) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Academic level requires an active rule assignment for this academic year"
             );
         }
     }

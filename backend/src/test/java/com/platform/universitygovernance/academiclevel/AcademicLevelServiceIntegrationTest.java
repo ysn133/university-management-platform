@@ -24,6 +24,19 @@ import com.platform.universitygovernance.academiclevel.infrastructure.AcademicLe
 import com.platform.universitygovernance.academiclevel.presentation.dto.AcademicLevelResponse;
 import com.platform.universitygovernance.academiclevel.presentation.dto.CreateAcademicLevelRequest;
 import com.platform.universitygovernance.academiclevel.presentation.dto.UpdateAcademicLevelRequest;
+import com.platform.universitygovernance.academiclevelruleassignment.infrastructure.AcademicLevelRuleAssignmentRepository;
+import com.platform.universitygovernance.academiclevelruleassignment.application.AcademicLevelRuleAssignmentService;
+import com.platform.universitygovernance.academiclevelruleassignment.presentation.dto.AcademicLevelRuleAssignmentResponse;
+import com.platform.universitygovernance.academiclevelruleassignment.presentation.dto.CreateAcademicLevelRuleAssignmentRequest;
+import com.platform.universitygovernance.academicyear.domain.AcademicYear;
+import com.platform.universitygovernance.academicyear.domain.AcademicYearStatus;
+import com.platform.universitygovernance.academicyear.infrastructure.AcademicYearRepository;
+import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfile;
+import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfileStatus;
+import com.platform.universitygovernance.academicruleprofile.domain.SessionGradePolicy;
+import com.platform.universitygovernance.academicruleprofile.infrastructure.AcademicRuleProfileRepository;
+import com.platform.universitygovernance.academicruleprofile.application.AcademicRuleProfileService;
+import com.platform.universitygovernance.academicruleprofile.presentation.dto.UpdateAcademicRuleProfileRequest;
 import com.platform.universitygovernance.degreecycle.domain.DegreeCycle;
 import com.platform.universitygovernance.degreecycle.infrastructure.DegreeCycleRepository;
 import com.platform.universitygovernance.department.domain.Department;
@@ -38,6 +51,7 @@ import com.platform.universitygovernance.programpath.domain.ProgramPath;
 import com.platform.universitygovernance.programpath.infrastructure.ProgramPathRepository;
 import com.platform.universitygovernance.university.domain.University;
 import com.platform.universitygovernance.university.infrastructure.UniversityRepository;
+import java.math.BigDecimal;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -57,6 +71,21 @@ class AcademicLevelServiceIntegrationTest {
 
     @Autowired
     private AcademicLevelRepository academicLevelRepository;
+
+    @Autowired
+    private AcademicLevelRuleAssignmentRepository ruleAssignmentRepository;
+
+    @Autowired
+    private AcademicLevelRuleAssignmentService ruleAssignmentService;
+
+    @Autowired
+    private AcademicRuleProfileRepository academicRuleProfileRepository;
+
+    @Autowired
+    private AcademicRuleProfileService academicRuleProfileService;
+
+    @Autowired
+    private AcademicYearRepository academicYearRepository;
 
     @Autowired
     private ProgramFiliereRepository programFiliereRepository;
@@ -101,6 +130,10 @@ class AcademicLevelServiceIntegrationTest {
     private Establishment secondEstablishment;
     private ProgramFiliere firstProgram;
     private ProgramFiliere secondProgram;
+    private AcademicYear firstYear;
+    private AcademicYear secondYear;
+    private AcademicRuleProfile firstRuleProfile;
+    private AcademicRuleProfile secondRuleProfile;
 
     @BeforeEach
     void setUp() {
@@ -114,6 +147,10 @@ class AcademicLevelServiceIntegrationTest {
         secondEstablishment = saveEstablishment(university, "Faculty of Sciences", EstablishmentType.FACULTY);
         firstProgram = saveProgram(firstEstablishment, "Computer Science", "Master", "Excellence", "IL");
         secondProgram = saveProgram(secondEstablishment, "Mathematics", "Licence", "Regular", "MATH");
+        firstYear = saveAcademicYear(firstEstablishment, "2026-2027", 2026);
+        secondYear = saveAcademicYear(secondEstablishment, "2026-2027", 2026);
+        firstRuleProfile = saveRuleProfile(firstEstablishment, "Master Rules");
+        secondRuleProfile = saveRuleProfile(secondEstablishment, "Licence Rules");
     }
 
     @AfterEach
@@ -128,32 +165,126 @@ class AcademicLevelServiceIntegrationTest {
         AcademicLevelResponse second = academicLevelService.createAcademicLevel(
             root,
             firstProgram.getId(),
-            new CreateAcademicLevelRequest("  M2  ", 2)
+            new CreateAcademicLevelRequest(
+                "  M2  ",
+                2,
+                firstYear.getId(),
+                firstRuleProfile.getId()
+            )
         );
         AcademicLevelResponse first = academicLevelService.createAcademicLevel(
             root,
             firstProgram.getId(),
-            new CreateAcademicLevelRequest("M1", 1)
+            new CreateAcademicLevelRequest(
+                "M1",
+                1,
+                firstYear.getId(),
+                firstRuleProfile.getId()
+            )
         );
 
         assertThat(second.name()).isEqualTo("M2");
         assertThat(second.establishmentId()).isEqualTo(firstEstablishment.getId());
+        assertThat(ruleAssignmentRepository.findByAcademicLevelIdAndAcademicYearId(
+            second.id(),
+            firstYear.getId()
+        )).isPresent();
         assertThat(academicLevelService.getAcademicLevels(root, firstProgram.getId()))
             .extracting(AcademicLevelResponse::id)
             .containsExactly(first.id(), second.id());
         assertThat(academicLevelService.getAcademicLevel(root, first.id()).id()).isEqualTo(first.id());
 
+        AcademicYear nextYear = saveAcademicYear(firstEstablishment, "2027-2028", 2027);
+        AcademicLevelRuleAssignmentResponse nextAssignment = ruleAssignmentService.createAssignment(
+            root,
+            first.id(),
+            new CreateAcademicLevelRuleAssignmentRequest(
+                nextYear.getId(),
+                firstRuleProfile.getId()
+            )
+        );
+        assertThat(ruleAssignmentService.getAssignments(root, first.id()))
+            .extracting(AcademicLevelRuleAssignmentResponse::academicYearId)
+            .containsExactly(nextYear.getId(), firstYear.getId());
+        assertThat(ruleAssignmentService.getAssignment(root, nextAssignment.id()).id())
+            .isEqualTo(nextAssignment.id());
+        assertThatThrownBy(() -> ruleAssignmentService.createAssignment(
+            root,
+            first.id(),
+            new CreateAcademicLevelRuleAssignmentRequest(
+                nextYear.getId(),
+                firstRuleProfile.getId()
+            )
+        ))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("409 CONFLICT");
+        assertThatThrownBy(() -> ruleAssignmentService.createAssignment(
+            root,
+            first.id(),
+            new CreateAcademicLevelRuleAssignmentRequest(
+                firstYear.getId(),
+                secondRuleProfile.getId()
+            )
+        ))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("400 BAD_REQUEST");
+        assertThatThrownBy(() -> academicRuleProfileService.updateAcademicRuleProfile(
+            root,
+            firstRuleProfile.getId(),
+            new UpdateAcademicRuleProfileRequest(
+                "Master Rules",
+                new BigDecimal("11.00"),
+                new BigDecimal("7.00"),
+                new BigDecimal("10.00"),
+                new BigDecimal("10.00"),
+                2,
+                SessionGradePolicy.BEST_GRADE,
+                true,
+                2,
+                AcademicRuleProfileStatus.ACTIVE
+            )
+        ))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("409 CONFLICT")
+            .hasMessageContaining("immutable");
+        assertThat(academicRuleProfileService.updateAcademicRuleProfile(
+            root,
+            firstRuleProfile.getId(),
+            new UpdateAcademicRuleProfileRequest(
+                "Master Rules",
+                new BigDecimal("10.00"),
+                new BigDecimal("7.00"),
+                new BigDecimal("10.00"),
+                new BigDecimal("10.00"),
+                2,
+                SessionGradePolicy.BEST_GRADE,
+                true,
+                2,
+                AcademicRuleProfileStatus.INACTIVE
+            )
+        ).status()).isEqualTo(AcademicRuleProfileStatus.INACTIVE);
+
         assertThatThrownBy(() -> academicLevelService.createAcademicLevel(
             root,
             firstProgram.getId(),
-            new CreateAcademicLevelRequest("m1", 3)
+            new CreateAcademicLevelRequest(
+                "m1",
+                3,
+                firstYear.getId(),
+                firstRuleProfile.getId()
+            )
         ))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("409 CONFLICT");
         assertThatThrownBy(() -> academicLevelService.createAcademicLevel(
             root,
             firstProgram.getId(),
-            new CreateAcademicLevelRequest("M3", 2)
+            new CreateAcademicLevelRequest(
+                "M3",
+                2,
+                firstYear.getId(),
+                firstRuleProfile.getId()
+            )
         ))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("409 CONFLICT");
@@ -176,12 +307,22 @@ class AcademicLevelServiceIntegrationTest {
         AcademicLevelResponse firstLevel = academicLevelService.createAcademicLevel(
             root,
             firstProgram.getId(),
-            new CreateAcademicLevelRequest("M1", 1)
+            new CreateAcademicLevelRequest(
+                "M1",
+                1,
+                firstYear.getId(),
+                firstRuleProfile.getId()
+            )
         );
         AcademicLevelResponse secondLevel = academicLevelService.createAcademicLevel(
             root,
             secondProgram.getId(),
-            new CreateAcademicLevelRequest("L1", 1)
+            new CreateAcademicLevelRequest(
+                "L1",
+                1,
+                secondYear.getId(),
+                secondRuleProfile.getId()
+            )
         );
 
         UserAccount account = new UserAccount();
@@ -272,6 +413,37 @@ class AcademicLevelServiceIntegrationTest {
         );
     }
 
+    private AcademicYear saveAcademicYear(
+        Establishment establishment,
+        String label,
+        int startYear
+    ) {
+        AcademicYear academicYear = new AcademicYear();
+        academicYear.setEstablishment(establishment);
+        academicYear.setLabel(label);
+        academicYear.setStartYear(startYear);
+        academicYear.setEndYear(startYear + 1);
+        academicYear.setStatus(AcademicYearStatus.ACTIVE);
+        return academicYearRepository.save(academicYear);
+    }
+
+    private AcademicRuleProfile saveRuleProfile(Establishment establishment, String name) {
+        AcademicRuleProfile profile = new AcademicRuleProfile();
+        profile.setEstablishment(establishment);
+        profile.setName(name);
+        profile.setVersion(1);
+        profile.setModuleValidationThreshold(new BigDecimal("10.00"));
+        profile.setCompensationMinimumThreshold(new BigDecimal("7.00"));
+        profile.setSemesterValidationAverage(new BigDecimal("10.00"));
+        profile.setAnnualValidationAverage(new BigDecimal("10.00"));
+        profile.setMaximumModuleInscriptions(2);
+        profile.setSessionGradePolicy(SessionGradePolicy.BEST_GRADE);
+        profile.setAllowProgressionWithDebt(true);
+        profile.setMaximumCarriedModules(2);
+        profile.setStatus(AcademicRuleProfileStatus.ACTIVE);
+        return academicRuleProfileRepository.save(profile);
+    }
+
     private Establishment saveEstablishment(
         University university,
         String name,
@@ -287,7 +459,10 @@ class AcademicLevelServiceIntegrationTest {
 
     private void clearBusinessData() {
         adminPermissionGrantRepository.deleteAll();
+        ruleAssignmentRepository.deleteAll();
         academicLevelRepository.deleteAll();
+        academicYearRepository.deleteAll();
+        academicRuleProfileRepository.deleteAll();
         programFiliereRepository.deleteAll();
         degreeCycleRepository.deleteAll();
         programPathRepository.deleteAll();
