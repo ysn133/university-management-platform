@@ -5,6 +5,7 @@ import com.platform.identityaccess.domain.PermissionCode;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfile;
 import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfileStatus;
+import com.platform.universitygovernance.academicruleprofile.domain.AbsenceExclusionPolicy;
 import com.platform.universitygovernance.academicruleprofile.domain.SessionGradePolicy;
 import com.platform.universitygovernance.academicruleprofile.infrastructure.AcademicRuleProfileRepository;
 import com.platform.universitygovernance.academicruleprofile.presentation.dto.AcademicRuleProfileResponse;
@@ -66,6 +67,8 @@ public class AcademicRuleProfileService {
             request.sessionGradePolicy(),
             request.allowProgressionWithDebt(),
             request.maximumCarriedModules(),
+            request.maximumUnjustifiedAbsences(),
+            request.absenceExclusionPolicy(),
             request.status()
         );
 
@@ -137,6 +140,8 @@ public class AcademicRuleProfileService {
             request.sessionGradePolicy(),
             request.allowProgressionWithDebt(),
             request.maximumCarriedModules(),
+            request.maximumUnjustifiedAbsences(),
+            request.absenceExclusionPolicy(),
             request.status()
         );
 
@@ -191,6 +196,8 @@ public class AcademicRuleProfileService {
         SessionGradePolicy sessionGradePolicy,
         Boolean allowProgressionWithDebt,
         Integer maximumCarriedModules,
+        Integer maximumUnjustifiedAbsences,
+        AbsenceExclusionPolicy absenceExclusionPolicy,
         AcademicRuleProfileStatus status
     ) {
         requireGrade(moduleValidationThreshold, "Module validation threshold");
@@ -220,6 +227,12 @@ public class AcademicRuleProfileService {
         if (!allowProgressionWithDebt && maximumCarriedModules != 0) {
             throw badRequest("Maximum carried modules must be zero when progression with debt is disabled");
         }
+        if (maximumUnjustifiedAbsences == null || maximumUnjustifiedAbsences < 0) {
+            throw badRequest("Maximum unjustified absences cannot be negative");
+        }
+        if (absenceExclusionPolicy == null) {
+            throw badRequest("Absence exclusion policy is required");
+        }
         if (status == null) {
             throw badRequest("Academic rule profile status is required");
         }
@@ -245,6 +258,8 @@ public class AcademicRuleProfileService {
         profile.setSessionGradePolicy(request.sessionGradePolicy());
         profile.setAllowProgressionWithDebt(request.allowProgressionWithDebt());
         profile.setMaximumCarriedModules(request.maximumCarriedModules());
+        profile.setMaximumUnjustifiedAbsences(request.maximumUnjustifiedAbsences());
+        profile.setAbsenceExclusionPolicy(request.absenceExclusionPolicy());
         profile.setStatus(request.status());
     }
 
@@ -272,7 +287,11 @@ public class AcademicRuleProfileService {
             || profile.getSessionGradePolicy() != request.sessionGradePolicy()
             || profile.isAllowProgressionWithDebt()
                 != request.allowProgressionWithDebt()
-            || profile.getMaximumCarriedModules() != request.maximumCarriedModules();
+            || profile.getMaximumCarriedModules() != request.maximumCarriedModules()
+            || profile.getMaximumUnjustifiedAbsences()
+                != request.maximumUnjustifiedAbsences()
+            || profile.getAbsenceExclusionPolicy()
+                != request.absenceExclusionPolicy();
     }
 
     private boolean sameGrade(BigDecimal first, BigDecimal second) {
@@ -294,6 +313,8 @@ public class AcademicRuleProfileService {
         profile.setSessionGradePolicy(request.sessionGradePolicy());
         profile.setAllowProgressionWithDebt(request.allowProgressionWithDebt());
         profile.setMaximumCarriedModules(request.maximumCarriedModules());
+        profile.setMaximumUnjustifiedAbsences(request.maximumUnjustifiedAbsences());
+        profile.setAbsenceExclusionPolicy(request.absenceExclusionPolicy());
         profile.setStatus(request.status());
     }
 
@@ -322,6 +343,8 @@ public class AcademicRuleProfileService {
             profile.getSessionGradePolicy(),
             profile.isAllowProgressionWithDebt(),
             profile.getMaximumCarriedModules(),
+            profile.getMaximumUnjustifiedAbsences(),
+            profile.getAbsenceExclusionPolicy(),
             profile.getStatus(),
             profile.getCreatedAt(),
             profile.getUpdatedAt()

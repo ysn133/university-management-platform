@@ -454,6 +454,7 @@ public class ModuleExamService {
             moduleExam.getStartTime(),
             moduleExam.getEndTime(),
             moduleExam.getLocation(),
+            moduleExam.getCandidateListGeneratedAt(),
             moduleExam.getCreatedAt(),
             moduleExam.getUpdatedAt()
         );

@@ -15,6 +15,7 @@ public record ModuleExamResponse(
     LocalTime startTime,
     LocalTime endTime,
     String location,
+    Instant candidateListGeneratedAt,
     Instant createdAt,
     Instant updatedAt
 ) {

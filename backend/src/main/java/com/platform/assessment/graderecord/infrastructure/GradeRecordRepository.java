@@ -11,6 +11,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface GradeRecordRepository extends JpaRepository<GradeRecord, UUID> {
 
+    boolean existsByModuleExamId(UUID moduleExamId);
+
     List<GradeRecord> findByModuleExamId(UUID moduleExamId);
 
     Optional<GradeRecord> findByModuleExamIdAndModuleRegistrationId(

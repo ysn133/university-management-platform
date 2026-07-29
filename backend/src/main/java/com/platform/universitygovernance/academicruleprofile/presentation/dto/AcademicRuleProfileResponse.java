@@ -1,6 +1,7 @@
 package com.platform.universitygovernance.academicruleprofile.presentation.dto;
 
 import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfileStatus;
+import com.platform.universitygovernance.academicruleprofile.domain.AbsenceExclusionPolicy;
 import com.platform.universitygovernance.academicruleprofile.domain.SessionGradePolicy;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -19,6 +20,8 @@ public record AcademicRuleProfileResponse(
     SessionGradePolicy sessionGradePolicy,
     boolean allowProgressionWithDebt,
     int maximumCarriedModules,
+    int maximumUnjustifiedAbsences,
+    AbsenceExclusionPolicy absenceExclusionPolicy,
     AcademicRuleProfileStatus status,
     Instant createdAt,
     Instant updatedAt
