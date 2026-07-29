@@ -57,6 +57,14 @@ public class AcademicRuleProfile {
     @Column(name = "maximum_carried_modules", nullable = false)
     private int maximumCarriedModules;
 
+    @Column(name = "maximum_unjustified_absences", nullable = false)
+    private int maximumUnjustifiedAbsences;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "absence_exclusion_policy", nullable = false)
+    private AbsenceExclusionPolicy absenceExclusionPolicy =
+        AbsenceExclusionPolicy.NORMAL_AND_RATTRAPAGE;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private AcademicRuleProfileStatus status;
@@ -175,6 +183,22 @@ public class AcademicRuleProfile {
 
     public void setMaximumCarriedModules(int maximumCarriedModules) {
         this.maximumCarriedModules = maximumCarriedModules;
+    }
+
+    public int getMaximumUnjustifiedAbsences() {
+        return maximumUnjustifiedAbsences;
+    }
+
+    public void setMaximumUnjustifiedAbsences(int maximumUnjustifiedAbsences) {
+        this.maximumUnjustifiedAbsences = maximumUnjustifiedAbsences;
+    }
+
+    public AbsenceExclusionPolicy getAbsenceExclusionPolicy() {
+        return absenceExclusionPolicy;
+    }
+
+    public void setAbsenceExclusionPolicy(AbsenceExclusionPolicy absenceExclusionPolicy) {
+        this.absenceExclusionPolicy = absenceExclusionPolicy;
     }
 
     public AcademicRuleProfileStatus getStatus() {

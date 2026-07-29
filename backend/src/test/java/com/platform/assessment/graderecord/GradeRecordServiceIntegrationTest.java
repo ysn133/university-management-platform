@@ -29,6 +29,10 @@ import com.platform.assessment.progressiondecision.infrastructure.ProgressionDec
 import com.platform.assessment.semesterresult.application.SemesterResultService;
 import com.platform.assessment.semesterresult.domain.SemesterResultStatus;
 import com.platform.assessment.semesterresult.infrastructure.SemesterResultRepository;
+import com.platform.attendance.absencerecord.application.AbsenceRecordService;
+import com.platform.attendance.absencerecord.infrastructure.AbsenceRecordRepository;
+import com.platform.attendance.absencerecord.presentation.dto.CreateAbsenceRequest;
+import com.platform.attendance.absencerecord.presentation.dto.UpdateAbsenceJustificationRequest;
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.AccountStatus;
 import com.platform.identityaccess.domain.Admin;
@@ -54,6 +58,9 @@ import com.platform.scheduling.examschedule.domain.ExamSessionType;
 import com.platform.scheduling.examschedule.infrastructure.ExamScheduleRepository;
 import com.platform.scheduling.examschedule.presentation.dto.CreateExamSchedule;
 import com.platform.scheduling.examschedule.presentation.dto.ExamScheduleResponse;
+import com.platform.scheduling.examcandidate.application.ExamCandidateService;
+import com.platform.scheduling.examcandidate.infrastructure.ExamCandidateRepository;
+import com.platform.scheduling.examcandidate.presentation.dto.ExamCandidateResponse;
 import com.platform.scheduling.moduleexam.application.ModuleExamService;
 import com.platform.scheduling.moduleexam.infrastructure.ModuleExamRepository;
 import com.platform.scheduling.moduleexam.presentation.dto.CreateModuleExamRequest;
@@ -68,6 +75,7 @@ import com.platform.universitygovernance.academiclevelruleassignment.domain.Acad
 import com.platform.universitygovernance.academiclevelruleassignment.infrastructure.AcademicLevelRuleAssignmentRepository;
 import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfile;
 import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfileStatus;
+import com.platform.universitygovernance.academicruleprofile.domain.AbsenceExclusionPolicy;
 import com.platform.universitygovernance.academicruleprofile.domain.SessionGradePolicy;
 import com.platform.universitygovernance.academicruleprofile.infrastructure.AcademicRuleProfileRepository;
 import com.platform.universitygovernance.academicyear.domain.AcademicYear;
@@ -113,10 +121,14 @@ import org.springframework.web.server.ResponseStatusException;
 class GradeRecordServiceIntegrationTest {
 
     @Autowired private GradeRecordService gradeRecordService;
+    @Autowired private AbsenceRecordService absenceRecordService;
+    @Autowired private ExamCandidateService examCandidateService;
     @Autowired private StudentClassAssignmentService classAssignmentService;
     @Autowired private ExamScheduleService examScheduleService;
     @Autowired private ModuleExamService moduleExamService;
     @Autowired private GradeRecordRepository gradeRecordRepository;
+    @Autowired private AbsenceRecordRepository absenceRecordRepository;
+    @Autowired private ExamCandidateRepository examCandidateRepository;
     @Autowired private ModuleResultRepository moduleResultRepository;
     @Autowired private SemesterResultRepository semesterResultRepository;
     @Autowired private ProgressionDecisionRepository progressionDecisionRepository;
@@ -221,6 +233,7 @@ class GradeRecordServiceIntegrationTest {
             )
         );
         examScheduleService.publishExamSchedule(root, schedule.id());
+        examCandidateService.generateCandidates(root, moduleExam.id());
     }
 
     @AfterEach
@@ -341,6 +354,21 @@ class GradeRecordServiceIntegrationTest {
             "7.00",
             ModuleResultStatus.NV
         );
+    }
+
+    @Test
+    void rattrapageCandidatesExcludeStudentsWhoValidatedInNormal() {
+        completeAndPublishGradeSheet(
+            moduleExam.id(),
+            gradeRequest("12.00", "8.00")
+        );
+
+        ModuleExamResponse rattrapageExam = createRattrapageExam();
+
+        assertThat(examCandidateService.getCandidates(root, rattrapageExam.id()))
+            .singleElement()
+            .extracting(ExamCandidateResponse::moduleRegistrationId)
+            .isEqualTo(secondModuleRegistration.getId());
     }
 
     @Test
@@ -494,6 +522,7 @@ class GradeRecordServiceIntegrationTest {
             )
         );
         examScheduleService.publishExamSchedule(root, schedule.id());
+        examCandidateService.generateCandidates(root, exam.id());
         return exam;
     }
 
@@ -571,6 +600,65 @@ class GradeRecordServiceIntegrationTest {
         grant(admin, PermissionCode.GRADE_REVIEW);
         assertThat(gradeRecordService.reviewGradeSheet(adminPrincipal, moduleExam.id())
             .workflowStatus()).isEqualTo(GradeWorkflowStatus.REVIEWED);
+    }
+
+    @Test
+    void assignedProfessorRecordsAbsencesAndJustificationRestoresEligibility() {
+        ruleProfile.setMaximumUnjustifiedAbsences(1);
+        ruleProfile.setAbsenceExclusionPolicy(
+            AbsenceExclusionPolicy.NORMAL_AND_RATTRAPAGE
+        );
+        ruleProfileRepository.save(ruleProfile);
+
+        Professor otherProfessor = saveProfessor("absence-other@uiz.ac.ma");
+        AuthenticatedUserPrincipal otherProfessorPrincipal = principal(
+            AccountRoleType.PROFESSOR,
+            otherProfessor.getId(),
+            establishment.getId()
+        );
+        CreateAbsenceRequest firstRequest = new CreateAbsenceRequest(
+            firstModuleRegistration.getId(),
+            LocalDate.now().minusDays(2)
+        );
+        assertThatThrownBy(() -> absenceRecordService.createAbsence(
+            otherProfessorPrincipal,
+            teachingAssignment.getId(),
+            firstRequest
+        ))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("403 FORBIDDEN");
+
+        var firstAbsence = absenceRecordService.createAbsence(
+            professorPrincipal,
+            teachingAssignment.getId(),
+            firstRequest
+        );
+        absenceRecordService.createAbsence(
+            professorPrincipal,
+            teachingAssignment.getId(),
+            new CreateAbsenceRequest(
+                firstModuleRegistration.getId(),
+                LocalDate.now().minusDays(1)
+            )
+        );
+
+        List<ExamCandidateResponse> invitedCandidates =
+            examCandidateService.generateCandidates(root, moduleExam.id());
+        assertThat(invitedCandidates)
+            .extracting(ExamCandidateResponse::moduleRegistrationId)
+            .containsExactly(secondModuleRegistration.getId());
+
+        absenceRecordService.updateJustification(
+            professorPrincipal,
+            firstAbsence.id(),
+            new UpdateAbsenceJustificationRequest(true, "Medical certificate")
+        );
+        assertThat(examCandidateService.generateCandidates(root, moduleExam.id()))
+            .extracting(ExamCandidateResponse::moduleRegistrationId)
+            .containsExactlyInAnyOrder(
+                firstModuleRegistration.getId(),
+                secondModuleRegistration.getId()
+            );
     }
 
     private SaveGradeSheetRequest completeGradeRequest() {
@@ -865,6 +953,8 @@ class GradeRecordServiceIntegrationTest {
         semesterResultRepository.deleteAll();
         moduleResultRepository.deleteAll();
         gradeRecordRepository.deleteAll();
+        examCandidateRepository.deleteAll();
+        absenceRecordRepository.deleteAll();
         moduleExamRepository.deleteAll();
         examScheduleRepository.deleteAll();
         teachingAssignmentRepository.deleteAll();

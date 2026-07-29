@@ -1,8 +1,6 @@
 package com.platform.assessment.graderecord.application;
 
 import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegestration;
-import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegistrationStatus;
-import com.platform.academicregistration.subjectmoduleregestration.infrastructure.SubjectRegestrationRepository;
 import com.platform.assessment.moduleresult.application.ModuleResultService;
 import com.platform.assessment.moduleresult.domain.ModuleResult;
 import com.platform.assessment.moduleresult.infrastructure.ModuleResultRepository;
@@ -21,6 +19,7 @@ import com.platform.identityaccess.domain.PermissionCode;
 import com.platform.identityaccess.domain.Student;
 import com.platform.identityaccess.infrastructure.StudentRepository;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
+import com.platform.scheduling.examcandidate.infrastructure.ExamCandidateRepository;
 import com.platform.scheduling.examschedule.domain.PublicationStatus;
 import com.platform.scheduling.moduleexam.domain.ModuleExam;
 import com.platform.scheduling.moduleexam.infrastructure.ModuleExamRepository;
@@ -46,28 +45,28 @@ public class GradeRecordService {
 
     private final GradeRecordRepository gradeRecordRepository;
     private final ModuleExamRepository moduleExamRepository;
-    private final SubjectRegestrationRepository moduleRegistrationRepository;
     private final StudentRepository studentRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
     private final ModuleResultService moduleResultService;
     private final ModuleResultRepository moduleResultRepository;
+    private final ExamCandidateRepository examCandidateRepository;
 
     public GradeRecordService(
         GradeRecordRepository gradeRecordRepository,
         ModuleExamRepository moduleExamRepository,
-        SubjectRegestrationRepository moduleRegistrationRepository,
         StudentRepository studentRepository,
         AdminPermissionAuthorizationService permissionAuthorizationService,
         ModuleResultService moduleResultService,
-        ModuleResultRepository moduleResultRepository
+        ModuleResultRepository moduleResultRepository,
+        ExamCandidateRepository examCandidateRepository
     ) {
         this.gradeRecordRepository = gradeRecordRepository;
         this.moduleExamRepository = moduleExamRepository;
-        this.moduleRegistrationRepository = moduleRegistrationRepository;
         this.studentRepository = studentRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
         this.moduleResultService = moduleResultService;
         this.moduleResultRepository = moduleResultRepository;
+        this.examCandidateRepository = examCandidateRepository;
     }
 
     @Transactional(readOnly = true)
@@ -417,13 +416,17 @@ public class GradeRecordService {
     private List<SubjectModuleRegestration> eligibleRegistrations(
         ModuleExam moduleExam
     ) {
-        return moduleRegistrationRepository.findEligibleForModuleExam(
-            moduleExam.getSubjectModule().getId(),
-            moduleExam.getClassGroup().getId(),
-            moduleExam.getExamSchedule().getAcademicYear().getId(),
-            moduleExam.getExamSchedule().getSemester().getId(),
-            SubjectModuleRegistrationStatus.ACTIVE
-        );
+        if (moduleExam.getCandidateListGeneratedAt() == null) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Generate the exam candidate list before managing grades"
+            );
+        }
+        return examCandidateRepository
+            .findByModuleExamIdOrderByCreatedAtAsc(moduleExam.getId())
+            .stream()
+            .map(candidate -> candidate.getModuleRegistration())
+            .toList();
     }
 
     private GradeSheetResponse buildGradeSheet(ModuleExam moduleExam) {

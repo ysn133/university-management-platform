@@ -1,6 +1,7 @@
 package com.platform.universitygovernance.academicruleprofile.presentation.dto;
 
 import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfileStatus;
+import com.platform.universitygovernance.academicruleprofile.domain.AbsenceExclusionPolicy;
 import com.platform.universitygovernance.academicruleprofile.domain.SessionGradePolicy;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -26,6 +27,35 @@ public record UpdateAcademicRuleProfileRequest(
     @NotNull SessionGradePolicy sessionGradePolicy,
     @NotNull Boolean allowProgressionWithDebt,
     @NotNull @PositiveOrZero Integer maximumCarriedModules,
+    @NotNull @PositiveOrZero Integer maximumUnjustifiedAbsences,
+    @NotNull AbsenceExclusionPolicy absenceExclusionPolicy,
     @NotNull AcademicRuleProfileStatus status
 ) {
+    public UpdateAcademicRuleProfileRequest(
+        String name,
+        BigDecimal moduleValidationThreshold,
+        BigDecimal compensationMinimumThreshold,
+        BigDecimal semesterValidationAverage,
+        BigDecimal annualValidationAverage,
+        Integer maximumModuleInscriptions,
+        SessionGradePolicy sessionGradePolicy,
+        Boolean allowProgressionWithDebt,
+        Integer maximumCarriedModules,
+        AcademicRuleProfileStatus status
+    ) {
+        this(
+            name,
+            moduleValidationThreshold,
+            compensationMinimumThreshold,
+            semesterValidationAverage,
+            annualValidationAverage,
+            maximumModuleInscriptions,
+            sessionGradePolicy,
+            allowProgressionWithDebt,
+            maximumCarriedModules,
+            0,
+            AbsenceExclusionPolicy.NORMAL_AND_RATTRAPAGE,
+            status
+        );
+    }
 }

@@ -52,6 +52,9 @@ public class ModuleExam {
     @Column(name = "location")
     private String location;
 
+    @Column(name = "candidate_list_generated_at")
+    private Instant candidateListGeneratedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -142,6 +145,14 @@ public class ModuleExam {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public Instant getCandidateListGeneratedAt() {
+        return candidateListGeneratedAt;
+    }
+
+    public void setCandidateListGeneratedAt(Instant candidateListGeneratedAt) {
+        this.candidateListGeneratedAt = candidateListGeneratedAt;
     }
 
     public Instant getCreatedAt() {
