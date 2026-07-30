@@ -417,6 +417,7 @@ class AcademicRegistrationServiceIntegrationTest {
         Student savedStudent = new Student();
         savedStudent.setUserAccount(account);
         savedStudent.setEstablishment(establishment);
+        savedStudent.setApogeeCode("APO-" + UUID.randomUUID());
         return studentRepository.save(savedStudent);
     }
 

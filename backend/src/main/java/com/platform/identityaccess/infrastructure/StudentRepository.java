@@ -10,5 +10,9 @@ public interface StudentRepository extends JpaRepository<Student, UUID> {
 
     Optional<Student> findByUserAccountId(UUID userAccountId);
 
+    boolean existsByApogeeCodeIgnoreCase(String apogeeCode);
+
+    boolean existsByNationalStudentCodeIgnoreCase(String nationalStudentCode);
+
     List<Student> findByEstablishmentIdOrderByCreatedAtAsc(UUID establishmentId);
 }

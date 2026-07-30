@@ -60,9 +60,32 @@ public class StudentManagementService {
         requirePermission(principal, establishmentId, PermissionCode.STUDENT_CREATE);
         Establishment establishment = findEstablishment(establishmentId);
 
+        if (request.initialEnrollmentDate().isBefore(request.birthDate())) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Initial enrollment date cannot be before birth date"
+            );
+        }
+
         String universityEmail = request.universityEmail().trim().toLowerCase(Locale.ROOT);
         if (userAccountRepository.existsByUniversityEmail(universityEmail)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "University email already exists");
+        }
+
+        String apogeeCode = request.apogeeCode().trim().toUpperCase(Locale.ROOT);
+        if (studentRepository.existsByApogeeCodeIgnoreCase(apogeeCode)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Apogee code already exists");
+        }
+
+        String nationalStudentCode = normalizeOptionalUppercase(request.nationalStudentCode());
+        if (nationalStudentCode != null
+            && studentRepository.existsByNationalStudentCodeIgnoreCase(nationalStudentCode)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Massar/CNE code already exists");
+        }
+
+        String cin = normalizeOptionalUppercase(request.cin());
+        if (cin != null && userProfileRepository.existsByCinIgnoreCase(cin)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "CIN already exists");
         }
 
         UserAccount account = new UserAccount();
@@ -77,6 +100,9 @@ public class StudentManagementService {
         profile.setFirstName(request.firstName().trim());
         profile.setLastName(request.lastName().trim());
         profile.setBirthDate(request.birthDate());
+        profile.setPlaceOfBirth(request.placeOfBirth().trim());
+        profile.setNationality(request.nationality().trim());
+        profile.setCin(cin);
         profile.setSex(request.sex());
         profile.setPhoneNumber(normalizeOptional(request.phoneNumber()));
         userProfileRepository.save(profile);
@@ -84,12 +110,16 @@ public class StudentManagementService {
         Student student = new Student();
         student.setUserAccount(account);
         student.setEstablishment(establishment);
+        student.setApogeeCode(apogeeCode);
+        student.setNationalStudentCode(nationalStudentCode);
+        student.setInitialEnrollmentDate(request.initialEnrollmentDate());
         student = studentRepository.save(student);
 
         return new CreateStudentResponse(
             student.getId(),
             account.getId(),
             establishmentId,
+            student.getApogeeCode(),
             account.getRole()
         );
     }
@@ -160,12 +190,18 @@ public class StudentManagementService {
             student.getId(),
             account.getId(),
             student.getEstablishment().getId(),
+            student.getApogeeCode(),
+            student.getNationalStudentCode(),
+            student.getInitialEnrollmentDate(),
             account.getUniversityEmail(),
             account.getRole(),
             account.getAccountStatus(),
             profile.getFirstName(),
             profile.getLastName(),
             profile.getBirthDate(),
+            profile.getPlaceOfBirth(),
+            profile.getNationality(),
+            profile.getCin(),
             profile.getSex(),
             profile.getPhoneNumber(),
             profile.getProfilePicturePath()
@@ -177,5 +213,10 @@ public class StudentManagementService {
             return null;
         }
         return value.trim();
+    }
+
+    private String normalizeOptionalUppercase(String value) {
+        String normalized = normalizeOptional(value);
+        return normalized == null ? null : normalized.toUpperCase(Locale.ROOT);
     }
 }

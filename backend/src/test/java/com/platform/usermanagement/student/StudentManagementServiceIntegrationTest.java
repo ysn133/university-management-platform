@@ -121,6 +121,7 @@ class StudentManagementServiceIntegrationTest {
 
         assertThat(created.roleType()).isEqualTo(AccountRoleType.STUDENT);
         assertThat(created.establishmentId()).isEqualTo(firstEstablishment.getId());
+        assertThat(created.apogeeCode()).isEqualTo("APO-10001");
 
         UserAccount account = userAccountRepository.findByUniversityEmail("student@uiz.ac.ma")
             .orElseThrow();
@@ -134,7 +135,13 @@ class StudentManagementServiceIntegrationTest {
 
         StudentProfileResponse profile = studentManagementService.getStudent(root, student.getId());
         assertThat(profile.firstName()).isEqualTo("Yassine");
+        assertThat(profile.apogeeCode()).isEqualTo("APO-10001");
+        assertThat(profile.nationalStudentCode()).isEqualTo("D123456789");
+        assertThat(profile.initialEnrollmentDate()).isEqualTo(LocalDate.of(2023, 9, 1));
         assertThat(profile.birthDate()).isEqualTo(LocalDate.of(2002, 5, 10));
+        assertThat(profile.placeOfBirth()).isEqualTo("Agadir");
+        assertThat(profile.nationality()).isEqualTo("Moroccan");
+        assertThat(profile.cin()).isEqualTo("JA123456");
         assertThat(studentManagementService.getStudents(root, firstEstablishment.getId()))
             .extracting(StudentProfileResponse::studentId)
             .containsExactly(student.getId());
@@ -146,6 +153,14 @@ class StudentManagementServiceIntegrationTest {
         ))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("409 CONFLICT");
+
+        assertThatThrownBy(() -> studentManagementService.createStudent(
+            root,
+            firstEstablishment.getId(),
+            request("another.student@uiz.ac.ma", "Duplicate", "Apogee")
+        ))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("Apogee code already exists");
     }
 
     @Test
@@ -197,11 +212,17 @@ class StudentManagementServiceIntegrationTest {
 
     private CreateStudentRequest request(String email, String firstName, String lastName) {
         return new CreateStudentRequest(
+            "APO-10001",
+            "d123456789",
+            "ja123456",
+            LocalDate.of(2023, 9, 1),
             email,
             "change-me-now",
             firstName,
             lastName,
             LocalDate.of(2002, 5, 10),
+            "Agadir",
+            "Moroccan",
             Sex.MALE,
             "0612345678"
         );

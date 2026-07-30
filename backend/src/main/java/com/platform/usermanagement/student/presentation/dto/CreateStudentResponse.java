@@ -7,6 +7,7 @@ public record CreateStudentResponse(
     UUID studentId,
     UUID userAccountId,
     UUID establishmentId,
+    String apogeeCode,
     AccountRoleType roleType
 ) {
 }

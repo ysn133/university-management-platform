@@ -11,6 +11,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -27,6 +28,15 @@ public class Student {
     @ManyToOne(optional = false)
     @JoinColumn(name = "establishment_id", nullable = false)
     private Establishment establishment;
+
+    @Column(name = "apogee_code", nullable = false, unique = true, length = 50)
+    private String apogeeCode;
+
+    @Column(name = "national_student_code", unique = true, length = 50)
+    private String nationalStudentCode;
+
+    @Column(name = "initial_enrollment_date")
+    private LocalDate initialEnrollmentDate;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -70,6 +80,30 @@ public class Student {
 
     public void setEstablishment(Establishment establishment) {
         this.establishment = establishment;
+    }
+
+    public String getApogeeCode() {
+        return apogeeCode;
+    }
+
+    public void setApogeeCode(String apogeeCode) {
+        this.apogeeCode = apogeeCode;
+    }
+
+    public String getNationalStudentCode() {
+        return nationalStudentCode;
+    }
+
+    public void setNationalStudentCode(String nationalStudentCode) {
+        this.nationalStudentCode = nationalStudentCode;
+    }
+
+    public LocalDate getInitialEnrollmentDate() {
+        return initialEnrollmentDate;
+    }
+
+    public void setInitialEnrollmentDate(LocalDate initialEnrollmentDate) {
+        this.initialEnrollmentDate = initialEnrollmentDate;
     }
 
     public Instant getCreatedAt() {

@@ -797,6 +797,7 @@ class GradeRecordServiceIntegrationTest {
         Student student = new Student();
         student.setUserAccount(account);
         student.setEstablishment(establishment);
+        student.setApogeeCode("APO-" + UUID.randomUUID());
         return studentRepository.save(student);
     }
 

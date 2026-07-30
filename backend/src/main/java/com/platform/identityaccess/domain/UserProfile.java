@@ -35,6 +35,16 @@ public class UserProfile {
 
     @Column(name = "birth_date")
     private LocalDate birthDate;
+
+    @Column(name = "place_of_birth")
+    private String placeOfBirth;
+
+    @Column(name = "nationality", length = 100)
+    private String nationality;
+
+    @Column(name = "cin", unique = true, length = 50)
+    private String cin;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "sex")
     private Sex sex;
@@ -103,6 +113,30 @@ public class UserProfile {
 
     public void setBirthDate(LocalDate birthDate) {
         this.birthDate = birthDate;
+    }
+
+    public String getPlaceOfBirth() {
+        return placeOfBirth;
+    }
+
+    public void setPlaceOfBirth(String placeOfBirth) {
+        this.placeOfBirth = placeOfBirth;
+    }
+
+    public String getNationality() {
+        return nationality;
+    }
+
+    public void setNationality(String nationality) {
+        this.nationality = nationality;
+    }
+
+    public String getCin() {
+        return cin;
+    }
+
+    public void setCin(String cin) {
+        this.cin = cin;
     }
 
     public Sex getSex() {
