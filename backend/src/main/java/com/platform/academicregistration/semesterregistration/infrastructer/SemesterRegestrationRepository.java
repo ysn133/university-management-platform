@@ -18,4 +18,6 @@ public interface SemesterRegestrationRepository extends JpaRepository<SemesterRe
     List<SemesterRegestration> findByAcademicRegistrationId(
         UUID academicRegistrationId
     );
+
+    List<SemesterRegestration> findBySemesterId(UUID semesterId);
 }
