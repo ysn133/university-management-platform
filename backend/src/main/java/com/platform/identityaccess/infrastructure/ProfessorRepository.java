@@ -10,5 +10,7 @@ public interface ProfessorRepository extends JpaRepository<Professor, UUID> {
 
     Optional<Professor> findByUserAccountId(UUID userAccountId);
 
+    boolean existsByEmployeeNumberIgnoreCase(String employeeNumber);
+
     List<Professor> findByEstablishmentIdOrderByCreatedAtAsc(UUID establishmentId);
 }

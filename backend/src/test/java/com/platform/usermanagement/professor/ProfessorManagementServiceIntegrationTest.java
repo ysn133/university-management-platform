@@ -137,6 +137,7 @@ class ProfessorManagementServiceIntegrationTest {
 
         assertThat(created.roleType()).isEqualTo(AccountRoleType.PROFESSOR);
         assertThat(created.establishmentId()).isEqualTo(firstEstablishment.getId());
+        assertThat(created.employeeNumber()).isEqualTo("EMP-1001");
 
         UserAccount account = userAccountRepository
             .findByUniversityEmail("professor@uiz.ac.ma")
@@ -160,6 +161,13 @@ class ProfessorManagementServiceIntegrationTest {
         );
         assertThat(profile.firstName()).isEqualTo("Nadia");
         assertThat(profile.birthDate()).isEqualTo(LocalDate.of(1985, 4, 12));
+        assertThat(profile.employeeNumber()).isEqualTo("EMP-1001");
+        assertThat(profile.academicRank()).isEqualTo("Assistant Professor");
+        assertThat(profile.hireDate()).isEqualTo(LocalDate.of(2015, 9, 1));
+        assertThat(profile.maximumWeeklyTeachingMinutes()).isEqualTo(480);
+        assertThat(profile.placeOfBirth()).isEqualTo("Agadir");
+        assertThat(profile.nationality()).isEqualTo("Moroccan");
+        assertThat(profile.cin()).isEqualTo("JA123456");
         assertThat(professorManagementService.getProfessors(
             root,
             firstEstablishment.getId()
@@ -233,11 +241,18 @@ class ProfessorManagementServiceIntegrationTest {
         String lastName
     ) {
         return new CreateProfessorRequest(
+            "emp-1001",
+            "Assistant Professor",
+            LocalDate.of(2015, 9, 1),
+            480,
+            "ja123456",
             email,
             "change-me-now",
             firstName,
             lastName,
             LocalDate.of(1985, 4, 12),
+            "Agadir",
+            "Moroccan",
             Sex.FEMALE,
             "0612345678"
         );

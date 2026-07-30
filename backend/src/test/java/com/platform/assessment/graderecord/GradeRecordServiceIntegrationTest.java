@@ -810,6 +810,8 @@ class GradeRecordServiceIntegrationTest {
         Professor savedProfessor = new Professor();
         savedProfessor.setUserAccount(account);
         savedProfessor.setEstablishment(establishment);
+        savedProfessor.setEmployeeNumber("EMP-" + UUID.randomUUID());
+        savedProfessor.setMaximumWeeklyTeachingMinutes(480);
         return professorRepository.save(savedProfessor);
     }
 

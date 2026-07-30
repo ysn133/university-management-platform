@@ -11,6 +11,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -27,6 +28,18 @@ public class Professor {
     @ManyToOne(optional = false)
     @JoinColumn(name = "establishment_id", nullable = false)
     private Establishment establishment;
+
+    @Column(name = "employee_number", nullable = false, unique = true, length = 50)
+    private String employeeNumber;
+
+    @Column(name = "academic_rank", length = 100)
+    private String academicRank;
+
+    @Column(name = "hire_date")
+    private LocalDate hireDate;
+
+    @Column(name = "maximum_weekly_teaching_minutes", nullable = false)
+    private Integer maximumWeeklyTeachingMinutes;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -70,6 +83,38 @@ public class Professor {
 
     public void setEstablishment(Establishment establishment) {
         this.establishment = establishment;
+    }
+
+    public String getEmployeeNumber() {
+        return employeeNumber;
+    }
+
+    public void setEmployeeNumber(String employeeNumber) {
+        this.employeeNumber = employeeNumber;
+    }
+
+    public String getAcademicRank() {
+        return academicRank;
+    }
+
+    public void setAcademicRank(String academicRank) {
+        this.academicRank = academicRank;
+    }
+
+    public LocalDate getHireDate() {
+        return hireDate;
+    }
+
+    public void setHireDate(LocalDate hireDate) {
+        this.hireDate = hireDate;
+    }
+
+    public Integer getMaximumWeeklyTeachingMinutes() {
+        return maximumWeeklyTeachingMinutes;
+    }
+
+    public void setMaximumWeeklyTeachingMinutes(Integer maximumWeeklyTeachingMinutes) {
+        this.maximumWeeklyTeachingMinutes = maximumWeeklyTeachingMinutes;
     }
 
     public Instant getCreatedAt() {

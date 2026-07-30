@@ -392,6 +392,8 @@ class ModuleExamServiceIntegrationTest {
         Professor professor = new Professor();
         professor.setUserAccount(account);
         professor.setEstablishment(establishment);
+        professor.setEmployeeNumber("EMP-" + UUID.randomUUID());
+        professor.setMaximumWeeklyTeachingMinutes(480);
         return professorRepository.save(professor);
     }
 

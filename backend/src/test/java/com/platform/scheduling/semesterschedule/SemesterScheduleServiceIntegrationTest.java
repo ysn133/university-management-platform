@@ -384,6 +384,8 @@ class SemesterScheduleServiceIntegrationTest {
         Professor professor = new Professor();
         professor.setUserAccount(account);
         professor.setEstablishment(firstEstablishment);
+        professor.setEmployeeNumber("EMP-" + UUID.randomUUID());
+        professor.setMaximumWeeklyTeachingMinutes(480);
         return professorRepository.save(professor);
     }
 

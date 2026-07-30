@@ -60,12 +60,32 @@ public class ProfessorManagementService {
         requirePermission(principal, establishmentId, PermissionCode.PROFESSOR_CREATE);
         Establishment establishment = findEstablishment(establishmentId);
 
+        if (request.hireDate() != null && request.hireDate().isBefore(request.birthDate())) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Hire date cannot be before birth date"
+            );
+        }
+
         String universityEmail = request.universityEmail().trim().toLowerCase(Locale.ROOT);
         if (userAccountRepository.existsByUniversityEmail(universityEmail)) {
             throw new ResponseStatusException(
                 HttpStatus.CONFLICT,
                 "University email already exists"
             );
+        }
+
+        String employeeNumber = request.employeeNumber().trim().toUpperCase(Locale.ROOT);
+        if (professorRepository.existsByEmployeeNumberIgnoreCase(employeeNumber)) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Employee number already exists"
+            );
+        }
+
+        String cin = normalizeOptionalUppercase(request.cin());
+        if (cin != null && userProfileRepository.existsByCinIgnoreCase(cin)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "CIN already exists");
         }
 
         UserAccount account = new UserAccount();
@@ -80,6 +100,9 @@ public class ProfessorManagementService {
         profile.setFirstName(request.firstName().trim());
         profile.setLastName(request.lastName().trim());
         profile.setBirthDate(request.birthDate());
+        profile.setPlaceOfBirth(request.placeOfBirth().trim());
+        profile.setNationality(request.nationality().trim());
+        profile.setCin(cin);
         profile.setSex(request.sex());
         profile.setPhoneNumber(normalizeOptional(request.phoneNumber()));
         userProfileRepository.save(profile);
@@ -87,12 +110,17 @@ public class ProfessorManagementService {
         Professor professor = new Professor();
         professor.setUserAccount(account);
         professor.setEstablishment(establishment);
+        professor.setEmployeeNumber(employeeNumber);
+        professor.setAcademicRank(normalizeOptional(request.academicRank()));
+        professor.setHireDate(request.hireDate());
+        professor.setMaximumWeeklyTeachingMinutes(request.maximumWeeklyTeachingMinutes());
         professor = professorRepository.save(professor);
 
         return new CreateProfessorResponse(
             professor.getId(),
             account.getId(),
             establishmentId,
+            professor.getEmployeeNumber(),
             account.getRole()
         );
     }
@@ -168,12 +196,19 @@ public class ProfessorManagementService {
             professor.getId(),
             account.getId(),
             professor.getEstablishment().getId(),
+            professor.getEmployeeNumber(),
+            professor.getAcademicRank(),
+            professor.getHireDate(),
+            professor.getMaximumWeeklyTeachingMinutes(),
             account.getUniversityEmail(),
             account.getRole(),
             account.getAccountStatus(),
             profile.getFirstName(),
             profile.getLastName(),
             profile.getBirthDate(),
+            profile.getPlaceOfBirth(),
+            profile.getNationality(),
+            profile.getCin(),
             profile.getSex(),
             profile.getPhoneNumber(),
             profile.getProfilePicturePath()
@@ -185,5 +220,10 @@ public class ProfessorManagementService {
             return null;
         }
         return value.trim();
+    }
+
+    private String normalizeOptionalUppercase(String value) {
+        String normalized = normalizeOptional(value);
+        return normalized == null ? null : normalized.toUpperCase(Locale.ROOT);
     }
 }

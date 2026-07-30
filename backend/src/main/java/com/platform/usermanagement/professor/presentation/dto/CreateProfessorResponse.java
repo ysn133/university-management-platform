@@ -7,6 +7,7 @@ public record CreateProfessorResponse(
     UUID professorId,
     UUID userAccountId,
     UUID establishmentId,
+    String employeeNumber,
     AccountRoleType roleType
 ) {
 }
