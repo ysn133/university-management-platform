@@ -50,24 +50,16 @@ public class TeachingAssignmentController {
         @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
         @PathVariable UUID establishmentId
     ) {
-        return teachingAssignmentService.getTeachingAssignments(
-            principal,
-            establishmentId
-        );
+        return teachingAssignmentService.getTeachingAssignments(principal, establishmentId);
     }
 
     @GetMapping("/teaching-assignments/{teachingAssignmentId}")
-    @PreAuthorize(
-        "hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN', 'ADMIN', 'PROFESSOR')"
-    )
+    @PreAuthorize("hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN', 'ADMIN', 'PROFESSOR')")
     public TeachingAssignmentResponse getTeachingAssignment(
         @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
         @PathVariable UUID teachingAssignmentId
     ) {
-        return teachingAssignmentService.getTeachingAssignment(
-            principal,
-            teachingAssignmentId
-        );
+        return teachingAssignmentService.getTeachingAssignment(principal, teachingAssignmentId);
     }
 
     @GetMapping("/me/teaching-assignments")
@@ -84,9 +76,6 @@ public class TeachingAssignmentController {
         @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
         @PathVariable UUID teachingAssignmentId
     ) {
-        return teachingAssignmentService.unassignProfessor(
-            principal,
-            teachingAssignmentId
-        );
+        return teachingAssignmentService.unassignProfessor(principal, teachingAssignmentId);
     }
 }

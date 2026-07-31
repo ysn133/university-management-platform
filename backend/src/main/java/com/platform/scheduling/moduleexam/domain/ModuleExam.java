@@ -1,7 +1,6 @@
 package com.platform.scheduling.moduleexam.domain;
 
 import com.platform.scheduling.examschedule.domain.ExamSchedule;
-import com.platform.teachingassignment.domain.TeachingAssignment;
 import com.platform.universitygovernance.classgroup.domain.ClassGroup;
 import com.platform.universitygovernance.subjectmodules.domain.SubjectModule;
 import jakarta.persistence.Column;
@@ -35,10 +34,6 @@ public class ModuleExam {
     @ManyToOne(optional = false)
     @JoinColumn(name = "class_group_id", nullable = false)
     private ClassGroup classGroup;
-
-    @ManyToOne
-    @JoinColumn(name = "teaching_assignment_id")
-    private TeachingAssignment teachingAssignment;
 
     @Column(name = "exam_date", nullable = false)
     private LocalDate examDate;
@@ -105,14 +100,6 @@ public class ModuleExam {
 
     public void setClassGroup(ClassGroup classGroup) {
         this.classGroup = classGroup;
-    }
-
-    public TeachingAssignment getTeachingAssignment() {
-        return teachingAssignment;
-    }
-
-    public void setTeachingAssignment(TeachingAssignment teachingAssignment) {
-        this.teachingAssignment = teachingAssignment;
     }
 
     public LocalDate getExamDate() {

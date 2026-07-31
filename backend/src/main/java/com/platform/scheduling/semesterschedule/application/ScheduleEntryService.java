@@ -11,15 +11,25 @@ import com.platform.scheduling.semesterschedule.infrastructure.SemesterScheduleR
 import com.platform.scheduling.semesterschedule.presentation.dto.CreateScheduleEntryRequest;
 import com.platform.scheduling.semesterschedule.presentation.dto.ScheduleEntryResponse;
 import com.platform.scheduling.semesterschedule.presentation.dto.UpdateScheduleEntryRequest;
+import com.platform.scheduling.teachinggroup.domain.TeachingGroup;
+import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupMembershipRepository;
 import com.platform.shared.presentation.ActionResponse;
 import com.platform.teachingassignment.domain.TeachingAssignment;
 import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
 import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
+import com.platform.teachingrequirement.domain.TeachingRequirement;
+import com.platform.teachingrequirement.domain.TeachingRequirementStatus;
+import com.platform.universitygovernance.block.domain.BlockStatus;
+import com.platform.universitygovernance.room.domain.Room;
+import com.platform.universitygovernance.room.domain.RoomStatus;
+import com.platform.universitygovernance.room.infrastructure.RoomRepository;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,17 +41,23 @@ public class ScheduleEntryService {
     private final ScheduleEntryRepository scheduleEntryRepository;
     private final SemesterScheduleRepository semesterScheduleRepository;
     private final TeachingAssignmentRepository teachingAssignmentRepository;
+    private final TeachingGroupMembershipRepository membershipRepository;
+    private final RoomRepository roomRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
 
     public ScheduleEntryService(
         ScheduleEntryRepository scheduleEntryRepository,
         SemesterScheduleRepository semesterScheduleRepository,
         TeachingAssignmentRepository teachingAssignmentRepository,
+        TeachingGroupMembershipRepository membershipRepository,
+        RoomRepository roomRepository,
         AdminPermissionAuthorizationService permissionAuthorizationService
     ) {
         this.scheduleEntryRepository = scheduleEntryRepository;
         this.semesterScheduleRepository = semesterScheduleRepository;
         this.teachingAssignmentRepository = teachingAssignmentRepository;
+        this.membershipRepository = membershipRepository;
+        this.roomRepository = roomRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
     }
 
@@ -58,7 +74,9 @@ public class ScheduleEntryService {
         TeachingAssignment assignment = findTeachingAssignment(
             request.teachingAssignmentId()
         );
+        Room room = findRoom(request.roomId());
         ensureAssignmentMatchesSchedule(assignment, schedule);
+        ensureRoomMatchesSchedule(room, assignment, schedule);
         ensureValidTimeRange(request.startTime(), request.endTime());
         ensureNoConflict(
             schedule,
@@ -66,6 +84,7 @@ public class ScheduleEntryService {
             request.dayOfWeek(),
             request.startTime(),
             request.endTime(),
+            room,
             null
         );
 
@@ -77,7 +96,7 @@ public class ScheduleEntryService {
             request.dayOfWeek(),
             request.startTime(),
             request.endTime(),
-            request.location()
+            room
         );
         return toResponse(scheduleEntryRepository.save(entry));
     }
@@ -126,7 +145,9 @@ public class ScheduleEntryService {
         TeachingAssignment assignment = findTeachingAssignment(
             request.teachingAssignmentId()
         );
+        Room room = findRoom(request.roomId());
         ensureAssignmentMatchesSchedule(assignment, schedule);
+        ensureRoomMatchesSchedule(room, assignment, schedule);
         ensureValidTimeRange(request.startTime(), request.endTime());
         ensureNoConflict(
             schedule,
@@ -134,6 +155,7 @@ public class ScheduleEntryService {
             request.dayOfWeek(),
             request.startTime(),
             request.endTime(),
+            room,
             entry.getId()
         );
 
@@ -143,7 +165,7 @@ public class ScheduleEntryService {
             request.dayOfWeek(),
             request.startTime(),
             request.endTime(),
-            request.location()
+            room
         );
         return toResponse(scheduleEntryRepository.save(entry));
     }
@@ -184,13 +206,49 @@ public class ScheduleEntryService {
             ));
     }
 
+    private Room findRoom(UUID roomId) {
+        return roomRepository.findById(roomId)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Room not found"
+            ));
+    }
+
+    private void ensureRoomMatchesSchedule(
+        Room room,
+        TeachingAssignment assignment,
+        SemesterSchedule schedule
+    ) {
+        TeachingRequirement requirement = assignment.getTeachingRequirement();
+        int audienceSize = membershipRepository
+            .findByTeachingGroupId(requirement.getTeachingGroup().getId())
+            .size();
+        boolean activeBlock = room.getBlock() == null
+            || room.getBlock().getStatus() == BlockStatus.ACTIVE;
+        boolean compatible = room.getStatus() == RoomStatus.ACTIVE
+            && activeBlock
+            && room.getEstablishment().getId().equals(schedule.getEstablishment().getId())
+            && room.getRoomType() == requirement
+                .getModuleTeachingComponent()
+                .getRequiredRoomType()
+            && room.getCapacity() >= audienceSize;
+        if (!compatible) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Room must be active, compatible, large enough, and in the schedule establishment"
+            );
+        }
+    }
+
     private void ensureAssignmentMatchesSchedule(
         TeachingAssignment assignment,
         SemesterSchedule schedule
     ) {
         UUID establishmentId = schedule.getEstablishment().getId();
-        UUID classGroupEstablishmentId = assignment
-            .getClassGroup()
+        TeachingRequirement requirement = assignment.getTeachingRequirement();
+        TeachingGroup teachingGroup = requirement.getTeachingGroup();
+        UUID requirementEstablishmentId = teachingGroup
+            .getSemester()
             .getAcademicLevel()
             .getProgramFiliere()
             .getDepartment()
@@ -198,20 +256,18 @@ public class ScheduleEntryService {
             .getId();
 
         boolean compatible = assignment.getStatus() == TeachingAssignmentStatus.ACTIVE
+            && requirement.getStatus() == TeachingRequirementStatus.ACTIVE
             && establishmentId.equals(assignment.getProfessor().getEstablishment().getId())
-            && establishmentId.equals(classGroupEstablishmentId)
+            && establishmentId.equals(requirementEstablishmentId)
             && schedule.getAcademicYear().getId().equals(
-                assignment.getAcademicYear().getId()
+                teachingGroup.getSemester().getAcademicYear().getId()
             )
-            && schedule.getSemester().getId().equals(assignment.getSemester().getId())
-            && assignment.getSemester().getId().equals(
-                assignment.getSubjectModule().getSemester().getId()
-            )
-            && assignment.getSemester().getAcademicLevel().getId().equals(
-                assignment.getClassGroup().getAcademicLevel().getId()
-            )
-            && assignment.getAcademicYear().getId().equals(
-                assignment.getClassGroup().getAcademicYear().getId()
+            && schedule.getSemester().getId().equals(teachingGroup.getSemester().getId())
+            && teachingGroup.getSemester().getId().equals(
+                requirement.getModuleTeachingComponent()
+                    .getSubjectModule()
+                    .getSemester()
+                    .getId()
             );
 
         if (!compatible) {
@@ -237,6 +293,7 @@ public class ScheduleEntryService {
         DayOfWeek dayOfWeek,
         LocalTime startTime,
         LocalTime endTime,
+        Room room,
         UUID excludedEntryId
     ) {
         List<ScheduleEntry> entries = scheduleEntryRepository
@@ -260,9 +317,9 @@ public class ScheduleEntryService {
                 entry.getTeachingAssignment().getProfessor().getId().equals(
                     assignment.getProfessor().getId()
                 )
-                || entry.getTeachingAssignment().getClassGroup().getId().equals(
-                    assignment.getClassGroup().getId()
-                )
+                || (entry.getRoom() != null
+                    && entry.getRoom().getId().equals(room.getId()))
+                || audiencesOverlap(entry.getTeachingAssignment(), assignment)
             );
 
         if (conflict) {
@@ -271,6 +328,27 @@ public class ScheduleEntryService {
                 "The professor or class group already has an overlapping schedule entry"
             );
         }
+    }
+
+    private boolean audiencesOverlap(
+        TeachingAssignment first,
+        TeachingAssignment second
+    ) {
+        UUID firstGroupId = first.getTeachingRequirement().getTeachingGroup().getId();
+        UUID secondGroupId = second.getTeachingRequirement().getTeachingGroup().getId();
+        if (firstGroupId.equals(secondGroupId)) {
+            return true;
+        }
+        Set<UUID> firstMembers = membershipRepository
+            .findByTeachingGroupId(firstGroupId)
+            .stream()
+            .map(membership -> membership.getSemesterRegistration().getId())
+            .collect(Collectors.toSet());
+        return membershipRepository
+            .findByTeachingGroupId(secondGroupId)
+            .stream()
+            .map(membership -> membership.getSemesterRegistration().getId())
+            .anyMatch(firstMembers::contains);
     }
 
     private boolean overlaps(
@@ -319,35 +397,34 @@ public class ScheduleEntryService {
         DayOfWeek dayOfWeek,
         LocalTime startTime,
         LocalTime endTime,
-        String location
+        Room room
     ) {
         entry.setTeachingAssignment(assignment);
         entry.setDayOfWeek(dayOfWeek);
         entry.setStartTime(startTime);
         entry.setEndTime(endTime);
-        entry.setLocation(normalizeLocation(location));
-    }
-
-    private String normalizeLocation(String location) {
-        if (location == null || location.isBlank()) {
-            return null;
-        }
-        return location.trim();
+        entry.setRoom(room);
     }
 
     private ScheduleEntryResponse toResponse(ScheduleEntry entry) {
         TeachingAssignment assignment = entry.getTeachingAssignment();
+        TeachingRequirement requirement = assignment.getTeachingRequirement();
+        Room room = entry.getRoom();
         return new ScheduleEntryResponse(
             entry.getId(),
             entry.getSemesterSchedule().getId(),
             assignment.getId(),
             assignment.getProfessor().getId(),
-            assignment.getSubjectModule().getId(),
-            assignment.getClassGroup().getId(),
+            requirement.getModuleTeachingComponent().getSubjectModule().getId(),
+            requirement.getTeachingGroup().getId(),
+            requirement.getTeachingGroup().getName(),
             entry.getDayOfWeek(),
             entry.getStartTime(),
             entry.getEndTime(),
-            entry.getLocation(),
+            room == null ? null : room.getId(),
+            room == null ? null : room.getCode(),
+            room == null ? null : room.getName(),
+            room == null || room.getBlock() == null ? null : room.getBlock().getId(),
             entry.getCreatedAt(),
             entry.getUpdatedAt()
         );

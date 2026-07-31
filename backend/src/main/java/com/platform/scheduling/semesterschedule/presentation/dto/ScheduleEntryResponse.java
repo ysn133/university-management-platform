@@ -11,11 +11,15 @@ public record ScheduleEntryResponse(
     UUID teachingAssignmentId,
     UUID professorId,
     UUID subjectModuleId,
-    UUID classGroupId,
+    UUID teachingGroupId,
+    String teachingGroupName,
     DayOfWeek dayOfWeek,
     LocalTime startTime,
     LocalTime endTime,
-    String location,
+    UUID roomId,
+    String roomCode,
+    String roomName,
+    UUID blockId,
     Instant createdAt,
     Instant updatedAt
 ) {

@@ -32,14 +32,21 @@ import com.platform.scheduling.semesterschedule.presentation.dto.CreateSemesterS
 import com.platform.scheduling.semesterschedule.presentation.dto.ScheduleEntryResponse;
 import com.platform.scheduling.semesterschedule.presentation.dto.SemesterScheduleResponse;
 import com.platform.scheduling.semesterschedule.presentation.dto.UpdateScheduleEntryRequest;
+import com.platform.scheduling.domain.RoomType;
+import com.platform.scheduling.teachinggroup.domain.TeachingGroup;
+import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupRepository;
 import com.platform.teachingassignment.domain.TeachingAssignment;
 import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
 import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
+import com.platform.teachingrequirement.domain.TeachingRequirement;
+import com.platform.teachingrequirement.domain.TeachingRequirementStatus;
+import com.platform.teachingrequirement.infrastructure.TeachingRequirementRepository;
 import com.platform.universitygovernance.academiclevel.domain.AcademicLevel;
 import com.platform.universitygovernance.academiclevel.infrastructure.AcademicLevelRepository;
 import com.platform.universitygovernance.academicyear.domain.AcademicYear;
 import com.platform.universitygovernance.academicyear.domain.AcademicYearStatus;
 import com.platform.universitygovernance.academicyear.infrastructure.AcademicYearRepository;
+import com.platform.universitygovernance.block.infrastructure.BlockRepository;
 import com.platform.universitygovernance.classgroup.domain.ClassGroup;
 import com.platform.universitygovernance.classgroup.domain.ClassGroupStatus;
 import com.platform.universitygovernance.classgroup.infrastructure.ClassGroupRepository;
@@ -55,10 +62,17 @@ import com.platform.universitygovernance.programfiliere.domain.ProgramFiliere;
 import com.platform.universitygovernance.programfiliere.infrastructure.ProgramFiliereRepository;
 import com.platform.universitygovernance.programpath.domain.ProgramPath;
 import com.platform.universitygovernance.programpath.infrastructure.ProgramPathRepository;
+import com.platform.universitygovernance.room.domain.Room;
+import com.platform.universitygovernance.room.domain.RoomStatus;
+import com.platform.universitygovernance.room.infrastructure.RoomRepository;
 import com.platform.universitygovernance.semester.domain.Semester;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
 import com.platform.universitygovernance.subjectmodules.domain.SubjectModule;
 import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleRepository;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.ModuleTeachingComponent;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingAudienceMode;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingComponentType;
+import com.platform.universitygovernance.moduleteachingcomponent.infrastructure.ModuleTeachingComponentRepository;
 import com.platform.universitygovernance.university.domain.University;
 import com.platform.universitygovernance.university.infrastructure.UniversityRepository;
 import java.time.DayOfWeek;
@@ -90,7 +104,22 @@ class SemesterScheduleServiceIntegrationTest {
     private ScheduleEntryRepository scheduleEntryRepository;
 
     @Autowired
+    private RoomRepository roomRepository;
+
+    @Autowired
+    private BlockRepository blockRepository;
+
+    @Autowired
     private TeachingAssignmentRepository teachingAssignmentRepository;
+
+    @Autowired
+    private TeachingRequirementRepository teachingRequirementRepository;
+
+    @Autowired
+    private TeachingGroupRepository teachingGroupRepository;
+
+    @Autowired
+    private ModuleTeachingComponentRepository teachingComponentRepository;
 
     @Autowired
     private PermissionRepository permissionRepository;
@@ -283,6 +312,8 @@ class SemesterScheduleServiceIntegrationTest {
         SemesterScheduleResponse schedule = semesterScheduleService
             .createSemesterSchedule(root, firstEstablishment.getId(), request());
         TeachingAssignment assignment = saveTeachingAssignment();
+        Room roomA = saveRoom("A", "Room A", RoomType.CLASSROOM, 100);
+        Room roomB = saveRoom("B", "Room B", RoomType.CLASSROOM, 100);
 
         ScheduleEntryResponse created = scheduleEntryService.createScheduleEntry(
             root,
@@ -292,11 +323,12 @@ class SemesterScheduleServiceIntegrationTest {
                 DayOfWeek.MONDAY,
                 LocalTime.of(8, 0),
                 LocalTime.of(10, 0),
-                " Room A "
+                roomA.getId()
             )
         );
 
-        assertThat(created.location()).isEqualTo("Room A");
+        assertThat(created.roomId()).isEqualTo(roomA.getId());
+        assertThat(created.roomName()).isEqualTo("Room A");
         assertThat(scheduleEntryService.getScheduleEntry(root, created.id()).id())
             .isEqualTo(created.id());
         assertThat(scheduleEntryService.getScheduleEntries(root, schedule.id()))
@@ -311,11 +343,11 @@ class SemesterScheduleServiceIntegrationTest {
                 DayOfWeek.MONDAY,
                 LocalTime.of(9, 0),
                 LocalTime.of(11, 0),
-                "Room B"
+                roomB.getId()
             )
         );
         assertThat(updated.startTime()).isEqualTo(LocalTime.of(9, 0));
-        assertThat(updated.location()).isEqualTo("Room B");
+        assertThat(updated.roomId()).isEqualTo(roomB.getId());
 
         assertThatThrownBy(() -> scheduleEntryService.createScheduleEntry(
             root,
@@ -325,7 +357,7 @@ class SemesterScheduleServiceIntegrationTest {
                 DayOfWeek.MONDAY,
                 LocalTime.of(10, 0),
                 LocalTime.of(12, 0),
-                null
+                roomA.getId()
             )
         ))
             .isInstanceOf(ResponseStatusException.class)
@@ -339,7 +371,7 @@ class SemesterScheduleServiceIntegrationTest {
                 DayOfWeek.TUESDAY,
                 LocalTime.of(12, 0),
                 LocalTime.of(11, 0),
-                null
+                roomA.getId()
             )
         ))
             .isInstanceOf(ResponseStatusException.class)
@@ -365,10 +397,29 @@ class SemesterScheduleServiceIntegrationTest {
 
         TeachingAssignment assignment = new TeachingAssignment();
         assignment.setProfessor(professor);
-        assignment.setSubjectModule(subjectModule);
-        assignment.setClassGroup(classGroup);
-        assignment.setAcademicYear(academicYear);
-        assignment.setSemester(semester);
+        ModuleTeachingComponent component = new ModuleTeachingComponent();
+        component.setSubjectModule(subjectModule);
+        component.setComponentType(TeachingComponentType.COURSE);
+        component.setSessionsPerWeek(1);
+        component.setSessionDurationMinutes(60);
+        component.setAudienceMode(TeachingAudienceMode.CLASS_GROUP);
+        component.setRequiredRoomType(RoomType.CLASSROOM);
+        component = teachingComponentRepository.save(component);
+
+        TeachingGroup teachingGroup = new TeachingGroup();
+        teachingGroup.setSemester(semester);
+        teachingGroup.setSourceClassGroup(classGroup);
+        teachingGroup.setName(classGroup.getName());
+        teachingGroup.setAudienceType(TeachingAudienceMode.CLASS_GROUP);
+        teachingGroup = teachingGroupRepository.save(teachingGroup);
+
+        TeachingRequirement requirement = new TeachingRequirement();
+        requirement.setModuleTeachingComponent(component);
+        requirement.setTeachingGroup(teachingGroup);
+        requirement.setStatus(TeachingRequirementStatus.ACTIVE);
+        requirement = teachingRequirementRepository.save(requirement);
+
+        assignment.setTeachingRequirement(requirement);
         assignment.setStatus(TeachingAssignmentStatus.ACTIVE);
         return teachingAssignmentRepository.save(assignment);
     }
@@ -404,6 +455,22 @@ class SemesterScheduleServiceIntegrationTest {
         classGroup.setName("Group A");
         classGroup.setStatus(ClassGroupStatus.ACTIVE);
         return classGroupRepository.save(classGroup);
+    }
+
+    private Room saveRoom(
+        String code,
+        String name,
+        RoomType roomType,
+        int capacity
+    ) {
+        Room room = new Room();
+        room.setEstablishment(firstEstablishment);
+        room.setCode(code);
+        room.setName(name);
+        room.setRoomType(roomType);
+        room.setCapacity(capacity);
+        room.setStatus(RoomStatus.ACTIVE);
+        return roomRepository.save(room);
     }
 
     private Admin saveAdmin(Establishment establishment) {
@@ -514,7 +581,12 @@ class SemesterScheduleServiceIntegrationTest {
     private void clearBusinessData() {
         scheduleEntryRepository.deleteAll();
         teachingAssignmentRepository.deleteAll();
+        teachingRequirementRepository.deleteAll();
+        teachingGroupRepository.deleteAll();
+        teachingComponentRepository.deleteAll();
         semesterScheduleRepository.deleteAll();
+        roomRepository.deleteAll();
+        blockRepository.deleteAll();
         adminPermissionGrantRepository.deleteAll();
         subjectModuleRepository.deleteAll();
         classGroupRepository.deleteAll();

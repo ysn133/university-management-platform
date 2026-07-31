@@ -23,8 +23,9 @@ import com.platform.scheduling.examcandidate.infrastructure.ExamCandidateReposit
 import com.platform.scheduling.examschedule.domain.PublicationStatus;
 import com.platform.scheduling.moduleexam.domain.ModuleExam;
 import com.platform.scheduling.moduleexam.infrastructure.ModuleExamRepository;
-import com.platform.teachingassignment.domain.TeachingAssignment;
-import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
+import com.platform.moduleclassresponsibility.domain.ModuleClassResponsibility;
+import com.platform.moduleclassresponsibility.domain.ModuleClassResponsibilityStatus;
+import com.platform.moduleclassresponsibility.infrastructure.ModuleClassResponsibilityRepository;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -50,6 +51,7 @@ public class GradeRecordService {
     private final ModuleResultService moduleResultService;
     private final ModuleResultRepository moduleResultRepository;
     private final ExamCandidateRepository examCandidateRepository;
+    private final ModuleClassResponsibilityRepository responsibilityRepository;
 
     public GradeRecordService(
         GradeRecordRepository gradeRecordRepository,
@@ -58,7 +60,8 @@ public class GradeRecordService {
         AdminPermissionAuthorizationService permissionAuthorizationService,
         ModuleResultService moduleResultService,
         ModuleResultRepository moduleResultRepository,
-        ExamCandidateRepository examCandidateRepository
+        ExamCandidateRepository examCandidateRepository,
+        ModuleClassResponsibilityRepository responsibilityRepository
     ) {
         this.gradeRecordRepository = gradeRecordRepository;
         this.moduleExamRepository = moduleExamRepository;
@@ -67,6 +70,7 @@ public class GradeRecordService {
         this.moduleResultService = moduleResultService;
         this.moduleResultRepository = moduleResultRepository;
         this.examCandidateRepository = examCandidateRepository;
+        this.responsibilityRepository = responsibilityRepository;
     }
 
     @Transactional(readOnly = true)
@@ -461,12 +465,10 @@ public class GradeRecordService {
             );
         }
 
-        TeachingAssignment assignment = moduleExam.getTeachingAssignment();
         return new GradeSheetResponse(
             moduleExam.getId(),
             moduleExam.getSubjectModule().getId(),
             moduleExam.getClassGroup().getId(),
-            assignment == null ? null : assignment.getId(),
             statuses.stream().findFirst().orElse(GradeWorkflowStatus.DRAFT),
             items
         );
@@ -529,34 +531,34 @@ public class GradeRecordService {
             ));
     }
 
-    private TeachingAssignment requireAssignedProfessor(
+    private ModuleClassResponsibility requireAssignedProfessor(
         AuthenticatedUserPrincipal principal,
         ModuleExam moduleExam
     ) {
-        TeachingAssignment assignment = moduleExam.getTeachingAssignment();
+        ModuleClassResponsibility responsibility = findActiveResponsibility(moduleExam);
         boolean assigned = principal != null
             && principal.role() == AccountRoleType.PROFESSOR
-            && assignment != null
-            && assignment.getStatus() == TeachingAssignmentStatus.ACTIVE
-            && principal.roleEntityId().equals(assignment.getProfessor().getId());
+            && responsibility != null
+            && responsibility.getStatus() == ModuleClassResponsibilityStatus.ACTIVE
+            && principal.roleEntityId().equals(responsibility.getProfessor().getId());
         if (!assigned) {
             throw new ResponseStatusException(
                 HttpStatus.FORBIDDEN,
                 "Assigned professor access required"
             );
         }
-        return assignment;
+        return responsibility;
     }
 
     private void requireProfessorOrManagementView(
         AuthenticatedUserPrincipal principal,
         ModuleExam moduleExam
     ) {
-        TeachingAssignment assignment = moduleExam.getTeachingAssignment();
+        ModuleClassResponsibility responsibility = findActiveResponsibility(moduleExam);
         if (principal != null
             && principal.role() == AccountRoleType.PROFESSOR
-            && assignment != null
-            && principal.roleEntityId().equals(assignment.getProfessor().getId())) {
+            && responsibility != null
+            && principal.roleEntityId().equals(responsibility.getProfessor().getId())) {
             return;
         }
         requireManagementPermission(
@@ -564,6 +566,18 @@ public class GradeRecordService {
             moduleExam,
             PermissionCode.GRADE_VIEW
         );
+    }
+
+    private ModuleClassResponsibility findActiveResponsibility(ModuleExam moduleExam) {
+        return responsibilityRepository
+            .findBySubjectModuleIdAndClassGroupIdAndAcademicYearIdAndSemesterIdAndStatus(
+                moduleExam.getSubjectModule().getId(),
+                moduleExam.getClassGroup().getId(),
+                moduleExam.getExamSchedule().getAcademicYear().getId(),
+                moduleExam.getExamSchedule().getSemester().getId(),
+                ModuleClassResponsibilityStatus.ACTIVE
+            )
+            .orElse(null);
     }
 
     private void requireManagementPermission(

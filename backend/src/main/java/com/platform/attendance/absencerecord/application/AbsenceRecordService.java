@@ -1,6 +1,5 @@
 package com.platform.attendance.absencerecord.application;
 
-import com.platform.academicregistration.classassignment.infrastructure.StudentClassAssignmentRepository;
 import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegestration;
 import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegistrationStatus;
 import com.platform.academicregistration.subjectmoduleregestration.infrastructure.SubjectRegestrationRepository;
@@ -11,6 +10,7 @@ import com.platform.attendance.absencerecord.presentation.dto.CreateAbsenceReque
 import com.platform.attendance.absencerecord.presentation.dto.UpdateAbsenceJustificationRequest;
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
+import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupMembershipRepository;
 import com.platform.teachingassignment.domain.TeachingAssignment;
 import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
 import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
@@ -28,18 +28,18 @@ public class AbsenceRecordService {
     private final AbsenceRecordRepository absenceRecordRepository;
     private final TeachingAssignmentRepository teachingAssignmentRepository;
     private final SubjectRegestrationRepository moduleRegistrationRepository;
-    private final StudentClassAssignmentRepository classAssignmentRepository;
+    private final TeachingGroupMembershipRepository membershipRepository;
 
     public AbsenceRecordService(
         AbsenceRecordRepository absenceRecordRepository,
         TeachingAssignmentRepository teachingAssignmentRepository,
         SubjectRegestrationRepository moduleRegistrationRepository,
-        StudentClassAssignmentRepository classAssignmentRepository
+        TeachingGroupMembershipRepository membershipRepository
     ) {
         this.absenceRecordRepository = absenceRecordRepository;
         this.teachingAssignmentRepository = teachingAssignmentRepository;
         this.moduleRegistrationRepository = moduleRegistrationRepository;
-        this.classAssignmentRepository = classAssignmentRepository;
+        this.membershipRepository = membershipRepository;
     }
 
     @Transactional
@@ -174,23 +174,32 @@ public class AbsenceRecordService {
         boolean sameAcademicContext = registration.getStatus()
                 == SubjectModuleRegistrationStatus.ACTIVE
             && registration.getSubjectModule().getId().equals(
-                assignment.getSubjectModule().getId()
+                assignment.getTeachingRequirement()
+                    .getModuleTeachingComponent()
+                    .getSubjectModule()
+                    .getId()
             )
             && registration.getSemesterRegestration().getSemester().getId().equals(
-                assignment.getSemester().getId()
+                assignment.getTeachingRequirement()
+                    .getTeachingGroup()
+                    .getSemester()
+                    .getId()
             )
             && registration.getSemesterRegestration()
                 .getAcademicRegistration()
                 .getAcademicYear()
                 .getId()
-                .equals(assignment.getAcademicYear().getId());
-        boolean assignedToClass = classAssignmentRepository
-            .findBySemesterRegistrationId(registration.getSemesterRegestration().getId())
-            .map(classAssignment -> classAssignment.getClassGroup().getId().equals(
-                assignment.getClassGroup().getId()
-            ))
-            .orElse(false);
-        if (!sameAcademicContext || !assignedToClass) {
+                .equals(assignment.getTeachingRequirement()
+                    .getTeachingGroup()
+                    .getSemester()
+                    .getAcademicYear()
+                    .getId());
+        boolean belongsToAudience = membershipRepository
+            .existsByTeachingGroupIdAndSemesterRegistrationId(
+                assignment.getTeachingRequirement().getTeachingGroup().getId(),
+                registration.getSemesterRegestration().getId()
+            );
+        if (!sameAcademicContext || !belongsToAudience) {
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
                 "The student is not registered in this teaching assignment"

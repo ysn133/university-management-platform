@@ -2,6 +2,7 @@ package com.platform.universitygovernance.subjectmodules.application;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -12,9 +13,13 @@ import com.platform.identityaccess.application.AdminPermissionAuthorizationServi
 import com.platform.identityaccess.domain.PermissionCode;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.shared.presentation.ActionResponse;
+import com.platform.universitygovernance.academicdomain.domain.AcademicDomain;
+import com.platform.universitygovernance.academicdomain.infrastructure.AcademicDomainRepository;
 import com.platform.universitygovernance.semester.domain.Semester;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
 import com.platform.universitygovernance.subjectmodules.domain.SubjectModule;
+import com.platform.universitygovernance.subjectmodules.domain.SubjectModuleDomain;
+import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleDomainRepository;
 import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleRepository;
 import com.platform.universitygovernance.subjectmodules.presentation.dto.CreateSubjectModuleRequest;
 import com.platform.universitygovernance.subjectmodules.presentation.dto.SubjectModuleResponse;
@@ -27,15 +32,21 @@ public class SubjectModuleService {
 
     private final SubjectModuleRepository subjectModuleRepository;
     private final SemesterRepository semesterRepository;
+    private final AcademicDomainRepository academicDomainRepository;
+    private final SubjectModuleDomainRepository subjectModuleDomainRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
 
     public SubjectModuleService(
         SubjectModuleRepository subjectModuleRepository,
         SemesterRepository semesterRepository,
+        AcademicDomainRepository academicDomainRepository,
+        SubjectModuleDomainRepository subjectModuleDomainRepository,
         AdminPermissionAuthorizationService permissionAuthorizationService
     ) {
         this.subjectModuleRepository = subjectModuleRepository;
         this.semesterRepository = semesterRepository;
+        this.academicDomainRepository = academicDomainRepository;
+        this.subjectModuleDomainRepository = subjectModuleDomainRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
     }
 
@@ -57,12 +68,8 @@ public class SubjectModuleService {
         subjectModule.setTitle(title);
 
         SubjectModule savedSubjectModule = subjectModuleRepository.save(subjectModule);
-        return new SubjectModuleResponse(
-            savedSubjectModule.getId(),
-            savedSubjectModule.getSemester().getId(),
-            savedSubjectModule.getCode(),
-            savedSubjectModule.getTitle()
-        );
+        replaceAcademicDomains(savedSubjectModule, request.academicDomainIds());
+        return toResponse(savedSubjectModule);
     }
 
     @Transactional
@@ -83,12 +90,8 @@ public class SubjectModuleService {
         subjectModule.setTitle(title);
 
         SubjectModule savedSubjectModule = subjectModuleRepository.save(subjectModule);
-        return new SubjectModuleResponse(
-            savedSubjectModule.getId(),
-            savedSubjectModule.getSemester().getId(),
-            savedSubjectModule.getCode(),
-            savedSubjectModule.getTitle()
-        );
+        replaceAcademicDomains(savedSubjectModule, request.academicDomainIds());
+        return toResponse(savedSubjectModule);
     }
 
     @Transactional(readOnly = true)
@@ -128,6 +131,9 @@ public class SubjectModuleService {
             principal,
             subjectModule.getSemester(),
             PermissionCode.SUBJECT_MODULE_DELETE
+        );
+        subjectModuleDomainRepository.deleteAll(
+            subjectModuleDomainRepository.findBySubjectModuleId(subjectModuleId)
         );
         subjectModuleRepository.delete(subjectModule);
         return new ActionResponse(true, "Subject module deleted");
@@ -191,12 +197,61 @@ public class SubjectModuleService {
     }
 
     private SubjectModuleResponse toResponse(SubjectModule subjectModule) {
+        List<UUID> academicDomainIds = subjectModuleDomainRepository
+            .findBySubjectModuleId(subjectModule.getId())
+            .stream()
+            .map(link -> link.getAcademicDomain().getId())
+            .sorted()
+            .toList();
         return new SubjectModuleResponse(
             subjectModule.getId(),
             subjectModule.getSemester().getId(),
             subjectModule.getCode(),
-            subjectModule.getTitle()
+            subjectModule.getTitle(),
+            academicDomainIds
         );
+    }
+
+    private void replaceAcademicDomains(
+        SubjectModule subjectModule,
+        Set<UUID> academicDomainIds
+    ) {
+        List<AcademicDomain> academicDomains = academicDomainRepository
+            .findAllById(academicDomainIds);
+        if (academicDomains.size() != academicDomainIds.size()) {
+            throw new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Academic domain not found"
+            );
+        }
+
+        UUID establishmentId = subjectModule.getSemester()
+            .getAcademicLevel()
+            .getProgramFiliere()
+            .getDepartment()
+            .getEstablishment()
+            .getId();
+        if (academicDomains.stream().anyMatch(domain ->
+            !establishmentId.equals(domain.getEstablishment().getId()))) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Academic domains must belong to the subject module's establishment"
+            );
+        }
+
+        subjectModuleDomainRepository.deleteAll(
+            subjectModuleDomainRepository.findBySubjectModuleId(subjectModule.getId())
+        );
+        subjectModuleDomainRepository.flush();
+        List<SubjectModuleDomain> links = academicDomains.stream()
+            .map(domain -> {
+                SubjectModuleDomain link = new SubjectModuleDomain();
+                link.setSubjectModule(subjectModule);
+                link.setAcademicDomain(domain);
+                return link;
+            })
+            .toList();
+        subjectModuleDomainRepository.saveAll(links);
     }
 
     private String normalizeCode(String code) {
