@@ -1,6 +1,7 @@
 package com.platform.scheduling.semesterschedule.domain;
 
 import com.platform.teachingassignment.domain.TeachingAssignment;
+import com.platform.universitygovernance.room.domain.Room;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -41,8 +42,9 @@ public class ScheduleEntry {
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
 
-    @Column(name = "location")
-    private String location;
+    @ManyToOne
+    @JoinColumn(name = "room_id")
+    private Room room;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -112,12 +114,12 @@ public class ScheduleEntry {
         this.endTime = endTime;
     }
 
-    public String getLocation() {
-        return location;
+    public Room getRoom() {
+        return room;
     }
 
-    public void setLocation(String location) {
-        this.location = location;
+    public void setRoom(Room room) {
+        this.room = room;
     }
 
     public Instant getCreatedAt() {

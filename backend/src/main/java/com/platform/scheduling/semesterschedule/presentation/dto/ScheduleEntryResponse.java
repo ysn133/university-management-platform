@@ -16,7 +16,10 @@ public record ScheduleEntryResponse(
     DayOfWeek dayOfWeek,
     LocalTime startTime,
     LocalTime endTime,
-    String location,
+    UUID roomId,
+    String roomCode,
+    String roomName,
+    UUID blockId,
     Instant createdAt,
     Instant updatedAt
 ) {

@@ -19,6 +19,10 @@ import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
 import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
 import com.platform.teachingrequirement.domain.TeachingRequirement;
 import com.platform.teachingrequirement.domain.TeachingRequirementStatus;
+import com.platform.universitygovernance.block.domain.BlockStatus;
+import com.platform.universitygovernance.room.domain.Room;
+import com.platform.universitygovernance.room.domain.RoomStatus;
+import com.platform.universitygovernance.room.infrastructure.RoomRepository;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.Comparator;
@@ -38,6 +42,7 @@ public class ScheduleEntryService {
     private final SemesterScheduleRepository semesterScheduleRepository;
     private final TeachingAssignmentRepository teachingAssignmentRepository;
     private final TeachingGroupMembershipRepository membershipRepository;
+    private final RoomRepository roomRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
 
     public ScheduleEntryService(
@@ -45,12 +50,14 @@ public class ScheduleEntryService {
         SemesterScheduleRepository semesterScheduleRepository,
         TeachingAssignmentRepository teachingAssignmentRepository,
         TeachingGroupMembershipRepository membershipRepository,
+        RoomRepository roomRepository,
         AdminPermissionAuthorizationService permissionAuthorizationService
     ) {
         this.scheduleEntryRepository = scheduleEntryRepository;
         this.semesterScheduleRepository = semesterScheduleRepository;
         this.teachingAssignmentRepository = teachingAssignmentRepository;
         this.membershipRepository = membershipRepository;
+        this.roomRepository = roomRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
     }
 
@@ -67,7 +74,9 @@ public class ScheduleEntryService {
         TeachingAssignment assignment = findTeachingAssignment(
             request.teachingAssignmentId()
         );
+        Room room = findRoom(request.roomId());
         ensureAssignmentMatchesSchedule(assignment, schedule);
+        ensureRoomMatchesSchedule(room, assignment, schedule);
         ensureValidTimeRange(request.startTime(), request.endTime());
         ensureNoConflict(
             schedule,
@@ -75,6 +84,7 @@ public class ScheduleEntryService {
             request.dayOfWeek(),
             request.startTime(),
             request.endTime(),
+            room,
             null
         );
 
@@ -86,7 +96,7 @@ public class ScheduleEntryService {
             request.dayOfWeek(),
             request.startTime(),
             request.endTime(),
-            request.location()
+            room
         );
         return toResponse(scheduleEntryRepository.save(entry));
     }
@@ -135,7 +145,9 @@ public class ScheduleEntryService {
         TeachingAssignment assignment = findTeachingAssignment(
             request.teachingAssignmentId()
         );
+        Room room = findRoom(request.roomId());
         ensureAssignmentMatchesSchedule(assignment, schedule);
+        ensureRoomMatchesSchedule(room, assignment, schedule);
         ensureValidTimeRange(request.startTime(), request.endTime());
         ensureNoConflict(
             schedule,
@@ -143,6 +155,7 @@ public class ScheduleEntryService {
             request.dayOfWeek(),
             request.startTime(),
             request.endTime(),
+            room,
             entry.getId()
         );
 
@@ -152,7 +165,7 @@ public class ScheduleEntryService {
             request.dayOfWeek(),
             request.startTime(),
             request.endTime(),
-            request.location()
+            room
         );
         return toResponse(scheduleEntryRepository.save(entry));
     }
@@ -191,6 +204,40 @@ public class ScheduleEntryService {
                 HttpStatus.NOT_FOUND,
                 "Teaching assignment not found"
             ));
+    }
+
+    private Room findRoom(UUID roomId) {
+        return roomRepository.findById(roomId)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Room not found"
+            ));
+    }
+
+    private void ensureRoomMatchesSchedule(
+        Room room,
+        TeachingAssignment assignment,
+        SemesterSchedule schedule
+    ) {
+        TeachingRequirement requirement = assignment.getTeachingRequirement();
+        int audienceSize = membershipRepository
+            .findByTeachingGroupId(requirement.getTeachingGroup().getId())
+            .size();
+        boolean activeBlock = room.getBlock() == null
+            || room.getBlock().getStatus() == BlockStatus.ACTIVE;
+        boolean compatible = room.getStatus() == RoomStatus.ACTIVE
+            && activeBlock
+            && room.getEstablishment().getId().equals(schedule.getEstablishment().getId())
+            && room.getRoomType() == requirement
+                .getModuleTeachingComponent()
+                .getRequiredRoomType()
+            && room.getCapacity() >= audienceSize;
+        if (!compatible) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Room must be active, compatible, large enough, and in the schedule establishment"
+            );
+        }
     }
 
     private void ensureAssignmentMatchesSchedule(
@@ -246,6 +293,7 @@ public class ScheduleEntryService {
         DayOfWeek dayOfWeek,
         LocalTime startTime,
         LocalTime endTime,
+        Room room,
         UUID excludedEntryId
     ) {
         List<ScheduleEntry> entries = scheduleEntryRepository
@@ -269,6 +317,8 @@ public class ScheduleEntryService {
                 entry.getTeachingAssignment().getProfessor().getId().equals(
                     assignment.getProfessor().getId()
                 )
+                || (entry.getRoom() != null
+                    && entry.getRoom().getId().equals(room.getId()))
                 || audiencesOverlap(entry.getTeachingAssignment(), assignment)
             );
 
@@ -347,25 +397,19 @@ public class ScheduleEntryService {
         DayOfWeek dayOfWeek,
         LocalTime startTime,
         LocalTime endTime,
-        String location
+        Room room
     ) {
         entry.setTeachingAssignment(assignment);
         entry.setDayOfWeek(dayOfWeek);
         entry.setStartTime(startTime);
         entry.setEndTime(endTime);
-        entry.setLocation(normalizeLocation(location));
-    }
-
-    private String normalizeLocation(String location) {
-        if (location == null || location.isBlank()) {
-            return null;
-        }
-        return location.trim();
+        entry.setRoom(room);
     }
 
     private ScheduleEntryResponse toResponse(ScheduleEntry entry) {
         TeachingAssignment assignment = entry.getTeachingAssignment();
         TeachingRequirement requirement = assignment.getTeachingRequirement();
+        Room room = entry.getRoom();
         return new ScheduleEntryResponse(
             entry.getId(),
             entry.getSemesterSchedule().getId(),
@@ -377,7 +421,10 @@ public class ScheduleEntryService {
             entry.getDayOfWeek(),
             entry.getStartTime(),
             entry.getEndTime(),
-            entry.getLocation(),
+            room == null ? null : room.getId(),
+            room == null ? null : room.getCode(),
+            room == null ? null : room.getName(),
+            room == null || room.getBlock() == null ? null : room.getBlock().getId(),
             entry.getCreatedAt(),
             entry.getUpdatedAt()
         );
