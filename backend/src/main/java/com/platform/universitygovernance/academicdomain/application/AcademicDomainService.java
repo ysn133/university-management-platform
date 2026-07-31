@@ -11,6 +11,7 @@ import com.platform.universitygovernance.academicdomain.presentation.dto.CreateA
 import com.platform.universitygovernance.academicdomain.presentation.dto.UpdateAcademicDomainRequest;
 import com.platform.universitygovernance.establishment.domain.Establishment;
 import com.platform.universitygovernance.establishment.infrastructure.EstablishmentRepository;
+import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleDomainRepository;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -24,15 +25,18 @@ public class AcademicDomainService {
 
     private final AcademicDomainRepository academicDomainRepository;
     private final EstablishmentRepository establishmentRepository;
+    private final SubjectModuleDomainRepository subjectModuleDomainRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
 
     public AcademicDomainService(
         AcademicDomainRepository academicDomainRepository,
         EstablishmentRepository establishmentRepository,
+        SubjectModuleDomainRepository subjectModuleDomainRepository,
         AdminPermissionAuthorizationService permissionAuthorizationService
     ) {
         this.academicDomainRepository = academicDomainRepository;
         this.establishmentRepository = establishmentRepository;
+        this.subjectModuleDomainRepository = subjectModuleDomainRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
     }
 
@@ -109,6 +113,12 @@ public class AcademicDomainService {
             academicDomain.getEstablishment().getId(),
             PermissionCode.ACADEMIC_DOMAIN_DELETE
         );
+        if (subjectModuleDomainRepository.existsByAcademicDomainId(academicDomainId)) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Academic domain is assigned to a subject module"
+            );
+        }
         academicDomainRepository.delete(academicDomain);
         return new ActionResponse(true, "Academic domain deleted");
     }

@@ -65,9 +65,20 @@ import com.platform.scheduling.moduleexam.application.ModuleExamService;
 import com.platform.scheduling.moduleexam.infrastructure.ModuleExamRepository;
 import com.platform.scheduling.moduleexam.presentation.dto.CreateModuleExamRequest;
 import com.platform.scheduling.moduleexam.presentation.dto.ModuleExamResponse;
+import com.platform.scheduling.domain.RoomType;
+import com.platform.scheduling.teachinggroup.domain.TeachingGroup;
+import com.platform.scheduling.teachinggroup.domain.TeachingGroupMembership;
+import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupMembershipRepository;
+import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupRepository;
 import com.platform.teachingassignment.domain.TeachingAssignment;
 import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
 import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
+import com.platform.teachingrequirement.domain.TeachingRequirement;
+import com.platform.teachingrequirement.domain.TeachingRequirementStatus;
+import com.platform.teachingrequirement.infrastructure.TeachingRequirementRepository;
+import com.platform.moduleclassresponsibility.domain.ModuleClassResponsibility;
+import com.platform.moduleclassresponsibility.domain.ModuleClassResponsibilityStatus;
+import com.platform.moduleclassresponsibility.infrastructure.ModuleClassResponsibilityRepository;
 import com.platform.universitygovernance.academiclevel.domain.AcademicLevel;
 import com.platform.universitygovernance.academiclevel.infrastructure.AcademicLevelRepository;
 import com.platform.universitygovernance.academiclevelruleassignment.domain.AcademicLevelRuleAssignment;
@@ -100,6 +111,10 @@ import com.platform.universitygovernance.semester.domain.Semester;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
 import com.platform.universitygovernance.subjectmodules.domain.SubjectModule;
 import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleRepository;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.ModuleTeachingComponent;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingAudienceMode;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingComponentType;
+import com.platform.universitygovernance.moduleteachingcomponent.infrastructure.ModuleTeachingComponentRepository;
 import com.platform.universitygovernance.university.domain.University;
 import com.platform.universitygovernance.university.infrastructure.UniversityRepository;
 import java.math.BigDecimal;
@@ -138,7 +153,12 @@ class GradeRecordServiceIntegrationTest {
     @Autowired private StudentClassAssignmentRepository classAssignmentRepository;
     @Autowired private ModuleExamRepository moduleExamRepository;
     @Autowired private ExamScheduleRepository examScheduleRepository;
+    @Autowired private ModuleClassResponsibilityRepository responsibilityRepository;
     @Autowired private TeachingAssignmentRepository teachingAssignmentRepository;
+    @Autowired private TeachingRequirementRepository teachingRequirementRepository;
+    @Autowired private TeachingGroupMembershipRepository teachingGroupMembershipRepository;
+    @Autowired private TeachingGroupRepository teachingGroupRepository;
+    @Autowired private ModuleTeachingComponentRepository teachingComponentRepository;
     @Autowired private SubjectRegestrationRepository moduleRegistrationRepository;
     @Autowired private SemesterRegestrationRepository semesterRegistrationRepository;
     @Autowired private AcademicRegistrationRepository academicRegistrationRepository;
@@ -171,6 +191,7 @@ class GradeRecordServiceIntegrationTest {
     private SubjectModule subjectModule;
     private ClassGroup classGroup;
     private Professor professor;
+    private ModuleClassResponsibility moduleResponsibility;
     private TeachingAssignment teachingAssignment;
     private ModuleExamResponse moduleExam;
     private SubjectModuleRegestration firstModuleRegistration;
@@ -196,7 +217,7 @@ class GradeRecordServiceIntegrationTest {
         subjectModule = saveSubjectModule(semester);
         classGroup = saveClassGroup(academicLevel, academicYear);
         professor = saveProfessor();
-        teachingAssignment = saveTeachingAssignment();
+        moduleResponsibility = saveModuleResponsibility();
 
         root = principal(AccountRoleType.ROOT_SUPER_ADMIN, UUID.randomUUID(), null);
         professorPrincipal = principal(
@@ -209,6 +230,7 @@ class GradeRecordServiceIntegrationTest {
         Student secondStudent = saveStudent("student2@uiz.ac.ma");
         firstModuleRegistration = registerStudent(firstStudent);
         secondModuleRegistration = registerStudent(secondStudent);
+        teachingAssignment = saveTeachingDeliveryAssignment();
 
         ExamScheduleResponse schedule = examScheduleService.createExamSchedule(
             root,
@@ -225,7 +247,6 @@ class GradeRecordServiceIntegrationTest {
             new CreateModuleExamRequest(
                 subjectModule.getId(),
                 classGroup.getId(),
-                teachingAssignment.getId(),
                 LocalDate.of(2027, 1, 10),
                 LocalTime.of(9, 0),
                 LocalTime.of(11, 0),
@@ -514,7 +535,6 @@ class GradeRecordServiceIntegrationTest {
             new CreateModuleExamRequest(
                 subjectModule.getId(),
                 classGroup.getId(),
-                teachingAssignment.getId(),
                 LocalDate.of(2027, 2, 10),
                 LocalTime.of(9, 0),
                 LocalTime.of(11, 0),
@@ -840,15 +860,57 @@ class GradeRecordServiceIntegrationTest {
         adminPermissionGrantRepository.save(grant);
     }
 
-    private TeachingAssignment saveTeachingAssignment() {
+    private TeachingAssignment saveTeachingDeliveryAssignment() {
+        ModuleTeachingComponent component = new ModuleTeachingComponent();
+        component.setSubjectModule(subjectModule);
+        component.setComponentType(TeachingComponentType.COURSE);
+        component.setSessionsPerWeek(1);
+        component.setSessionDurationMinutes(60);
+        component.setAudienceMode(TeachingAudienceMode.CLASS_GROUP);
+        component.setRequiredRoomType(RoomType.CLASSROOM);
+        component = teachingComponentRepository.save(component);
+
+        TeachingGroup teachingGroup = new TeachingGroup();
+        teachingGroup.setSemester(semester);
+        teachingGroup.setSourceClassGroup(classGroup);
+        teachingGroup.setName(classGroup.getName());
+        teachingGroup.setAudienceType(TeachingAudienceMode.CLASS_GROUP);
+        teachingGroup = teachingGroupRepository.save(teachingGroup);
+
+        for (SubjectModuleRegestration moduleRegistration : List.of(
+            firstModuleRegistration,
+            secondModuleRegistration
+        )) {
+            TeachingGroupMembership membership = new TeachingGroupMembership();
+            membership.setTeachingGroup(teachingGroup);
+            membership.setSemesterRegistration(
+                moduleRegistration.getSemesterRegestration()
+            );
+            teachingGroupMembershipRepository.save(membership);
+        }
+
+        TeachingRequirement requirement = new TeachingRequirement();
+        requirement.setModuleTeachingComponent(component);
+        requirement.setTeachingGroup(teachingGroup);
+        requirement.setStatus(TeachingRequirementStatus.ACTIVE);
+        requirement = teachingRequirementRepository.save(requirement);
+
         TeachingAssignment assignment = new TeachingAssignment();
         assignment.setProfessor(professor);
-        assignment.setSubjectModule(subjectModule);
-        assignment.setClassGroup(classGroup);
-        assignment.setAcademicYear(academicYear);
-        assignment.setSemester(semester);
+        assignment.setTeachingRequirement(requirement);
         assignment.setStatus(TeachingAssignmentStatus.ACTIVE);
         return teachingAssignmentRepository.save(assignment);
+    }
+
+    private ModuleClassResponsibility saveModuleResponsibility() {
+        ModuleClassResponsibility responsibility = new ModuleClassResponsibility();
+        responsibility.setProfessor(professor);
+        responsibility.setSubjectModule(subjectModule);
+        responsibility.setClassGroup(classGroup);
+        responsibility.setAcademicYear(academicYear);
+        responsibility.setSemester(semester);
+        responsibility.setStatus(ModuleClassResponsibilityStatus.ACTIVE);
+        return responsibilityRepository.save(responsibility);
     }
 
     private SubjectModule saveSubjectModule(Semester savedSemester) {
@@ -961,6 +1023,11 @@ class GradeRecordServiceIntegrationTest {
         moduleExamRepository.deleteAll();
         examScheduleRepository.deleteAll();
         teachingAssignmentRepository.deleteAll();
+        teachingRequirementRepository.deleteAll();
+        teachingGroupMembershipRepository.deleteAll();
+        teachingGroupRepository.deleteAll();
+        teachingComponentRepository.deleteAll();
+        responsibilityRepository.deleteAll();
         classAssignmentRepository.deleteAll();
         adminPermissionGrantRepository.deleteAll();
         moduleRegistrationRepository.deleteAll();

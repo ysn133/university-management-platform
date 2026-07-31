@@ -12,9 +12,6 @@ import com.platform.scheduling.moduleexam.presentation.dto.CreateModuleExamReque
 import com.platform.scheduling.moduleexam.presentation.dto.ModuleExamResponse;
 import com.platform.scheduling.moduleexam.presentation.dto.UpdateModuleExamRequest;
 import com.platform.shared.presentation.ActionResponse;
-import com.platform.teachingassignment.domain.TeachingAssignment;
-import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
-import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
 import com.platform.universitygovernance.classgroup.domain.ClassGroup;
 import com.platform.universitygovernance.classgroup.domain.ClassGroupStatus;
 import com.platform.universitygovernance.classgroup.infrastructure.ClassGroupRepository;
@@ -36,7 +33,6 @@ public class ModuleExamService {
     private final ExamScheduleRepository examScheduleRepository;
     private final SubjectModuleRepository subjectModuleRepository;
     private final ClassGroupRepository classGroupRepository;
-    private final TeachingAssignmentRepository teachingAssignmentRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
 
     public ModuleExamService(
@@ -44,14 +40,12 @@ public class ModuleExamService {
         ExamScheduleRepository examScheduleRepository,
         SubjectModuleRepository subjectModuleRepository,
         ClassGroupRepository classGroupRepository,
-        TeachingAssignmentRepository teachingAssignmentRepository,
         AdminPermissionAuthorizationService permissionAuthorizationService
     ) {
         this.moduleExamRepository = moduleExamRepository;
         this.examScheduleRepository = examScheduleRepository;
         this.subjectModuleRepository = subjectModuleRepository;
         this.classGroupRepository = classGroupRepository;
-        this.teachingAssignmentRepository = teachingAssignmentRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
     }
 
@@ -67,15 +61,7 @@ public class ModuleExamService {
 
         SubjectModule subjectModule = findSubjectModule(request.subjectModuleId());
         ClassGroup classGroup = findClassGroup(request.classGroupId());
-        TeachingAssignment teachingAssignment = findTeachingAssignment(
-            request.teachingAssignmentId()
-        );
-        ensureExamContext(
-            examSchedule,
-            subjectModule,
-            classGroup,
-            teachingAssignment
-        );
+        ensureExamContext(examSchedule, subjectModule, classGroup);
         ensureValidTimeRange(request.startTime(), request.endTime());
         ensureUniqueModuleExam(
             examScheduleId,
@@ -98,7 +84,6 @@ public class ModuleExamService {
             moduleExam,
             subjectModule,
             classGroup,
-            teachingAssignment,
             request.examDate(),
             request.startTime(),
             request.endTime(),
@@ -145,15 +130,7 @@ public class ModuleExamService {
 
         SubjectModule subjectModule = findSubjectModule(request.subjectModuleId());
         ClassGroup classGroup = findClassGroup(request.classGroupId());
-        TeachingAssignment teachingAssignment = findTeachingAssignment(
-            request.teachingAssignmentId()
-        );
-        ensureExamContext(
-            examSchedule,
-            subjectModule,
-            classGroup,
-            teachingAssignment
-        );
+        ensureExamContext(examSchedule, subjectModule, classGroup);
         ensureValidTimeRange(request.startTime(), request.endTime());
         ensureUniqueModuleExam(
             examSchedule.getId(),
@@ -174,7 +151,6 @@ public class ModuleExamService {
             moduleExam,
             subjectModule,
             classGroup,
-            teachingAssignment,
             request.examDate(),
             request.startTime(),
             request.endTime(),
@@ -227,22 +203,10 @@ public class ModuleExamService {
             ));
     }
 
-    private TeachingAssignment findTeachingAssignment(UUID teachingAssignmentId) {
-        if (teachingAssignmentId == null) {
-            return null;
-        }
-        return teachingAssignmentRepository.findById(teachingAssignmentId)
-            .orElseThrow(() -> new ResponseStatusException(
-                HttpStatus.NOT_FOUND,
-                "Teaching assignment not found"
-            ));
-    }
-
     private void ensureExamContext(
         ExamSchedule examSchedule,
         SubjectModule subjectModule,
-        ClassGroup classGroup,
-        TeachingAssignment teachingAssignment
+        ClassGroup classGroup
     ) {
         boolean compatible = examSchedule.getSemester().getId().equals(
             subjectModule.getSemester().getId()
@@ -259,43 +223,6 @@ public class ModuleExamService {
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
                 "Subject module and class group must match the exam schedule context"
-            );
-        }
-
-        if (teachingAssignment != null) {
-            ensureTeachingAssignmentMatches(
-                examSchedule,
-                subjectModule,
-                classGroup,
-                teachingAssignment
-            );
-        }
-    }
-
-    private void ensureTeachingAssignmentMatches(
-        ExamSchedule examSchedule,
-        SubjectModule subjectModule,
-        ClassGroup classGroup,
-        TeachingAssignment teachingAssignment
-    ) {
-        boolean compatible = teachingAssignment.getStatus()
-                == TeachingAssignmentStatus.ACTIVE
-            && teachingAssignment.getSubjectModule().getId().equals(subjectModule.getId())
-            && teachingAssignment.getClassGroup().getId().equals(classGroup.getId())
-            && teachingAssignment.getAcademicYear().getId().equals(
-                examSchedule.getAcademicYear().getId()
-            )
-            && teachingAssignment.getSemester().getId().equals(
-                examSchedule.getSemester().getId()
-            )
-            && teachingAssignment.getProfessor().getEstablishment().getId().equals(
-                examSchedule.getEstablishment().getId()
-            );
-
-        if (!compatible) {
-            throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                "Teaching assignment does not match the module exam context"
             );
         }
     }
@@ -420,7 +347,6 @@ public class ModuleExamService {
         ModuleExam moduleExam,
         SubjectModule subjectModule,
         ClassGroup classGroup,
-        TeachingAssignment teachingAssignment,
         LocalDate examDate,
         LocalTime startTime,
         LocalTime endTime,
@@ -428,7 +354,6 @@ public class ModuleExamService {
     ) {
         moduleExam.setSubjectModule(subjectModule);
         moduleExam.setClassGroup(classGroup);
-        moduleExam.setTeachingAssignment(teachingAssignment);
         moduleExam.setExamDate(examDate);
         moduleExam.setStartTime(startTime);
         moduleExam.setEndTime(endTime);
@@ -443,13 +368,11 @@ public class ModuleExamService {
     }
 
     private ModuleExamResponse toResponse(ModuleExam moduleExam) {
-        TeachingAssignment teachingAssignment = moduleExam.getTeachingAssignment();
         return new ModuleExamResponse(
             moduleExam.getId(),
             moduleExam.getExamSchedule().getId(),
             moduleExam.getSubjectModule().getId(),
             moduleExam.getClassGroup().getId(),
-            teachingAssignment == null ? null : teachingAssignment.getId(),
             moduleExam.getExamDate(),
             moduleExam.getStartTime(),
             moduleExam.getEndTime(),

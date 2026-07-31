@@ -17,14 +17,26 @@ import com.platform.identityaccess.infrastructure.UserAccountRepository;
 import com.platform.identityaccess.infrastructure.UserProfileRepository;
 import com.platform.platform.PlatformApplication;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
+import com.platform.moduleclassresponsibility.application.ModuleClassResponsibilityService;
+import com.platform.moduleclassresponsibility.domain.ModuleClassResponsibilityStatus;
+import com.platform.moduleclassresponsibility.infrastructure.ModuleClassResponsibilityRepository;
+import com.platform.moduleclassresponsibility.presentation.dto.CreateModuleClassResponsibilityRequest;
+import com.platform.scheduling.domain.RoomType;
+import com.platform.scheduling.teachinggroup.domain.TeachingGroup;
+import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupRepository;
 import com.platform.shared.presentation.ActionResponse;
 import com.platform.teachingassignment.application.TeachingAssignmentService;
 import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
 import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
 import com.platform.teachingassignment.presentation.dto.CreateTeachingAssignmentRequest;
 import com.platform.teachingassignment.presentation.dto.TeachingAssignmentResponse;
+import com.platform.teachingrequirement.domain.TeachingRequirement;
+import com.platform.teachingrequirement.domain.TeachingRequirementStatus;
+import com.platform.teachingrequirement.infrastructure.TeachingRequirementRepository;
 import com.platform.universitygovernance.academiclevel.domain.AcademicLevel;
 import com.platform.universitygovernance.academiclevel.infrastructure.AcademicLevelRepository;
+import com.platform.universitygovernance.academicdomain.domain.AcademicDomain;
+import com.platform.universitygovernance.academicdomain.infrastructure.AcademicDomainRepository;
 import com.platform.universitygovernance.academicyear.domain.AcademicYear;
 import com.platform.universitygovernance.academicyear.domain.AcademicYearStatus;
 import com.platform.universitygovernance.academicyear.infrastructure.AcademicYearRepository;
@@ -46,9 +58,17 @@ import com.platform.universitygovernance.programpath.infrastructure.ProgramPathR
 import com.platform.universitygovernance.semester.domain.Semester;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
 import com.platform.universitygovernance.subjectmodules.domain.SubjectModule;
+import com.platform.universitygovernance.subjectmodules.domain.SubjectModuleDomain;
+import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleDomainRepository;
 import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleRepository;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.ModuleTeachingComponent;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingAudienceMode;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingComponentType;
+import com.platform.universitygovernance.moduleteachingcomponent.infrastructure.ModuleTeachingComponentRepository;
 import com.platform.universitygovernance.university.domain.University;
 import com.platform.universitygovernance.university.infrastructure.UniversityRepository;
+import com.platform.usermanagement.professor.expertise.domain.ProfessorExpertise;
+import com.platform.usermanagement.professor.expertise.infrastructure.ProfessorExpertiseRepository;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -66,7 +86,22 @@ class TeachingAssignmentServiceIntegrationTest {
     private TeachingAssignmentService teachingAssignmentService;
 
     @Autowired
+    private ModuleClassResponsibilityService responsibilityService;
+
+    @Autowired
+    private ModuleClassResponsibilityRepository responsibilityRepository;
+
+    @Autowired
     private TeachingAssignmentRepository teachingAssignmentRepository;
+
+    @Autowired
+    private TeachingRequirementRepository teachingRequirementRepository;
+
+    @Autowired
+    private TeachingGroupRepository teachingGroupRepository;
+
+    @Autowired
+    private ModuleTeachingComponentRepository teachingComponentRepository;
 
     @Autowired
     private ProfessorRepository professorRepository;
@@ -76,6 +111,15 @@ class TeachingAssignmentServiceIntegrationTest {
 
     @Autowired
     private SubjectModuleRepository subjectModuleRepository;
+
+    @Autowired
+    private SubjectModuleDomainRepository subjectModuleDomainRepository;
+
+    @Autowired
+    private AcademicDomainRepository academicDomainRepository;
+
+    @Autowired
+    private ProfessorExpertiseRepository professorExpertiseRepository;
 
     @Autowired
     private ClassGroupRepository classGroupRepository;
@@ -130,6 +174,7 @@ class TeachingAssignmentServiceIntegrationTest {
     private Semester semester;
     private SubjectModule subjectModule;
     private ClassGroup classGroup;
+    private TeachingRequirement teachingRequirement;
 
     @BeforeEach
     void setUp() {
@@ -180,6 +225,28 @@ class TeachingAssignmentServiceIntegrationTest {
         classGroup.setName("Group A");
         classGroup.setStatus(ClassGroupStatus.ACTIVE);
         classGroup = classGroupRepository.save(classGroup);
+
+        ModuleTeachingComponent component = new ModuleTeachingComponent();
+        component.setSubjectModule(subjectModule);
+        component.setComponentType(TeachingComponentType.COURSE);
+        component.setSessionsPerWeek(1);
+        component.setSessionDurationMinutes(60);
+        component.setAudienceMode(TeachingAudienceMode.CLASS_GROUP);
+        component.setRequiredRoomType(RoomType.CLASSROOM);
+        component = teachingComponentRepository.save(component);
+
+        TeachingGroup teachingGroup = new TeachingGroup();
+        teachingGroup.setSemester(semester);
+        teachingGroup.setSourceClassGroup(classGroup);
+        teachingGroup.setName(classGroup.getName());
+        teachingGroup.setAudienceType(TeachingAudienceMode.CLASS_GROUP);
+        teachingGroup = teachingGroupRepository.save(teachingGroup);
+
+        teachingRequirement = new TeachingRequirement();
+        teachingRequirement.setModuleTeachingComponent(component);
+        teachingRequirement.setTeachingGroup(teachingGroup);
+        teachingRequirement.setStatus(TeachingRequirementStatus.ACTIVE);
+        teachingRequirement = teachingRequirementRepository.save(teachingRequirement);
     }
 
     @AfterEach
@@ -251,8 +318,89 @@ class TeachingAssignmentServiceIntegrationTest {
         assertThat(replacement.status()).isEqualTo(TeachingAssignmentStatus.ACTIVE);
     }
 
+    @Test
+    void moduleAndClassHaveOneActiveResponsibleProfessor() {
+        AuthenticatedUserPrincipal root = principal(
+            AccountRoleType.ROOT_SUPER_ADMIN,
+            UUID.randomUUID(),
+            null
+        );
+        Professor firstProfessor = saveProfessor("responsible.one@uiz.ac.ma");
+        Professor secondProfessor = saveProfessor("responsible.two@uiz.ac.ma");
+
+        var first = responsibilityService.createResponsibility(
+            root,
+            establishment.getId(),
+            responsibilityRequest(firstProfessor)
+        );
+        assertThat(first.status()).isEqualTo(ModuleClassResponsibilityStatus.ACTIVE);
+
+        assertThatThrownBy(() -> responsibilityService.createResponsibility(
+            root,
+            establishment.getId(),
+            responsibilityRequest(secondProfessor)
+        ))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("409 CONFLICT");
+
+        responsibilityService.removeResponsibility(root, first.id());
+        assertThat(responsibilityService.createResponsibility(
+            root,
+            establishment.getId(),
+            responsibilityRequest(secondProfessor)
+        ).professorId()).isEqualTo(secondProfessor.getId());
+    }
+
+    @Test
+    void professorMustCoverEverySubjectModuleDomain() {
+        AuthenticatedUserPrincipal root = principal(
+            AccountRoleType.ROOT_SUPER_ADMIN,
+            UUID.randomUUID(),
+            null
+        );
+        AcademicDomain algorithms = new AcademicDomain();
+        algorithms.setEstablishment(establishment);
+        algorithms.setCode("ALG");
+        algorithms.setName("Algorithms");
+        algorithms = academicDomainRepository.save(algorithms);
+
+        SubjectModuleDomain moduleDomain = new SubjectModuleDomain();
+        moduleDomain.setSubjectModule(subjectModule);
+        moduleDomain.setAcademicDomain(algorithms);
+        subjectModuleDomainRepository.save(moduleDomain);
+
+        Professor professor = saveProfessor("qualified.professor@uiz.ac.ma");
+        assertThatThrownBy(() -> teachingAssignmentService.createTeachingAssignment(
+            root,
+            establishment.getId(),
+            request(professor)
+        ))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("409 CONFLICT");
+
+        ProfessorExpertise expertise = new ProfessorExpertise();
+        expertise.setProfessor(professor);
+        expertise.setAcademicDomain(algorithms);
+        professorExpertiseRepository.save(expertise);
+
+        assertThat(teachingAssignmentService.createTeachingAssignment(
+            root,
+            establishment.getId(),
+            request(professor)
+        ).professorId()).isEqualTo(professor.getId());
+    }
+
     private CreateTeachingAssignmentRequest request(Professor professor) {
         return new CreateTeachingAssignmentRequest(
+            professor.getId(),
+            teachingRequirement.getId()
+        );
+    }
+
+    private CreateModuleClassResponsibilityRequest responsibilityRequest(
+        Professor professor
+    ) {
+        return new CreateModuleClassResponsibilityRequest(
             professor.getId(),
             subjectModule.getId(),
             classGroup.getId(),
@@ -318,8 +466,15 @@ class TeachingAssignmentServiceIntegrationTest {
 
     private void clearBusinessData() {
         teachingAssignmentRepository.deleteAll();
+        responsibilityRepository.deleteAll();
+        teachingRequirementRepository.deleteAll();
+        teachingGroupRepository.deleteAll();
+        teachingComponentRepository.deleteAll();
         adminPermissionGrantRepository.deleteAll();
+        professorExpertiseRepository.deleteAll();
+        subjectModuleDomainRepository.deleteAll();
         subjectModuleRepository.deleteAll();
+        academicDomainRepository.deleteAll();
         classGroupRepository.deleteAll();
         professorRepository.deleteAll();
         studentRepository.deleteAll();

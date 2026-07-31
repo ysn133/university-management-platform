@@ -11,15 +11,21 @@ import com.platform.scheduling.semesterschedule.infrastructure.SemesterScheduleR
 import com.platform.scheduling.semesterschedule.presentation.dto.CreateScheduleEntryRequest;
 import com.platform.scheduling.semesterschedule.presentation.dto.ScheduleEntryResponse;
 import com.platform.scheduling.semesterschedule.presentation.dto.UpdateScheduleEntryRequest;
+import com.platform.scheduling.teachinggroup.domain.TeachingGroup;
+import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupMembershipRepository;
 import com.platform.shared.presentation.ActionResponse;
 import com.platform.teachingassignment.domain.TeachingAssignment;
 import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
 import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
+import com.platform.teachingrequirement.domain.TeachingRequirement;
+import com.platform.teachingrequirement.domain.TeachingRequirementStatus;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,17 +37,20 @@ public class ScheduleEntryService {
     private final ScheduleEntryRepository scheduleEntryRepository;
     private final SemesterScheduleRepository semesterScheduleRepository;
     private final TeachingAssignmentRepository teachingAssignmentRepository;
+    private final TeachingGroupMembershipRepository membershipRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
 
     public ScheduleEntryService(
         ScheduleEntryRepository scheduleEntryRepository,
         SemesterScheduleRepository semesterScheduleRepository,
         TeachingAssignmentRepository teachingAssignmentRepository,
+        TeachingGroupMembershipRepository membershipRepository,
         AdminPermissionAuthorizationService permissionAuthorizationService
     ) {
         this.scheduleEntryRepository = scheduleEntryRepository;
         this.semesterScheduleRepository = semesterScheduleRepository;
         this.teachingAssignmentRepository = teachingAssignmentRepository;
+        this.membershipRepository = membershipRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
     }
 
@@ -189,8 +198,10 @@ public class ScheduleEntryService {
         SemesterSchedule schedule
     ) {
         UUID establishmentId = schedule.getEstablishment().getId();
-        UUID classGroupEstablishmentId = assignment
-            .getClassGroup()
+        TeachingRequirement requirement = assignment.getTeachingRequirement();
+        TeachingGroup teachingGroup = requirement.getTeachingGroup();
+        UUID requirementEstablishmentId = teachingGroup
+            .getSemester()
             .getAcademicLevel()
             .getProgramFiliere()
             .getDepartment()
@@ -198,20 +209,18 @@ public class ScheduleEntryService {
             .getId();
 
         boolean compatible = assignment.getStatus() == TeachingAssignmentStatus.ACTIVE
+            && requirement.getStatus() == TeachingRequirementStatus.ACTIVE
             && establishmentId.equals(assignment.getProfessor().getEstablishment().getId())
-            && establishmentId.equals(classGroupEstablishmentId)
+            && establishmentId.equals(requirementEstablishmentId)
             && schedule.getAcademicYear().getId().equals(
-                assignment.getAcademicYear().getId()
+                teachingGroup.getSemester().getAcademicYear().getId()
             )
-            && schedule.getSemester().getId().equals(assignment.getSemester().getId())
-            && assignment.getSemester().getId().equals(
-                assignment.getSubjectModule().getSemester().getId()
-            )
-            && assignment.getSemester().getAcademicLevel().getId().equals(
-                assignment.getClassGroup().getAcademicLevel().getId()
-            )
-            && assignment.getAcademicYear().getId().equals(
-                assignment.getClassGroup().getAcademicYear().getId()
+            && schedule.getSemester().getId().equals(teachingGroup.getSemester().getId())
+            && teachingGroup.getSemester().getId().equals(
+                requirement.getModuleTeachingComponent()
+                    .getSubjectModule()
+                    .getSemester()
+                    .getId()
             );
 
         if (!compatible) {
@@ -260,9 +269,7 @@ public class ScheduleEntryService {
                 entry.getTeachingAssignment().getProfessor().getId().equals(
                     assignment.getProfessor().getId()
                 )
-                || entry.getTeachingAssignment().getClassGroup().getId().equals(
-                    assignment.getClassGroup().getId()
-                )
+                || audiencesOverlap(entry.getTeachingAssignment(), assignment)
             );
 
         if (conflict) {
@@ -271,6 +278,27 @@ public class ScheduleEntryService {
                 "The professor or class group already has an overlapping schedule entry"
             );
         }
+    }
+
+    private boolean audiencesOverlap(
+        TeachingAssignment first,
+        TeachingAssignment second
+    ) {
+        UUID firstGroupId = first.getTeachingRequirement().getTeachingGroup().getId();
+        UUID secondGroupId = second.getTeachingRequirement().getTeachingGroup().getId();
+        if (firstGroupId.equals(secondGroupId)) {
+            return true;
+        }
+        Set<UUID> firstMembers = membershipRepository
+            .findByTeachingGroupId(firstGroupId)
+            .stream()
+            .map(membership -> membership.getSemesterRegistration().getId())
+            .collect(Collectors.toSet());
+        return membershipRepository
+            .findByTeachingGroupId(secondGroupId)
+            .stream()
+            .map(membership -> membership.getSemesterRegistration().getId())
+            .anyMatch(firstMembers::contains);
     }
 
     private boolean overlaps(
@@ -337,13 +365,15 @@ public class ScheduleEntryService {
 
     private ScheduleEntryResponse toResponse(ScheduleEntry entry) {
         TeachingAssignment assignment = entry.getTeachingAssignment();
+        TeachingRequirement requirement = assignment.getTeachingRequirement();
         return new ScheduleEntryResponse(
             entry.getId(),
             entry.getSemesterSchedule().getId(),
             assignment.getId(),
             assignment.getProfessor().getId(),
-            assignment.getSubjectModule().getId(),
-            assignment.getClassGroup().getId(),
+            requirement.getModuleTeachingComponent().getSubjectModule().getId(),
+            requirement.getTeachingGroup().getId(),
+            requirement.getTeachingGroup().getName(),
             entry.getDayOfWeek(),
             entry.getStartTime(),
             entry.getEndTime(),

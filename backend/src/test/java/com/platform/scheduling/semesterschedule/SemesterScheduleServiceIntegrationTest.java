@@ -32,9 +32,15 @@ import com.platform.scheduling.semesterschedule.presentation.dto.CreateSemesterS
 import com.platform.scheduling.semesterschedule.presentation.dto.ScheduleEntryResponse;
 import com.platform.scheduling.semesterschedule.presentation.dto.SemesterScheduleResponse;
 import com.platform.scheduling.semesterschedule.presentation.dto.UpdateScheduleEntryRequest;
+import com.platform.scheduling.domain.RoomType;
+import com.platform.scheduling.teachinggroup.domain.TeachingGroup;
+import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupRepository;
 import com.platform.teachingassignment.domain.TeachingAssignment;
 import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
 import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
+import com.platform.teachingrequirement.domain.TeachingRequirement;
+import com.platform.teachingrequirement.domain.TeachingRequirementStatus;
+import com.platform.teachingrequirement.infrastructure.TeachingRequirementRepository;
 import com.platform.universitygovernance.academiclevel.domain.AcademicLevel;
 import com.platform.universitygovernance.academiclevel.infrastructure.AcademicLevelRepository;
 import com.platform.universitygovernance.academicyear.domain.AcademicYear;
@@ -59,6 +65,10 @@ import com.platform.universitygovernance.semester.domain.Semester;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
 import com.platform.universitygovernance.subjectmodules.domain.SubjectModule;
 import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleRepository;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.ModuleTeachingComponent;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingAudienceMode;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingComponentType;
+import com.platform.universitygovernance.moduleteachingcomponent.infrastructure.ModuleTeachingComponentRepository;
 import com.platform.universitygovernance.university.domain.University;
 import com.platform.universitygovernance.university.infrastructure.UniversityRepository;
 import java.time.DayOfWeek;
@@ -91,6 +101,15 @@ class SemesterScheduleServiceIntegrationTest {
 
     @Autowired
     private TeachingAssignmentRepository teachingAssignmentRepository;
+
+    @Autowired
+    private TeachingRequirementRepository teachingRequirementRepository;
+
+    @Autowired
+    private TeachingGroupRepository teachingGroupRepository;
+
+    @Autowired
+    private ModuleTeachingComponentRepository teachingComponentRepository;
 
     @Autowired
     private PermissionRepository permissionRepository;
@@ -365,10 +384,29 @@ class SemesterScheduleServiceIntegrationTest {
 
         TeachingAssignment assignment = new TeachingAssignment();
         assignment.setProfessor(professor);
-        assignment.setSubjectModule(subjectModule);
-        assignment.setClassGroup(classGroup);
-        assignment.setAcademicYear(academicYear);
-        assignment.setSemester(semester);
+        ModuleTeachingComponent component = new ModuleTeachingComponent();
+        component.setSubjectModule(subjectModule);
+        component.setComponentType(TeachingComponentType.COURSE);
+        component.setSessionsPerWeek(1);
+        component.setSessionDurationMinutes(60);
+        component.setAudienceMode(TeachingAudienceMode.CLASS_GROUP);
+        component.setRequiredRoomType(RoomType.CLASSROOM);
+        component = teachingComponentRepository.save(component);
+
+        TeachingGroup teachingGroup = new TeachingGroup();
+        teachingGroup.setSemester(semester);
+        teachingGroup.setSourceClassGroup(classGroup);
+        teachingGroup.setName(classGroup.getName());
+        teachingGroup.setAudienceType(TeachingAudienceMode.CLASS_GROUP);
+        teachingGroup = teachingGroupRepository.save(teachingGroup);
+
+        TeachingRequirement requirement = new TeachingRequirement();
+        requirement.setModuleTeachingComponent(component);
+        requirement.setTeachingGroup(teachingGroup);
+        requirement.setStatus(TeachingRequirementStatus.ACTIVE);
+        requirement = teachingRequirementRepository.save(requirement);
+
+        assignment.setTeachingRequirement(requirement);
         assignment.setStatus(TeachingAssignmentStatus.ACTIVE);
         return teachingAssignmentRepository.save(assignment);
     }
@@ -514,6 +552,9 @@ class SemesterScheduleServiceIntegrationTest {
     private void clearBusinessData() {
         scheduleEntryRepository.deleteAll();
         teachingAssignmentRepository.deleteAll();
+        teachingRequirementRepository.deleteAll();
+        teachingGroupRepository.deleteAll();
+        teachingComponentRepository.deleteAll();
         semesterScheduleRepository.deleteAll();
         adminPermissionGrantRepository.deleteAll();
         subjectModuleRepository.deleteAll();

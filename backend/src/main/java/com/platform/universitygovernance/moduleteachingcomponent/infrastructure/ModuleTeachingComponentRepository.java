@@ -15,4 +15,6 @@ public interface ModuleTeachingComponentRepository
         UUID semesterId,
         TeachingAudienceMode audienceMode
     );
+
+    List<ModuleTeachingComponent> findBySubjectModuleSemesterId(UUID semesterId);
 }

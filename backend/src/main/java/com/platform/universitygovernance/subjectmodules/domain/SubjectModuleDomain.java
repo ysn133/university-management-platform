@@ -1,4 +1,4 @@
-package com.platform.universitygovernance.moduleteachingcomponent.domain;
+package com.platform.universitygovernance.subjectmodules.domain;
 
 import com.platform.universitygovernance.academicdomain.domain.AcademicDomain;
 import jakarta.persistence.Entity;
@@ -10,21 +10,21 @@ import jakarta.persistence.Table;
 import java.util.UUID;
 
 @Entity
-@Table(name = "teaching_component_domain")
-public class TeachingComponentDomain {
+@Table(name = "subject_module_domain")
+public class SubjectModuleDomain {
 
     @Id
     private UUID id;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "module_teaching_component_id", nullable = false)
-    private ModuleTeachingComponent moduleTeachingComponent;
+    @JoinColumn(name = "subject_module_id", nullable = false)
+    private SubjectModule subjectModule;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "academic_domain_id", nullable = false)
     private AcademicDomain academicDomain;
 
-    public TeachingComponentDomain() {
+    public SubjectModuleDomain() {
     }
 
     @PrePersist
@@ -38,12 +38,12 @@ public class TeachingComponentDomain {
         return id;
     }
 
-    public ModuleTeachingComponent getModuleTeachingComponent() {
-        return moduleTeachingComponent;
+    public SubjectModule getSubjectModule() {
+        return subjectModule;
     }
 
-    public void setModuleTeachingComponent(ModuleTeachingComponent moduleTeachingComponent) {
-        this.moduleTeachingComponent = moduleTeachingComponent;
+    public void setSubjectModule(SubjectModule subjectModule) {
+        this.subjectModule = subjectModule;
     }
 
     public AcademicDomain getAcademicDomain() {

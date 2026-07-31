@@ -10,27 +10,25 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface TeachingAssignmentRepository
     extends JpaRepository<TeachingAssignment, UUID> {
 
-    List<TeachingAssignment> findByProfessorEstablishmentIdOrderByCreatedAtDesc(
-        UUID establishmentId
-    );
+    List<TeachingAssignment>
+        findByTeachingRequirementTeachingGroupSemesterAcademicLevelProgramFiliereDepartmentEstablishmentIdOrderByCreatedAtDesc(
+            UUID establishmentId
+        );
 
     List<TeachingAssignment> findByProfessorIdOrderByCreatedAtDesc(UUID professorId);
 
-    Optional<TeachingAssignment>
-        findBySubjectModuleIdAndClassGroupIdAndAcademicYearIdAndSemesterIdAndStatus(
-            UUID subjectModuleId,
-            UUID classGroupId,
-            UUID academicYearId,
-            UUID semesterId,
-            TeachingAssignmentStatus status
-        );
+    List<TeachingAssignment> findByProfessorIdAndStatus(
+        UUID professorId,
+        TeachingAssignmentStatus status
+    );
 
-    Optional<TeachingAssignment>
-        findByProfessorIdAndSubjectModuleIdAndClassGroupIdAndAcademicYearIdAndSemesterId(
-            UUID professorId,
-            UUID subjectModuleId,
-            UUID classGroupId,
-            UUID academicYearId,
-            UUID semesterId
-        );
+    Optional<TeachingAssignment> findByTeachingRequirementIdAndStatus(
+        UUID teachingRequirementId,
+        TeachingAssignmentStatus status
+    );
+
+    Optional<TeachingAssignment> findByProfessorIdAndTeachingRequirementId(
+        UUID professorId,
+        UUID teachingRequirementId
+    );
 }

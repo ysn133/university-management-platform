@@ -21,6 +21,8 @@ import com.platform.platform.PlatformApplication;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.universitygovernance.academiclevel.domain.AcademicLevel;
 import com.platform.universitygovernance.academiclevel.infrastructure.AcademicLevelRepository;
+import com.platform.universitygovernance.academicdomain.domain.AcademicDomain;
+import com.platform.universitygovernance.academicdomain.infrastructure.AcademicDomainRepository;
 import com.platform.universitygovernance.academicyear.domain.AcademicYear;
 import com.platform.universitygovernance.academicyear.domain.AcademicYearStatus;
 import com.platform.universitygovernance.academicyear.infrastructure.AcademicYearRepository;
@@ -41,6 +43,7 @@ import com.platform.universitygovernance.semester.domain.Semester;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
 import com.platform.universitygovernance.subjectmodules.application.SubjectModuleService;
 import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleRepository;
+import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleDomainRepository;
 import com.platform.universitygovernance.subjectmodules.presentation.dto.CreateSubjectModuleRequest;
 import com.platform.universitygovernance.subjectmodules.presentation.dto.SubjectModuleResponse;
 import com.platform.universitygovernance.subjectmodules.presentation.dto.UpdateSubjectModuleRequest;
@@ -65,6 +68,12 @@ class SubjectModuleServiceIntegrationTest {
 
     @Autowired
     private SubjectModuleRepository subjectModuleRepository;
+
+    @Autowired
+    private SubjectModuleDomainRepository subjectModuleDomainRepository;
+
+    @Autowired
+    private AcademicDomainRepository academicDomainRepository;
 
     @Autowired
     private ClassGroupRepository classGroupRepository;
@@ -144,11 +153,30 @@ class SubjectModuleServiceIntegrationTest {
     @Test
     void rootCanManageSubjectModulesAndCodesAreUniquePerSemester() {
         AuthenticatedUserPrincipal root = principal(AccountRoleType.ROOT_SUPER_ADMIN, UUID.randomUUID(), null);
+        AcademicDomain databasesDomain = saveAcademicDomain(
+            firstEstablishment,
+            "DB",
+            "Databases"
+        );
+        AcademicDomain softwareDomain = saveAcademicDomain(
+            firstEstablishment,
+            "SE",
+            "Software Engineering"
+        );
+        AcademicDomain mathematicsDomain = saveAcademicDomain(
+            secondEstablishment,
+            "MATH",
+            "Mathematics"
+        );
 
         SubjectModuleResponse databases = subjectModuleService.createSubjectModule(
             root,
             firstSemester.getId(),
-            new CreateSubjectModuleRequest(" DB101 ", "Databases")
+            new CreateSubjectModuleRequest(
+                " DB101 ",
+                "Databases",
+                Set.of(databasesDomain.getId(), softwareDomain.getId())
+            )
         );
         SubjectModuleResponse algorithms = subjectModuleService.createSubjectModule(
             root,
@@ -163,6 +191,8 @@ class SubjectModuleServiceIntegrationTest {
 
         assertThat(databases.code()).isEqualTo("DB101");
         assertThat(databases.semesterId()).isEqualTo(firstSemester.getId());
+        assertThat(databases.academicDomainIds())
+            .containsExactlyInAnyOrder(databasesDomain.getId(), softwareDomain.getId());
         assertThat(subjectModuleService.getSubjectModules(root, firstSemester.getId()))
             .extracting(SubjectModuleResponse::id)
             .containsExactly(algorithms.id(), databases.id(), advancedDatabases.id());
@@ -177,6 +207,18 @@ class SubjectModuleServiceIntegrationTest {
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("409 CONFLICT");
 
+        assertThatThrownBy(() -> subjectModuleService.createSubjectModule(
+            root,
+            firstSemester.getId(),
+            new CreateSubjectModuleRequest(
+                "MATH101",
+                "Mathematics",
+                Set.of(mathematicsDomain.getId())
+            )
+        ))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("400 BAD_REQUEST");
+
         SubjectModuleResponse sameCodeInAnotherSemester = subjectModuleService.createSubjectModule(
             root,
             secondSemester.getId(),
@@ -187,10 +229,15 @@ class SubjectModuleServiceIntegrationTest {
         SubjectModuleResponse updated = subjectModuleService.updateSubjectModule(
             root,
             databases.id(),
-            new UpdateSubjectModuleRequest("DB102", "Relational Databases")
+            new UpdateSubjectModuleRequest(
+                "DB102",
+                "Relational Databases",
+                Set.of(databasesDomain.getId())
+            )
         );
         assertThat(updated.code()).isEqualTo("DB102");
         assertThat(updated.title()).isEqualTo("Relational Databases");
+        assertThat(updated.academicDomainIds()).containsExactly(databasesDomain.getId());
 
         assertThat(subjectModuleService.deleteSubjectModule(root, updated.id()).success()).isTrue();
         assertThat(subjectModuleRepository.findById(updated.id())).isEmpty();
@@ -333,9 +380,23 @@ class SubjectModuleServiceIntegrationTest {
         return establishmentRepository.save(establishment);
     }
 
+    private AcademicDomain saveAcademicDomain(
+        Establishment establishment,
+        String code,
+        String name
+    ) {
+        AcademicDomain academicDomain = new AcademicDomain();
+        academicDomain.setEstablishment(establishment);
+        academicDomain.setCode(code);
+        academicDomain.setName(name);
+        return academicDomainRepository.save(academicDomain);
+    }
+
     private void clearBusinessData() {
         adminPermissionGrantRepository.deleteAll();
+        subjectModuleDomainRepository.deleteAll();
         subjectModuleRepository.deleteAll();
+        academicDomainRepository.deleteAll();
         classGroupRepository.deleteAll();
         semesterRepository.deleteAll();
         academicLevelRepository.deleteAll();

@@ -8,7 +8,6 @@ public record GradeSheetResponse(
     UUID moduleExamId,
     UUID subjectModuleId,
     UUID classGroupId,
-    UUID teachingAssignmentId,
     GradeWorkflowStatus workflowStatus,
     List<GradeItemResponse> grades
 ) {

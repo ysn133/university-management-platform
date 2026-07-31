@@ -18,8 +18,6 @@ import com.platform.identityaccess.infrastructure.UserAccountRepository;
 import com.platform.identityaccess.infrastructure.UserProfileRepository;
 import com.platform.platform.PlatformApplication;
 import com.platform.platform.infrastructure.security.JwtTokenService;
-import com.platform.universitygovernance.academicdomain.domain.AcademicDomain;
-import com.platform.universitygovernance.academicdomain.infrastructure.AcademicDomainRepository;
 import com.platform.universitygovernance.academiclevel.domain.AcademicLevel;
 import com.platform.universitygovernance.academiclevel.infrastructure.AcademicLevelRepository;
 import com.platform.universitygovernance.academicyear.domain.AcademicYear;
@@ -34,7 +32,6 @@ import com.platform.universitygovernance.establishment.domain.EstablishmentStatu
 import com.platform.universitygovernance.establishment.domain.EstablishmentType;
 import com.platform.universitygovernance.establishment.infrastructure.EstablishmentRepository;
 import com.platform.universitygovernance.moduleteachingcomponent.infrastructure.ModuleTeachingComponentRepository;
-import com.platform.universitygovernance.moduleteachingcomponent.infrastructure.TeachingComponentDomainRepository;
 import com.platform.universitygovernance.programfiliere.domain.ProgramFiliere;
 import com.platform.universitygovernance.programfiliere.infrastructure.ProgramFiliereRepository;
 import com.platform.universitygovernance.programpath.domain.ProgramPath;
@@ -73,13 +70,7 @@ class ModuleTeachingComponentControllerIntegrationTest {
     private JwtTokenService jwtTokenService;
 
     @Autowired
-    private TeachingComponentDomainRepository componentDomainRepository;
-
-    @Autowired
     private ModuleTeachingComponentRepository componentRepository;
-
-    @Autowired
-    private AcademicDomainRepository academicDomainRepository;
 
     @Autowired
     private SubjectModuleRepository subjectModuleRepository;
@@ -167,9 +158,6 @@ class ModuleTeachingComponentControllerIntegrationTest {
 
     @Test
     void rootCanReadAndReplaceACompleteTeachingConfiguration() throws Exception {
-        AcademicDomain software = saveAcademicDomain(firstEstablishment, "SE", "Software Engineering");
-        AcademicDomain databases = saveAcademicDomain(firstEstablishment, "DB", "Databases");
-        AcademicDomain mathematics = saveAcademicDomain(secondEstablishment, "MATH", "Mathematics");
         String rootToken = token(
             AccountRoleType.ROOT_SUPER_ADMIN,
             UUID.randomUUID(),
@@ -180,7 +168,7 @@ class ModuleTeachingComponentControllerIntegrationTest {
         HttpResponse<String> initialResponse = putJson(
             componentPath(firstModule),
             rootToken,
-            initialConfiguration(software.getId(), databases.getId())
+            initialConfiguration()
         );
         assertThat(initialResponse.statusCode()).isEqualTo(200);
         JsonNode initial = objectMapper.readTree(initialResponse.body());
@@ -197,7 +185,7 @@ class ModuleTeachingComponentControllerIntegrationTest {
         HttpResponse<String> updatedResponse = putJson(
             componentPath(firstModule),
             rootToken,
-            updatedConfiguration(software.getId())
+            updatedConfiguration()
         );
         assertThat(updatedResponse.statusCode()).isEqualTo(200);
         JsonNode updated = objectMapper.readTree(updatedResponse.body());
@@ -208,14 +196,6 @@ class ModuleTeachingComponentControllerIntegrationTest {
         assertThat(componentRepository.findBySubjectModuleIdOrderByComponentTypeAsc(firstModule.getId()))
             .extracting(component -> component.getComponentType().name())
             .containsExactly("COURSE", "TD");
-
-        assertThat(putJson(
-            componentPath(firstModule),
-            rootToken,
-            crossEstablishmentConfiguration(mathematics.getId())
-        ).statusCode()).isEqualTo(400);
-        assertThat(componentRepository.findBySubjectModuleIdOrderByComponentTypeAsc(firstModule.getId()))
-            .hasSize(2);
 
         assertThat(putJson(
             componentPath(firstModule),
@@ -231,8 +211,6 @@ class ModuleTeachingComponentControllerIntegrationTest {
 
     @Test
     void adminNeedsSpecificPermissionsAndMatchingEstablishment() throws Exception {
-        AcademicDomain software = saveAcademicDomain(firstEstablishment, "SE", "Software Engineering");
-
         UserAccount account = new UserAccount();
         account.setUniversityEmail("admin@ensa.uiz.ac.ma");
         account.setPasswordHash("not-used-by-this-test");
@@ -257,7 +235,7 @@ class ModuleTeachingComponentControllerIntegrationTest {
         assertThat(putJson(
             componentPath(firstModule),
             adminToken,
-            updatedConfiguration(software.getId())
+            updatedConfiguration()
         ).statusCode()).isEqualTo(200);
         assertThat(get(componentPath(firstModule), adminToken).statusCode()).isEqualTo(403);
 
@@ -270,40 +248,30 @@ class ModuleTeachingComponentControllerIntegrationTest {
         ).statusCode()).isEqualTo(403);
     }
 
-    private String initialConfiguration(UUID softwareDomainId, UUID databaseDomainId) {
+    private String initialConfiguration() {
         return """
             {"components":[
               {"componentType":"COURSE","sessionsPerWeek":1,"sessionDurationMinutes":90,
                "audienceMode":"WHOLE_COHORT","maximumGroupSize":null,
-               "requiredRoomType":"LECTURE_HALL","requiredDomainIds":["%s"]},
+               "requiredRoomType":"LECTURE_HALL"},
               {"componentType":"TP","sessionsPerWeek":1,"sessionDurationMinutes":120,
                "audienceMode":"SUBGROUP","maximumGroupSize":20,
-               "requiredRoomType":"COMPUTER_LAB","requiredDomainIds":["%s","%s"]}
+               "requiredRoomType":"COMPUTER_LAB"}
             ]}
-            """.formatted(softwareDomainId, softwareDomainId, databaseDomainId);
+            """;
     }
 
-    private String updatedConfiguration(UUID softwareDomainId) {
+    private String updatedConfiguration() {
         return """
             {"components":[
               {"componentType":"COURSE","sessionsPerWeek":1,"sessionDurationMinutes":120,
                "audienceMode":"WHOLE_COHORT","maximumGroupSize":null,
-               "requiredRoomType":"LECTURE_HALL","requiredDomainIds":["%s"]},
+               "requiredRoomType":"LECTURE_HALL"},
               {"componentType":"TD","sessionsPerWeek":1,"sessionDurationMinutes":90,
                "audienceMode":"CLASS_GROUP","maximumGroupSize":null,
-               "requiredRoomType":"CLASSROOM","requiredDomainIds":["%s"]}
+               "requiredRoomType":"CLASSROOM"}
             ]}
-            """.formatted(softwareDomainId, softwareDomainId);
-    }
-
-    private String crossEstablishmentConfiguration(UUID academicDomainId) {
-        return """
-            {"components":[
-              {"componentType":"COURSE","sessionsPerWeek":1,"sessionDurationMinutes":90,
-               "audienceMode":"WHOLE_COHORT","maximumGroupSize":null,
-               "requiredRoomType":"LECTURE_HALL","requiredDomainIds":["%s"]}
-            ]}
-            """.formatted(academicDomainId);
+            """;
     }
 
     private String duplicateTypeConfiguration() {
@@ -311,10 +279,10 @@ class ModuleTeachingComponentControllerIntegrationTest {
             {"components":[
               {"componentType":"TD","sessionsPerWeek":1,"sessionDurationMinutes":90,
                "audienceMode":"CLASS_GROUP","maximumGroupSize":null,
-               "requiredRoomType":"CLASSROOM","requiredDomainIds":[]},
+               "requiredRoomType":"CLASSROOM"},
               {"componentType":"TD","sessionsPerWeek":2,"sessionDurationMinutes":60,
                "audienceMode":"CLASS_GROUP","maximumGroupSize":null,
-               "requiredRoomType":"CLASSROOM","requiredDomainIds":[]}
+               "requiredRoomType":"CLASSROOM"}
             ]}
             """;
     }
@@ -324,7 +292,7 @@ class ModuleTeachingComponentControllerIntegrationTest {
             {"components":[
               {"componentType":"TP","sessionsPerWeek":1,"sessionDurationMinutes":120,
                "audienceMode":"SUBGROUP","maximumGroupSize":null,
-               "requiredRoomType":"COMPUTER_LAB","requiredDomainIds":[]}
+               "requiredRoomType":"COMPUTER_LAB"}
             ]}
             """;
     }
@@ -335,18 +303,6 @@ class ModuleTeachingComponentControllerIntegrationTest {
         grant.setAdmin(admin);
         grant.setPermission(permission);
         adminPermissionGrantRepository.save(grant);
-    }
-
-    private AcademicDomain saveAcademicDomain(
-        Establishment establishment,
-        String code,
-        String name
-    ) {
-        AcademicDomain academicDomain = new AcademicDomain();
-        academicDomain.setEstablishment(establishment);
-        academicDomain.setCode(code);
-        academicDomain.setName(name);
-        return academicDomainRepository.save(academicDomain);
     }
 
     private SubjectModule saveSubjectModule(
@@ -420,9 +376,7 @@ class ModuleTeachingComponentControllerIntegrationTest {
 
     private void clearBusinessData() {
         adminPermissionGrantRepository.deleteAll();
-        componentDomainRepository.deleteAll();
         componentRepository.deleteAll();
-        academicDomainRepository.deleteAll();
         subjectModuleRepository.deleteAll();
         semesterRepository.deleteAll();
         academicLevelRepository.deleteAll();

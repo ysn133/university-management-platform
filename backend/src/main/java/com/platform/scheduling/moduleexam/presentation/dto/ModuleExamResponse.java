@@ -10,7 +10,6 @@ public record ModuleExamResponse(
     UUID examScheduleId,
     UUID subjectModuleId,
     UUID classGroupId,
-    UUID teachingAssignmentId,
     LocalDate examDate,
     LocalTime startTime,
     LocalTime endTime,

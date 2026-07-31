@@ -9,7 +9,6 @@ import java.util.UUID;
 public record CreateModuleExamRequest(
     @NotNull UUID subjectModuleId,
     @NotNull UUID classGroupId,
-    UUID teachingAssignmentId,
     @NotNull LocalDate examDate,
     @NotNull LocalTime startTime,
     LocalTime endTime,

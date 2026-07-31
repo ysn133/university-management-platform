@@ -17,12 +17,15 @@ import com.platform.identityaccess.domain.UserAccount;
 import com.platform.identityaccess.infrastructure.StudentRepository;
 import com.platform.identityaccess.infrastructure.UserAccountRepository;
 import com.platform.platform.PlatformApplication;
+import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.scheduling.domain.RoomType;
 import com.platform.scheduling.teachinggroup.application.TeachingGroupGenerationService;
 import com.platform.scheduling.teachinggroup.domain.TeachingGroup;
 import com.platform.scheduling.teachinggroup.domain.TeachingGroupMembership;
 import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupMembershipRepository;
 import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupRepository;
+import com.platform.teachingrequirement.application.TeachingRequirementService;
+import com.platform.teachingrequirement.infrastructure.TeachingRequirementRepository;
 import com.platform.universitygovernance.academiclevel.domain.AcademicLevel;
 import com.platform.universitygovernance.academiclevel.infrastructure.AcademicLevelRepository;
 import com.platform.universitygovernance.academicyear.domain.AcademicYear;
@@ -43,7 +46,6 @@ import com.platform.universitygovernance.moduleteachingcomponent.domain.ModuleTe
 import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingAudienceMode;
 import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingComponentType;
 import com.platform.universitygovernance.moduleteachingcomponent.infrastructure.ModuleTeachingComponentRepository;
-import com.platform.universitygovernance.moduleteachingcomponent.infrastructure.TeachingComponentDomainRepository;
 import com.platform.universitygovernance.programfiliere.domain.ProgramFiliere;
 import com.platform.universitygovernance.programfiliere.infrastructure.ProgramFiliereRepository;
 import com.platform.universitygovernance.programpath.domain.ProgramPath;
@@ -75,13 +77,16 @@ class TeachingGroupGenerationServiceIntegrationTest {
     private TeachingGroupGenerationService generationService;
 
     @Autowired
+    private TeachingRequirementService teachingRequirementService;
+
+    @Autowired
+    private TeachingRequirementRepository teachingRequirementRepository;
+
+    @Autowired
     private TeachingGroupMembershipRepository membershipRepository;
 
     @Autowired
     private TeachingGroupRepository teachingGroupRepository;
-
-    @Autowired
-    private TeachingComponentDomainRepository componentDomainRepository;
 
     @Autowired
     private ModuleTeachingComponentRepository componentRepository;
@@ -209,6 +214,43 @@ class TeachingGroupGenerationServiceIntegrationTest {
         assertThat(membershipRepository.findAll()).isEmpty();
     }
 
+    @Test
+    void generatesOneRequirementForEachMatchingTeachingGroup() {
+        for (int index = 1; index <= 5; index++) {
+            saveActiveRegistration(index, groupA);
+        }
+        for (int index = 6; index <= 10; index++) {
+            saveActiveRegistration(index, groupB);
+        }
+        generationService.generateForSemester(semester.getId());
+
+        AuthenticatedUserPrincipal root = new AuthenticatedUserPrincipal(
+            UUID.randomUUID(),
+            AccountRoleType.ROOT_SUPER_ADMIN,
+            UUID.randomUUID(),
+            null,
+            "root@uiz.ac.ma"
+        );
+        var generated = teachingRequirementService.generateForSemester(
+            root,
+            semester.getId()
+        );
+
+        assertThat(generated).hasSize(4);
+        assertThat(generated)
+            .allMatch(requirement -> requirement.componentType()
+                == TeachingComponentType.TP)
+            .allMatch(requirement -> requirement.audienceType()
+                == TeachingAudienceMode.SUBGROUP);
+        assertThat(teachingRequirementService.generateForSemester(
+            root,
+            semester.getId()
+        )).hasSize(4);
+        assertThatThrownBy(() -> generationService.generateForSemester(semester.getId()))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("409 CONFLICT");
+    }
+
     private void createAcademicStructure() {
         University university = new University();
         university.setName("Universite Ibn Zohr");
@@ -330,9 +372,9 @@ class TeachingGroupGenerationServiceIntegrationTest {
     }
 
     private void clearBusinessData() {
+        teachingRequirementRepository.deleteAll();
         membershipRepository.deleteAll();
         teachingGroupRepository.deleteAll();
-        componentDomainRepository.deleteAll();
         componentRepository.deleteAll();
         classAssignmentRepository.deleteAll();
         semesterRegistrationRepository.deleteAll();

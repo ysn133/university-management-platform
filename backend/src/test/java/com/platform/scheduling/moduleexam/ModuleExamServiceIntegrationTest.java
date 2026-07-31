@@ -32,9 +32,9 @@ import com.platform.scheduling.moduleexam.infrastructure.ModuleExamRepository;
 import com.platform.scheduling.moduleexam.presentation.dto.CreateModuleExamRequest;
 import com.platform.scheduling.moduleexam.presentation.dto.ModuleExamResponse;
 import com.platform.scheduling.moduleexam.presentation.dto.UpdateModuleExamRequest;
-import com.platform.teachingassignment.domain.TeachingAssignment;
-import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
-import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
+import com.platform.moduleclassresponsibility.domain.ModuleClassResponsibility;
+import com.platform.moduleclassresponsibility.domain.ModuleClassResponsibilityStatus;
+import com.platform.moduleclassresponsibility.infrastructure.ModuleClassResponsibilityRepository;
 import com.platform.universitygovernance.academiclevel.domain.AcademicLevel;
 import com.platform.universitygovernance.academiclevel.infrastructure.AcademicLevelRepository;
 import com.platform.universitygovernance.academicyear.domain.AcademicYear;
@@ -90,7 +90,7 @@ class ModuleExamServiceIntegrationTest {
     private ExamScheduleRepository examScheduleRepository;
 
     @Autowired
-    private TeachingAssignmentRepository teachingAssignmentRepository;
+    private ModuleClassResponsibilityRepository responsibilityRepository;
 
     @Autowired
     private PermissionRepository permissionRepository;
@@ -158,7 +158,7 @@ class ModuleExamServiceIntegrationTest {
     private AcademicLevel academicLevel;
     private ClassGroup classGroup;
     private SubjectModule algorithms;
-    private TeachingAssignment algorithmsAssignment;
+    private ModuleClassResponsibility algorithmsAssignment;
     private AuthenticatedUserPrincipal root;
     private ExamScheduleResponse examSchedule;
 
@@ -178,7 +178,7 @@ class ModuleExamServiceIntegrationTest {
         classGroup = saveClassGroup("Group A");
         algorithms = saveSubjectModule("ALG", "Algorithms");
         Professor professor = saveProfessor("professor@ensa.uiz.ac.ma");
-        algorithmsAssignment = saveTeachingAssignment(
+        algorithmsAssignment = saveResponsibility(
             professor,
             algorithms,
             classGroup
@@ -217,8 +217,6 @@ class ModuleExamServiceIntegrationTest {
         );
 
         assertThat(created.location()).isEqualTo("Room A");
-        assertThat(created.teachingAssignmentId())
-            .isEqualTo(algorithmsAssignment.getId());
         assertThat(moduleExamService.getModuleExam(root, created.id()).id())
             .isEqualTo(created.id());
         assertThat(moduleExamService.getModuleExams(root, examSchedule.id()))
@@ -231,7 +229,6 @@ class ModuleExamServiceIntegrationTest {
             new UpdateModuleExamRequest(
                 algorithms.getId(),
                 classGroup.getId(),
-                null,
                 LocalDate.of(2027, 1, 11),
                 LocalTime.of(10, 0),
                 null,
@@ -241,7 +238,6 @@ class ModuleExamServiceIntegrationTest {
 
         assertThat(updated.examDate()).isEqualTo(LocalDate.of(2027, 1, 11));
         assertThat(updated.endTime()).isNull();
-        assertThat(updated.teachingAssignmentId()).isNull();
         assertThat(moduleExamService.deleteModuleExam(root, created.id()).success())
             .isTrue();
         assertThat(moduleExamRepository.findById(created.id())).isEmpty();
@@ -279,7 +275,7 @@ class ModuleExamServiceIntegrationTest {
             .hasMessageContaining("409 CONFLICT");
 
         SubjectModule databases = saveSubjectModule("DB", "Databases");
-        TeachingAssignment databasesAssignment = saveTeachingAssignment(
+        ModuleClassResponsibility databasesAssignment = saveResponsibility(
             algorithmsAssignment.getProfessor(),
             databases,
             classGroup
@@ -364,7 +360,7 @@ class ModuleExamServiceIntegrationTest {
 
     private CreateModuleExamRequest createRequest(
         SubjectModule subjectModule,
-        TeachingAssignment teachingAssignment,
+        ModuleClassResponsibility responsibility,
         LocalDate examDate,
         LocalTime startTime,
         LocalTime endTime,
@@ -373,7 +369,6 @@ class ModuleExamServiceIntegrationTest {
         return new CreateModuleExamRequest(
             subjectModule.getId(),
             classGroup.getId(),
-            teachingAssignment == null ? null : teachingAssignment.getId(),
             examDate,
             startTime,
             endTime,
@@ -419,19 +414,19 @@ class ModuleExamServiceIntegrationTest {
         adminPermissionGrantRepository.save(grant);
     }
 
-    private TeachingAssignment saveTeachingAssignment(
+    private ModuleClassResponsibility saveResponsibility(
         Professor professor,
         SubjectModule subjectModule,
         ClassGroup assignmentClassGroup
     ) {
-        TeachingAssignment assignment = new TeachingAssignment();
-        assignment.setProfessor(professor);
-        assignment.setSubjectModule(subjectModule);
-        assignment.setClassGroup(assignmentClassGroup);
-        assignment.setAcademicYear(academicYear);
-        assignment.setSemester(semester);
-        assignment.setStatus(TeachingAssignmentStatus.ACTIVE);
-        return teachingAssignmentRepository.save(assignment);
+        ModuleClassResponsibility responsibility = new ModuleClassResponsibility();
+        responsibility.setProfessor(professor);
+        responsibility.setSubjectModule(subjectModule);
+        responsibility.setClassGroup(assignmentClassGroup);
+        responsibility.setAcademicYear(academicYear);
+        responsibility.setSemester(semester);
+        responsibility.setStatus(ModuleClassResponsibilityStatus.ACTIVE);
+        return responsibilityRepository.save(responsibility);
     }
 
     private SubjectModule saveSubjectModule(String code, String title) {
@@ -537,7 +532,7 @@ class ModuleExamServiceIntegrationTest {
     private void clearBusinessData() {
         moduleExamRepository.deleteAll();
         examScheduleRepository.deleteAll();
-        teachingAssignmentRepository.deleteAll();
+        responsibilityRepository.deleteAll();
         adminPermissionGrantRepository.deleteAll();
         subjectModuleRepository.deleteAll();
         classGroupRepository.deleteAll();

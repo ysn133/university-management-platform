@@ -5,8 +5,6 @@ import com.platform.universitygovernance.moduleteachingcomponent.domain.Teaching
 import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingComponentType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import java.util.Set;
-import java.util.UUID;
 
 public record ModuleTeachingComponentItemRequest(
     @NotNull TeachingComponentType componentType,
@@ -14,7 +12,6 @@ public record ModuleTeachingComponentItemRequest(
     @Positive int sessionDurationMinutes,
     @NotNull TeachingAudienceMode audienceMode,
     @Positive Integer maximumGroupSize,
-    @NotNull RoomType requiredRoomType,
-    @NotNull Set<UUID> requiredDomainIds
+    @NotNull RoomType requiredRoomType
 ) {
 }

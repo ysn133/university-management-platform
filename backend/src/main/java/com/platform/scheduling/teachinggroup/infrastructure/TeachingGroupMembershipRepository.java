@@ -10,4 +10,11 @@ public interface TeachingGroupMembershipRepository
     extends JpaRepository<TeachingGroupMembership, UUID> {
 
     List<TeachingGroupMembership> findByTeachingGroupIdIn(Collection<UUID> teachingGroupIds);
+
+    List<TeachingGroupMembership> findByTeachingGroupId(UUID teachingGroupId);
+
+    boolean existsByTeachingGroupIdAndSemesterRegistrationId(
+        UUID teachingGroupId,
+        UUID semesterRegistrationId
+    );
 }

@@ -16,7 +16,9 @@ import com.platform.scheduling.examcandidate.presentation.dto.ExamCandidateRespo
 import com.platform.scheduling.examschedule.domain.ExamSessionType;
 import com.platform.scheduling.moduleexam.domain.ModuleExam;
 import com.platform.scheduling.moduleexam.infrastructure.ModuleExamRepository;
-import com.platform.teachingassignment.domain.TeachingAssignment;
+import com.platform.moduleclassresponsibility.domain.ModuleClassResponsibility;
+import com.platform.moduleclassresponsibility.domain.ModuleClassResponsibilityStatus;
+import com.platform.moduleclassresponsibility.infrastructure.ModuleClassResponsibilityRepository;
 import com.platform.universitygovernance.academiclevelruleassignment.domain.AcademicLevelRuleAssignment;
 import com.platform.universitygovernance.academiclevelruleassignment.domain.AcademicLevelRuleAssignmentStatus;
 import com.platform.universitygovernance.academiclevelruleassignment.infrastructure.AcademicLevelRuleAssignmentRepository;
@@ -40,6 +42,7 @@ public class ExamCandidateService {
     private final AcademicLevelRuleAssignmentRepository ruleAssignmentRepository;
     private final GradeRecordRepository gradeRecordRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
+    private final ModuleClassResponsibilityRepository responsibilityRepository;
 
     public ExamCandidateService(
         ExamCandidateRepository examCandidateRepository,
@@ -48,7 +51,8 @@ public class ExamCandidateService {
         AbsenceRecordRepository absenceRecordRepository,
         AcademicLevelRuleAssignmentRepository ruleAssignmentRepository,
         GradeRecordRepository gradeRecordRepository,
-        AdminPermissionAuthorizationService permissionAuthorizationService
+        AdminPermissionAuthorizationService permissionAuthorizationService,
+        ModuleClassResponsibilityRepository responsibilityRepository
     ) {
         this.examCandidateRepository = examCandidateRepository;
         this.moduleExamRepository = moduleExamRepository;
@@ -57,6 +61,7 @@ public class ExamCandidateService {
         this.ruleAssignmentRepository = ruleAssignmentRepository;
         this.gradeRecordRepository = gradeRecordRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
+        this.responsibilityRepository = responsibilityRepository;
     }
 
     @Transactional
@@ -231,11 +236,19 @@ public class ExamCandidateService {
         AuthenticatedUserPrincipal principal,
         ModuleExam moduleExam
     ) {
-        TeachingAssignment assignment = moduleExam.getTeachingAssignment();
+        ModuleClassResponsibility responsibility = responsibilityRepository
+            .findBySubjectModuleIdAndClassGroupIdAndAcademicYearIdAndSemesterIdAndStatus(
+                moduleExam.getSubjectModule().getId(),
+                moduleExam.getClassGroup().getId(),
+                moduleExam.getExamSchedule().getAcademicYear().getId(),
+                moduleExam.getExamSchedule().getSemester().getId(),
+                ModuleClassResponsibilityStatus.ACTIVE
+            )
+            .orElse(null);
         if (principal != null
             && principal.role() == AccountRoleType.PROFESSOR
-            && assignment != null
-            && principal.roleEntityId().equals(assignment.getProfessor().getId())) {
+            && responsibility != null
+            && principal.roleEntityId().equals(responsibility.getProfessor().getId())) {
             return;
         }
         permissionAuthorizationService.requirePermission(

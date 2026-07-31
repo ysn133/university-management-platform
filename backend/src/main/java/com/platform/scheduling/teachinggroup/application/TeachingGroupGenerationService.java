@@ -9,6 +9,7 @@ import com.platform.scheduling.teachinggroup.domain.TeachingGroup;
 import com.platform.scheduling.teachinggroup.domain.TeachingGroupMembership;
 import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupMembershipRepository;
 import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupRepository;
+import com.platform.teachingrequirement.infrastructure.TeachingRequirementRepository;
 import com.platform.universitygovernance.classgroup.domain.ClassGroup;
 import com.platform.universitygovernance.moduleteachingcomponent.domain.ModuleTeachingComponent;
 import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingAudienceMode;
@@ -36,6 +37,7 @@ public class TeachingGroupGenerationService {
     private final ModuleTeachingComponentRepository componentRepository;
     private final TeachingGroupRepository teachingGroupRepository;
     private final TeachingGroupMembershipRepository membershipRepository;
+    private final TeachingRequirementRepository requirementRepository;
 
     public TeachingGroupGenerationService(
         SemesterRepository semesterRepository,
@@ -43,7 +45,8 @@ public class TeachingGroupGenerationService {
         StudentClassAssignmentRepository classAssignmentRepository,
         ModuleTeachingComponentRepository componentRepository,
         TeachingGroupRepository teachingGroupRepository,
-        TeachingGroupMembershipRepository membershipRepository
+        TeachingGroupMembershipRepository membershipRepository,
+        TeachingRequirementRepository requirementRepository
     ) {
         this.semesterRepository = semesterRepository;
         this.semesterRegistrationRepository = semesterRegistrationRepository;
@@ -51,10 +54,17 @@ public class TeachingGroupGenerationService {
         this.componentRepository = componentRepository;
         this.teachingGroupRepository = teachingGroupRepository;
         this.membershipRepository = membershipRepository;
+        this.requirementRepository = requirementRepository;
     }
 
     @Transactional
     public List<TeachingGroup> generateForSemester(UUID semesterId) {
+        if (requirementRepository.existsByTeachingGroupSemesterId(semesterId)) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Teaching groups cannot be regenerated after requirements exist"
+            );
+        }
         Semester semester = semesterRepository.findById(semesterId)
             .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.NOT_FOUND,
