@@ -6,6 +6,7 @@ import java.util.UUID;
 import jakarta.validation.Valid;
 
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,6 +24,7 @@ import com.platform.universitygovernance.establishment.domain.EstablishmentType;
 import com.platform.universitygovernance.establishment.presentation.dto.CreateEstablishmentRequest;
 import com.platform.universitygovernance.establishment.presentation.dto.EstablishmentResponse;
 import com.platform.universitygovernance.establishment.presentation.dto.UpdateEstablishmentRequest;
+import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 
 
 
@@ -36,10 +38,13 @@ public class EstablishmentController {
 
         this.establishmentService = establishmentService;
     }
-    @PreAuthorize("hasRole('ROOT_SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN')")
     @GetMapping("/establishments/{id}")
-    public EstablishmentResponse getEstablishmentById(@PathVariable("id") UUID establishmentId){
-       return this.establishmentService.getEstablishment(establishmentId);
+    public EstablishmentResponse getEstablishmentById(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+        @PathVariable("id") UUID establishmentId
+    ) {
+       return this.establishmentService.getEstablishment(principal, establishmentId);
     }
     @PreAuthorize("hasRole('ROOT_SUPER_ADMIN')")
     @GetMapping("/university/{universityId}/establishments")

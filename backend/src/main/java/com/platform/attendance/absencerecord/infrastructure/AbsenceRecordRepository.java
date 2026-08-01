@@ -23,4 +23,8 @@ public interface AbsenceRecordRepository extends JpaRepository<AbsenceRecord, UU
     List<AbsenceRecord> findByModuleRegistrationSemesterRegistrationAcademicRegistrationStudentIdOrderByAbsenceDateDesc(
         UUID studentId
     );
+
+    List<AbsenceRecord> findByModuleRegistrationSemesterRegistrationAcademicRegistrationStudentEstablishmentIdOrderByAbsenceDateDesc(
+        UUID establishmentId
+    );
 }

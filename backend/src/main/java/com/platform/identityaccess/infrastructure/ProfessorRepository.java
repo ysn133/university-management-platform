@@ -12,5 +12,7 @@ public interface ProfessorRepository extends JpaRepository<Professor, UUID> {
 
     boolean existsByEmployeeNumberIgnoreCase(String employeeNumber);
 
+    boolean existsByEmployeeNumberIgnoreCaseAndIdNot(String employeeNumber, UUID id);
+
     List<Professor> findByEstablishmentIdOrderByCreatedAtAsc(UUID establishmentId);
 }

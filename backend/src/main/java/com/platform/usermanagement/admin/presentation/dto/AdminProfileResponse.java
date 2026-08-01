@@ -3,6 +3,7 @@ package com.platform.usermanagement.admin.presentation.dto;
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.AccountStatus;
 import com.platform.shared.domain.Sex;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record AdminProfileResponse(
@@ -14,6 +15,8 @@ public record AdminProfileResponse(
     AccountStatus status,
     String firstName,
     String lastName,
+    LocalDate birthDate,
+    String cin,
     Sex sex,
     String phoneNumber
 ) {

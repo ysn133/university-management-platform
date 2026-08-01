@@ -15,6 +15,8 @@ import com.platform.universitygovernance.establishment.presentation.dto.Establis
 import com.platform.universitygovernance.establishment.presentation.dto.UpdateEstablishmentRequest;
 import com.platform.universitygovernance.university.domain.University;
 import com.platform.universitygovernance.university.infrastructure.UniversityRepository;
+import com.platform.identityaccess.domain.AccountRoleType;
+import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -36,6 +38,22 @@ public class EstablishmentService {
     @Transactional(readOnly = true)
     public EstablishmentResponse getEstablishment(UUID id) {
         return toResponse(findEstablishment(id));
+    }
+
+    @Transactional(readOnly = true)
+    public EstablishmentResponse getEstablishment(
+        AuthenticatedUserPrincipal principal,
+        UUID establishmentId
+    ) {
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+        if (principal.role() != AccountRoleType.ROOT_SUPER_ADMIN
+            && (principal.role() != AccountRoleType.SUPER_ADMIN
+                || !establishmentId.equals(principal.establishmentId()))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied for this establishment");
+        }
+        return toResponse(findEstablishment(establishmentId));
     }
 
     @Transactional(readOnly = true)

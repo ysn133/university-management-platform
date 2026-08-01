@@ -1,8 +1,12 @@
 package com.platform.usermanagement.admin.application;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,6 +29,7 @@ import com.platform.usermanagement.admin.presentation.dto.AdminProfileResponse;
 import com.platform.usermanagement.admin.presentation.dto.CreateAdminRequest;
 import com.platform.usermanagement.admin.presentation.dto.CreateAdminResponse;
 import com.platform.usermanagement.admin.presentation.dto.ResetAdminPasswordRequest;
+import com.platform.usermanagement.admin.presentation.dto.UpdateAdminRequest;
 
 import jakarta.transaction.Transactional;
 
@@ -113,6 +118,8 @@ public class AdminManagementService {
             admin.getUserAccount().getAccountStatus(),
             profile.getFirstName(),
             profile.getLastName(),
+            profile.getBirthDate(),
+            profile.getCin(),
             profile.getSex(),
             profile.getPhoneNumber()
         );
@@ -123,6 +130,18 @@ public class AdminManagementService {
         AuthenticatedUserPrincipal principal,
         UUID establishmentId
     ) {
+        return getAdmins(principal, establishmentId, null, null, null, null);
+    }
+
+    @Transactional
+    public List<AdminProfileResponse> getAdmins(
+        AuthenticatedUserPrincipal principal,
+        UUID establishmentId,
+        String query,
+        AccountStatus status,
+        LocalDate createdFrom,
+        LocalDate createdTo
+    ) {
         ensureCallerCanManageEstablishment(principal, establishmentId);
 
         if (!establishmentRepository.existsById(establishmentId)) {
@@ -131,24 +150,58 @@ public class AdminManagementService {
 
         List<AdminProfileResponse> responses = new ArrayList<>();
 
+        String normalizedQuery = normalizeQuery(query);
         for (Admin admin : adminRepository.findByEstablishmentId(establishmentId)) {
             UserProfile profile = findProfile(admin);
 
-            responses.add(new AdminProfileResponse(
-                admin.getId(),
-                admin.getUserAccount().getId(),
-                admin.getEstablishment().getId(),
-                admin.getUserAccount().getUniversityEmail(),
-                admin.getUserAccount().getRole(),
-                admin.getUserAccount().getAccountStatus(),
-                profile.getFirstName(),
-                profile.getLastName(),
-                profile.getSex(),
-                profile.getPhoneNumber()
-            ));
+            if (status != null && admin.getUserAccount().getAccountStatus() != status) {
+                continue;
+            }
+            LocalDate createdDate = admin.getCreatedAt().atZone(ZoneOffset.UTC).toLocalDate();
+            if ((createdFrom != null && createdDate.isBefore(createdFrom))
+                || (createdTo != null && createdDate.isAfter(createdTo))) {
+                continue;
+            }
+            if (normalizedQuery != null && !matchesQuery(admin, profile, normalizedQuery)) {
+                continue;
+            }
+
+            responses.add(toResponse(admin, profile));
         }
 
+        responses.sort(Comparator.comparing(AdminProfileResponse::lastName, String.CASE_INSENSITIVE_ORDER)
+            .thenComparing(AdminProfileResponse::firstName, String.CASE_INSENSITIVE_ORDER));
+
         return responses;
+    }
+
+    @Transactional
+    public AdminProfileResponse updateAdmin(
+        AuthenticatedUserPrincipal principal,
+        UUID adminId,
+        UpdateAdminRequest request
+    ) {
+        Admin admin = findManagedAdmin(principal, adminId);
+        UserAccount account = admin.getUserAccount();
+        UserProfile profile = findProfile(admin);
+        String email = request.universityEmail().trim().toLowerCase(Locale.ROOT);
+        String cin = normalizeOptionalUppercase(request.cin());
+
+        if (userAccountRepository.existsByUniversityEmailAndIdNot(email, account.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "University email already exists");
+        }
+        if (cin != null && userProfileRepository.existsByCinIgnoreCaseAndIdNot(cin, profile.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "CIN already exists");
+        }
+
+        account.setUniversityEmail(email);
+        profile.setFirstName(request.firstName().trim());
+        profile.setLastName(request.lastName().trim());
+        profile.setBirthDate(request.birthDate());
+        profile.setCin(cin);
+        profile.setSex(request.sex());
+        profile.setPhoneNumber(normalizeOptional(request.phoneNumber()));
+        return toResponse(admin, profile);
     }
 
     @Transactional
@@ -248,6 +301,37 @@ public class AdminManagementService {
     private UserProfile findProfile(Admin admin) {
         return userProfileRepository.findByUserAccountId(admin.getUserAccount().getId())
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Admin profile not found"));
+    }
+
+    private AdminProfileResponse toResponse(Admin admin, UserProfile profile) {
+        UserAccount account = admin.getUserAccount();
+        return new AdminProfileResponse(
+            admin.getId(), account.getId(), admin.getEstablishment().getId(),
+            account.getUniversityEmail(), account.getRole(), account.getAccountStatus(),
+            profile.getFirstName(), profile.getLastName(), profile.getBirthDate(), profile.getCin(),
+            profile.getSex(), profile.getPhoneNumber()
+        );
+    }
+
+    private boolean matchesQuery(Admin admin, UserProfile profile, String query) {
+        String fullName = (profile.getFirstName() + " " + profile.getLastName()).toLowerCase(Locale.ROOT);
+        return fullName.contains(query)
+            || admin.getUserAccount().getUniversityEmail().toLowerCase(Locale.ROOT).contains(query)
+            || profile.getCin() != null && profile.getCin().toLowerCase(Locale.ROOT).contains(query);
+    }
+
+    private String normalizeQuery(String value) {
+        String normalized = normalizeOptional(value);
+        return normalized == null ? null : normalized.toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizeOptionalUppercase(String value) {
+        String normalized = normalizeOptional(value);
+        return normalized == null ? null : normalized.toUpperCase(Locale.ROOT);
+    }
+
+    private String normalizeOptional(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private void ensureAccountCanBeLocked(UserAccount account) {

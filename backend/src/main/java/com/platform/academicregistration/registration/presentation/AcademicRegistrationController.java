@@ -4,6 +4,11 @@ import com.platform.academicregistration.registration.application.AcademicRegist
 import com.platform.academicregistration.registration.presentation.dto.AcademicRegistrationResponse;
 import com.platform.academicregistration.registration.presentation.dto.CreateAcademicRegistrationRequest;
 import com.platform.academicregistration.registration.presentation.dto.UpdateAcademicRegistrationRequest;
+import com.platform.academicregistration.registration.domain.AcademicRegistrationStatus;
+import com.platform.academicregistration.semesterregistration.presentation.dto.SemesterRegistrationResponse;
+import com.platform.academicregistration.moduleregistration.presentation.dto.ModuleRegistrationResponse;
+import com.platform.assessment.progressiondecision.presentation.dto.ProgressionDecisionResponse;
+import com.platform.assessment.semesterresult.presentation.dto.SemesterResultResponse;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -17,6 +22,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -47,9 +53,67 @@ public class AcademicRegistrationController {
     @GetMapping("/establishments/{establishmentId}/academic-registrations")
     public List<AcademicRegistrationResponse> getAcademicRegistrations(
         @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
-        @PathVariable UUID establishmentId
+        @PathVariable UUID establishmentId,
+        @RequestParam(required = false) UUID academicYearId,
+        @RequestParam(required = false) UUID programFiliereId,
+        @RequestParam(required = false) UUID academicLevelId,
+        @RequestParam(required = false) UUID semesterId,
+        @RequestParam(required = false) UUID classGroupId,
+        @RequestParam(required = false) AcademicRegistrationStatus status,
+        @RequestParam(required = false) String query
     ) {
-        return academicRegistrationService.getAcademicRegistrations(principal, establishmentId);
+        return academicRegistrationService.getAcademicRegistrations(
+            principal,
+            establishmentId,
+            academicYearId,
+            programFiliereId,
+            academicLevelId,
+            semesterId,
+            classGroupId,
+            status,
+            query
+        );
+    }
+
+    @GetMapping("/academic-registrations/{academicRegistrationId}/semester-registrations")
+    public List<SemesterRegistrationResponse> getSemesterRegistrations(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+        @PathVariable UUID academicRegistrationId
+    ) {
+        return academicRegistrationService.getSemesterRegistrations(
+            principal,
+            academicRegistrationId
+        );
+    }
+
+    @GetMapping("/semester-registrations/{semesterRegistrationId}/module-registrations")
+    public List<ModuleRegistrationResponse> getModuleRegistrations(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+        @PathVariable UUID semesterRegistrationId
+    ) {
+        return academicRegistrationService.getModuleRegistrations(
+            principal,
+            semesterRegistrationId
+        );
+    }
+
+    @GetMapping("/semester-registrations/{semesterRegistrationId}/result")
+    public SemesterResultResponse getSemesterResult(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+        @PathVariable UUID semesterRegistrationId
+    ) {
+        return academicRegistrationService.getSemesterResult(principal, semesterRegistrationId);
+    }
+
+    @GetMapping("/academic-registrations/{academicRegistrationId}/progression-decision")
+    public ProgressionDecisionResponse getProgressionDecision(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+        @PathVariable UUID academicRegistrationId
+    ) {
+        return academicRegistrationService.getProgressionDecision(
+            principal,
+            academicRegistrationId
+        );
     }
 
     @GetMapping("/students/{studentId}/academic-registrations")

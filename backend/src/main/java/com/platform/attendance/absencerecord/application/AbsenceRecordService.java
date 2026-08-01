@@ -9,6 +9,8 @@ import com.platform.attendance.absencerecord.presentation.dto.AbsenceRecordRespo
 import com.platform.attendance.absencerecord.presentation.dto.CreateAbsenceRequest;
 import com.platform.attendance.absencerecord.presentation.dto.UpdateAbsenceJustificationRequest;
 import com.platform.identityaccess.domain.AccountRoleType;
+import com.platform.identityaccess.application.AdminPermissionAuthorizationService;
+import com.platform.identityaccess.domain.PermissionCode;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupMembershipRepository;
 import com.platform.teachingassignment.domain.TeachingAssignment;
@@ -29,17 +31,20 @@ public class AbsenceRecordService {
     private final TeachingAssignmentRepository teachingAssignmentRepository;
     private final ModuleRegistrationRepository moduleRegistrationRepository;
     private final TeachingGroupMembershipRepository membershipRepository;
+    private final AdminPermissionAuthorizationService permissionAuthorizationService;
 
     public AbsenceRecordService(
         AbsenceRecordRepository absenceRecordRepository,
         TeachingAssignmentRepository teachingAssignmentRepository,
         ModuleRegistrationRepository moduleRegistrationRepository,
-        TeachingGroupMembershipRepository membershipRepository
+        TeachingGroupMembershipRepository membershipRepository,
+        AdminPermissionAuthorizationService permissionAuthorizationService
     ) {
         this.absenceRecordRepository = absenceRecordRepository;
         this.teachingAssignmentRepository = teachingAssignmentRepository;
         this.moduleRegistrationRepository = moduleRegistrationRepository;
         this.membershipRepository = membershipRepository;
+        this.permissionAuthorizationService = permissionAuthorizationService;
     }
 
     @Transactional
@@ -106,6 +111,45 @@ public class AbsenceRecordService {
                 principal.roleEntityId()
             )
             .stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AbsenceRecordResponse> getEstablishmentAbsences(
+        AuthenticatedUserPrincipal principal,
+        UUID establishmentId,
+        UUID studentId,
+        UUID academicYearId,
+        UUID semesterId,
+        UUID subjectModuleId,
+        Boolean justified
+    ) {
+        permissionAuthorizationService.requirePermission(
+            principal,
+            establishmentId,
+            PermissionCode.ABSENCE_VIEW
+        );
+        return absenceRecordRepository
+            .findByModuleRegistrationSemesterRegistrationAcademicRegistrationStudentEstablishmentIdOrderByAbsenceDateDesc(
+                establishmentId
+            )
+            .stream()
+            .filter(absence -> studentId == null || studentId.equals(
+                absence.getModuleRegistration().getSemesterRegistration()
+                    .getAcademicRegistration().getStudent().getId()
+            ))
+            .filter(absence -> academicYearId == null || academicYearId.equals(
+                absence.getModuleRegistration().getSemesterRegistration()
+                    .getAcademicRegistration().getAcademicYear().getId()
+            ))
+            .filter(absence -> semesterId == null || semesterId.equals(
+                absence.getModuleRegistration().getSemesterRegistration().getSemester().getId()
+            ))
+            .filter(absence -> subjectModuleId == null || subjectModuleId.equals(
+                absence.getModuleRegistration().getSubjectModule().getId()
+            ))
+            .filter(absence -> justified == null || justified == absence.isJustified())
             .map(this::toResponse)
             .toList();
     }

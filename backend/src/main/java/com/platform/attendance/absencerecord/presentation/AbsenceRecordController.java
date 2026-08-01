@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -60,6 +61,28 @@ public class AbsenceRecordController {
         @AuthenticationPrincipal AuthenticatedUserPrincipal principal
     ) {
         return absenceRecordService.getMyAbsences(principal);
+    }
+
+    @GetMapping("/establishments/{establishmentId}/absences")
+    @PreAuthorize("hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN', 'ADMIN')")
+    public List<AbsenceRecordResponse> getEstablishmentAbsences(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+        @PathVariable UUID establishmentId,
+        @RequestParam(required = false) UUID studentId,
+        @RequestParam(required = false) UUID academicYearId,
+        @RequestParam(required = false) UUID semesterId,
+        @RequestParam(required = false) UUID subjectModuleId,
+        @RequestParam(required = false) Boolean justified
+    ) {
+        return absenceRecordService.getEstablishmentAbsences(
+            principal,
+            establishmentId,
+            studentId,
+            academicYearId,
+            semesterId,
+            subjectModuleId,
+            justified
+        );
     }
 
     @PutMapping("/absences/{absenceId}/justification")

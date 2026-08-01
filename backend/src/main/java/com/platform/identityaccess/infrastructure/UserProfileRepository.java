@@ -9,6 +9,8 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> 
 
     boolean existsByCinIgnoreCase(String cin);
 
+    boolean existsByCinIgnoreCaseAndIdNot(String cin, UUID id);
+
     Optional<UserProfile> findByUserAccountId(UUID userAccountId);
 
     boolean existsByUserAccountId(UUID userAccountId);
