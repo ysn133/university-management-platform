@@ -1,6 +1,6 @@
 package com.platform.assessment.graderecord.application;
 
-import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegestration;
+import com.platform.academicregistration.moduleregistration.domain.ModuleRegistration;
 import com.platform.assessment.moduleresult.application.ModuleResultService;
 import com.platform.assessment.moduleresult.domain.ModuleResult;
 import com.platform.assessment.moduleresult.infrastructure.ModuleResultRepository;
@@ -93,7 +93,7 @@ public class GradeRecordService {
         requireAssignedProfessor(principal, moduleExam);
         ensureExamPublished(moduleExam);
 
-        List<SubjectModuleRegestration> eligibleRegistrations = eligibleRegistrations(
+        List<ModuleRegistration> eligibleRegistrations = eligibleRegistrations(
             moduleExam
         );
         ensureEligibleStudentsExist(eligibleRegistrations);
@@ -305,13 +305,13 @@ public class GradeRecordService {
     }
 
     private List<GradeRecord> requireCompleteStoredSheet(ModuleExam moduleExam) {
-        List<SubjectModuleRegestration> eligible = eligibleRegistrations(moduleExam);
+        List<ModuleRegistration> eligible = eligibleRegistrations(moduleExam);
         ensureEligibleStudentsExist(eligible);
         List<GradeRecord> records = gradeRecordRepository.findByModuleExamId(
             moduleExam.getId()
         );
         Set<UUID> eligibleIds = eligible.stream()
-            .map(SubjectModuleRegestration::getId)
+            .map(ModuleRegistration::getId)
             .collect(Collectors.toSet());
         Set<UUID> storedIds = records.stream()
             .map(record -> record.getModuleRegistration().getId())
@@ -362,11 +362,11 @@ public class GradeRecordService {
     }
 
     private void ensureCompleteGradeSheet(
-        List<SubjectModuleRegestration> eligibleRegistrations,
+        List<ModuleRegistration> eligibleRegistrations,
         Set<UUID> requestedRegistrationIds
     ) {
         Set<UUID> eligibleIds = eligibleRegistrations.stream()
-            .map(SubjectModuleRegestration::getId)
+            .map(ModuleRegistration::getId)
             .collect(Collectors.toSet());
         if (!eligibleIds.equals(requestedRegistrationIds)) {
             throw new ResponseStatusException(
@@ -407,7 +407,7 @@ public class GradeRecordService {
     }
 
     private void ensureEligibleStudentsExist(
-        List<SubjectModuleRegestration> eligibleRegistrations
+        List<ModuleRegistration> eligibleRegistrations
     ) {
         if (eligibleRegistrations.isEmpty()) {
             throw new ResponseStatusException(
@@ -417,7 +417,7 @@ public class GradeRecordService {
         }
     }
 
-    private List<SubjectModuleRegestration> eligibleRegistrations(
+    private List<ModuleRegistration> eligibleRegistrations(
         ModuleExam moduleExam
     ) {
         if (moduleExam.getCandidateListGeneratedAt() == null) {
@@ -434,7 +434,7 @@ public class GradeRecordService {
     }
 
     private GradeSheetResponse buildGradeSheet(ModuleExam moduleExam) {
-        List<SubjectModuleRegestration> eligible = eligibleRegistrations(moduleExam);
+        List<ModuleRegistration> eligible = eligibleRegistrations(moduleExam);
         Map<UUID, GradeRecord> records = gradeRecordRepository
             .findByModuleExamId(moduleExam.getId())
             .stream()
@@ -445,7 +445,7 @@ public class GradeRecordService {
 
         List<GradeItemResponse> items = eligible.stream()
             .sorted(Comparator.comparing(registration -> registration
-                .getSemesterRegestration()
+                .getSemesterRegistration()
                 .getAcademicRegistration()
                 .getStudent()
                 .getId()))
@@ -475,13 +475,13 @@ public class GradeRecordService {
     }
 
     private GradeItemResponse toGradeItemResponse(
-        SubjectModuleRegestration registration,
+        ModuleRegistration registration,
         GradeRecord record
     ) {
         return new GradeItemResponse(
             record == null ? null : record.getId(),
             registration.getId(),
-            registration.getSemesterRegestration()
+            registration.getSemesterRegistration()
                 .getAcademicRegistration()
                 .getStudent()
                 .getId(),
@@ -497,7 +497,7 @@ public class GradeRecordService {
         GradeRecord record,
         ModuleResult moduleResult
     ) {
-        SubjectModuleRegestration registration = record.getModuleRegistration();
+        ModuleRegistration registration = record.getModuleRegistration();
         return new StudentGradeResponse(
             record.getId(),
             registration.getId(),
@@ -505,11 +505,11 @@ public class GradeRecordService {
             registration.getSubjectModule().getId(),
             registration.getSubjectModule().getCode(),
             registration.getSubjectModule().getTitle(),
-            registration.getSemesterRegestration()
+            registration.getSemesterRegistration()
                 .getAcademicRegistration()
                 .getAcademicYear()
                 .getId(),
-            registration.getSemesterRegestration().getSemester().getId(),
+            registration.getSemesterRegistration().getSemester().getId(),
             record.getModuleExam().getExamSchedule().getSessionType(),
             registration.getInscriptionNumber(),
             record.getGradeValue(),

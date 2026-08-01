@@ -1,10 +1,10 @@
-package com.platform.academicregistration.subjectmoduleregestration.domain;
+package com.platform.academicregistration.moduleregistration.domain;
 
 import java.time.Instant;
 import java.util.UUID;
 
 
-import com.platform.academicregistration.semesterregistration.domain.SemesterRegestration;
+import com.platform.academicregistration.semesterregistration.domain.SemesterRegistration;
 import com.platform.universitygovernance.academiclevel.domain.AcademicLevel;
 import com.platform.universitygovernance.subjectmodules.domain.SubjectModule;
 
@@ -21,14 +21,14 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name="module_registration")
-public class SubjectModuleRegestration {
+public class ModuleRegistration {
 
     @Id
     private UUID id;
 
     @ManyToOne(optional = false)
     @JoinColumn(name="semester_registration_id", nullable = false)
-    private SemesterRegestration semesterRegestration;
+    private SemesterRegistration semesterRegistration;
 
     @ManyToOne(optional = false)
     @JoinColumn(name="subject_module_id", nullable = false)
@@ -43,7 +43,7 @@ public class SubjectModuleRegestration {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private SubjectModuleRegistrationStatus status;
+    private ModuleRegistrationStatus status;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -51,7 +51,7 @@ public class SubjectModuleRegestration {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public SubjectModuleRegestration() {
+    public ModuleRegistration() {
     }
 
     @PrePersist
@@ -73,12 +73,12 @@ public class SubjectModuleRegestration {
         return id;
     }
 
-    public SemesterRegestration getSemesterRegestration() {
-        return semesterRegestration;
+    public SemesterRegistration getSemesterRegistration() {
+        return semesterRegistration;
     }
 
-    public void setSemesterRegestration(SemesterRegestration semesterRegestration) {
-        this.semesterRegestration = semesterRegestration;
+    public void setSemesterRegistration(SemesterRegistration semesterRegistration) {
+        this.semesterRegistration = semesterRegistration;
     }
 
     public SubjectModule getSubjectModule() {
@@ -105,11 +105,11 @@ public class SubjectModuleRegestration {
         this.inscriptionNumber = inscriptionNumber;
     }
 
-    public SubjectModuleRegistrationStatus getStatus() {
+    public ModuleRegistrationStatus getStatus() {
         return status;
     }
 
-    public void setStatus(SubjectModuleRegistrationStatus status) {
+    public void setStatus(ModuleRegistrationStatus status) {
         this.status = status;
     }
 

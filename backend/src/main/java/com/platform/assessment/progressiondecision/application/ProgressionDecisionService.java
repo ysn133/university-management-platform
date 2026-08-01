@@ -1,8 +1,8 @@
 package com.platform.assessment.progressiondecision.application;
 
 import com.platform.academicregistration.registration.domain.AcademicRegistration;
-import com.platform.academicregistration.semesterregistration.domain.SemesterRegestration;
-import com.platform.academicregistration.semesterregistration.infrastructer.SemesterRegestrationRepository;
+import com.platform.academicregistration.semesterregistration.domain.SemesterRegistration;
+import com.platform.academicregistration.semesterregistration.infrastructure.SemesterRegistrationRepository;
 import com.platform.assessment.moduleresult.domain.ModuleResult;
 import com.platform.assessment.moduleresult.domain.ModuleResultStatus;
 import com.platform.assessment.moduleresult.infrastructure.ModuleResultRepository;
@@ -24,13 +24,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProgressionDecisionService {
 
     private final ProgressionDecisionRepository progressionDecisionRepository;
-    private final SemesterRegestrationRepository semesterRegistrationRepository;
+    private final SemesterRegistrationRepository semesterRegistrationRepository;
     private final SemesterResultRepository semesterResultRepository;
     private final ModuleResultRepository moduleResultRepository;
 
     public ProgressionDecisionService(
         ProgressionDecisionRepository progressionDecisionRepository,
-        SemesterRegestrationRepository semesterRegistrationRepository,
+        SemesterRegistrationRepository semesterRegistrationRepository,
         SemesterResultRepository semesterResultRepository,
         ModuleResultRepository moduleResultRepository
     ) {
@@ -45,7 +45,7 @@ public class ProgressionDecisionService {
         AcademicRegistration academicRegistration,
         AcademicRuleProfile ruleProfile
     ) {
-        List<SemesterRegestration> registrations = semesterRegistrationRepository
+        List<SemesterRegistration> registrations = semesterRegistrationRepository
             .findByAcademicRegistrationId(academicRegistration.getId());
         List<SemesterResult> semesterResults = semesterResultRepository
             .findBySemesterRegistrationAcademicRegistrationId(
@@ -56,7 +56,7 @@ public class ProgressionDecisionService {
         }
 
         List<ModuleResult> moduleResults = moduleResultRepository
-            .findByModuleRegistrationSemesterRegestrationAcademicRegistrationId(
+            .findByModuleRegistrationSemesterRegistrationAcademicRegistrationId(
                 academicRegistration.getId()
             );
         if (moduleResults.isEmpty()) {

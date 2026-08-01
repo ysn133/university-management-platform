@@ -1,8 +1,8 @@
 package com.platform.attendance.absencerecord.application;
 
-import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegestration;
-import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegistrationStatus;
-import com.platform.academicregistration.subjectmoduleregestration.infrastructure.SubjectRegestrationRepository;
+import com.platform.academicregistration.moduleregistration.domain.ModuleRegistration;
+import com.platform.academicregistration.moduleregistration.domain.ModuleRegistrationStatus;
+import com.platform.academicregistration.moduleregistration.infrastructure.ModuleRegistrationRepository;
 import com.platform.attendance.absencerecord.domain.AbsenceRecord;
 import com.platform.attendance.absencerecord.infrastructure.AbsenceRecordRepository;
 import com.platform.attendance.absencerecord.presentation.dto.AbsenceRecordResponse;
@@ -27,13 +27,13 @@ public class AbsenceRecordService {
 
     private final AbsenceRecordRepository absenceRecordRepository;
     private final TeachingAssignmentRepository teachingAssignmentRepository;
-    private final SubjectRegestrationRepository moduleRegistrationRepository;
+    private final ModuleRegistrationRepository moduleRegistrationRepository;
     private final TeachingGroupMembershipRepository membershipRepository;
 
     public AbsenceRecordService(
         AbsenceRecordRepository absenceRecordRepository,
         TeachingAssignmentRepository teachingAssignmentRepository,
-        SubjectRegestrationRepository moduleRegistrationRepository,
+        ModuleRegistrationRepository moduleRegistrationRepository,
         TeachingGroupMembershipRepository membershipRepository
     ) {
         this.absenceRecordRepository = absenceRecordRepository;
@@ -52,7 +52,7 @@ public class AbsenceRecordService {
             principal,
             teachingAssignmentId
         );
-        SubjectModuleRegestration registration = findModuleRegistration(
+        ModuleRegistration registration = findModuleRegistration(
             request.moduleRegistrationId()
         );
         validateRegistration(assignment, registration);
@@ -102,7 +102,7 @@ public class AbsenceRecordService {
             );
         }
         return absenceRecordRepository
-            .findByModuleRegistrationSemesterRegestrationAcademicRegistrationStudentIdOrderByAbsenceDateDesc(
+            .findByModuleRegistrationSemesterRegistrationAcademicRegistrationStudentIdOrderByAbsenceDateDesc(
                 principal.roleEntityId()
             )
             .stream()
@@ -151,7 +151,7 @@ public class AbsenceRecordService {
         return assignment;
     }
 
-    private SubjectModuleRegestration findModuleRegistration(UUID registrationId) {
+    private ModuleRegistration findModuleRegistration(UUID registrationId) {
         return moduleRegistrationRepository.findById(registrationId)
             .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.NOT_FOUND,
@@ -169,23 +169,23 @@ public class AbsenceRecordService {
 
     private void validateRegistration(
         TeachingAssignment assignment,
-        SubjectModuleRegestration registration
+        ModuleRegistration registration
     ) {
         boolean sameAcademicContext = registration.getStatus()
-                == SubjectModuleRegistrationStatus.ACTIVE
+                == ModuleRegistrationStatus.ACTIVE
             && registration.getSubjectModule().getId().equals(
                 assignment.getTeachingRequirement()
                     .getModuleTeachingComponent()
                     .getSubjectModule()
                     .getId()
             )
-            && registration.getSemesterRegestration().getSemester().getId().equals(
+            && registration.getSemesterRegistration().getSemester().getId().equals(
                 assignment.getTeachingRequirement()
                     .getTeachingGroup()
                     .getSemester()
                     .getId()
             )
-            && registration.getSemesterRegestration()
+            && registration.getSemesterRegistration()
                 .getAcademicRegistration()
                 .getAcademicYear()
                 .getId()
@@ -197,7 +197,7 @@ public class AbsenceRecordService {
         boolean belongsToAudience = membershipRepository
             .existsByTeachingGroupIdAndSemesterRegistrationId(
                 assignment.getTeachingRequirement().getTeachingGroup().getId(),
-                registration.getSemesterRegestration().getId()
+                registration.getSemesterRegistration().getId()
             );
         if (!sameAcademicContext || !belongsToAudience) {
             throw new ResponseStatusException(
@@ -221,11 +221,11 @@ public class AbsenceRecordService {
     }
 
     private AbsenceRecordResponse toResponse(AbsenceRecord absence) {
-        SubjectModuleRegestration registration = absence.getModuleRegistration();
+        ModuleRegistration registration = absence.getModuleRegistration();
         return new AbsenceRecordResponse(
             absence.getId(),
             registration.getId(),
-            registration.getSemesterRegestration()
+            registration.getSemesterRegistration()
                 .getAcademicRegistration()
                 .getStudent()
                 .getId(),

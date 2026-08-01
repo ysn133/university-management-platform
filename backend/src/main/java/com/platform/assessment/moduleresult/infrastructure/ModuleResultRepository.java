@@ -13,11 +13,11 @@ public interface ModuleResultRepository extends JpaRepository<ModuleResult, UUID
 
     List<ModuleResult> findByModuleRegistrationIdIn(Collection<UUID> moduleRegistrationIds);
 
-    List<ModuleResult> findByModuleRegistrationSemesterRegestrationId(
+    List<ModuleResult> findByModuleRegistrationSemesterRegistrationId(
         UUID semesterRegistrationId
     );
 
-    List<ModuleResult> findByModuleRegistrationSemesterRegestrationAcademicRegistrationId(
+    List<ModuleResult> findByModuleRegistrationSemesterRegistrationAcademicRegistrationId(
         UUID academicRegistrationId
     );
 }

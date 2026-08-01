@@ -17,7 +17,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "semester_registration")
-public class SemesterRegestration {
+public class SemesterRegistration {
 
     @Id
     private UUID id;
@@ -38,7 +38,7 @@ public class SemesterRegestration {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public SemesterRegestration(){}
+    public SemesterRegistration(){}
 
 
     @PrePersist

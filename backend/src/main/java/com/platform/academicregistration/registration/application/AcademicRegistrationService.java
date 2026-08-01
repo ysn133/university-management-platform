@@ -6,7 +6,7 @@ import com.platform.academicregistration.registration.infrastructure.AcademicReg
 import com.platform.academicregistration.registration.presentation.dto.AcademicRegistrationResponse;
 import com.platform.academicregistration.registration.presentation.dto.CreateAcademicRegistrationRequest;
 import com.platform.academicregistration.registration.presentation.dto.UpdateAcademicRegistrationRequest;
-import com.platform.academicregistration.semesterregistration.application.SemesterRegestrationService;
+import com.platform.academicregistration.semesterregistration.application.SemesterRegistrationService;
 import com.platform.identityaccess.application.AdminPermissionAuthorizationService;
 import com.platform.identityaccess.domain.PermissionCode;
 import com.platform.identityaccess.domain.Student;
@@ -41,7 +41,7 @@ public class AcademicRegistrationService {
     private final AcademicLevelRepository academicLevelRepository;
     private final AcademicYearRepository academicYearRepository;
     private final EstablishmentRepository establishmentRepository;
-    private final SemesterRegestrationService semesterRegestrationService;
+    private final SemesterRegistrationService semesterRegistrationService;
     private final AcademicLevelRuleAssignmentRepository ruleAssignmentRepository;
 
     public AcademicRegistrationService(
@@ -52,7 +52,7 @@ public class AcademicRegistrationService {
         AcademicYearRepository academicYearRepository,
         EstablishmentRepository establishmentRepository,
         AdminPermissionAuthorizationService permissionAuthorizationService,
-        SemesterRegestrationService semesterRegestrationService,
+        SemesterRegistrationService semesterRegistrationService,
         AcademicLevelRuleAssignmentRepository ruleAssignmentRepository
 
     ) {
@@ -63,7 +63,7 @@ public class AcademicRegistrationService {
         this.academicYearRepository = academicYearRepository;
         this.establishmentRepository = establishmentRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
-        this.semesterRegestrationService = semesterRegestrationService;
+        this.semesterRegistrationService = semesterRegistrationService;
         this.ruleAssignmentRepository = ruleAssignmentRepository;
 
     }
@@ -104,7 +104,7 @@ public class AcademicRegistrationService {
         academicRegistration.setStatus(AcademicRegistrationStatus.ACTIVE);
         AcademicRegistration savedRegistration=academicRegistrationRepository.save(academicRegistration);
 
-        semesterRegestrationService.createSemesterRegestration(savedRegistration);
+        semesterRegistrationService.createSemesterRegistration(savedRegistration);
 
 
         return toResponse(savedRegistration);

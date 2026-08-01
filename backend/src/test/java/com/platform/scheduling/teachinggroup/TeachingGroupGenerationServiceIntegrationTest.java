@@ -8,8 +8,8 @@ import com.platform.academicregistration.classassignment.infrastructure.StudentC
 import com.platform.academicregistration.registration.domain.AcademicRegistration;
 import com.platform.academicregistration.registration.domain.AcademicRegistrationStatus;
 import com.platform.academicregistration.registration.infrastructure.AcademicRegistrationRepository;
-import com.platform.academicregistration.semesterregistration.domain.SemesterRegestration;
-import com.platform.academicregistration.semesterregistration.infrastructer.SemesterRegestrationRepository;
+import com.platform.academicregistration.semesterregistration.domain.SemesterRegistration;
+import com.platform.academicregistration.semesterregistration.infrastructure.SemesterRegistrationRepository;
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.AccountStatus;
 import com.platform.identityaccess.domain.Student;
@@ -95,7 +95,7 @@ class TeachingGroupGenerationServiceIntegrationTest {
     private StudentClassAssignmentRepository classAssignmentRepository;
 
     @Autowired
-    private SemesterRegestrationRepository semesterRegistrationRepository;
+    private SemesterRegistrationRepository semesterRegistrationRepository;
 
     @Autowired
     private AcademicRegistrationRepository academicRegistrationRepository;
@@ -358,7 +358,7 @@ class TeachingGroupGenerationServiceIntegrationTest {
         academicRegistration.setStatus(AcademicRegistrationStatus.ACTIVE);
         academicRegistration = academicRegistrationRepository.save(academicRegistration);
 
-        SemesterRegestration semesterRegistration = new SemesterRegestration();
+        SemesterRegistration semesterRegistration = new SemesterRegistration();
         semesterRegistration.setAcademicRegistration(academicRegistration);
         semesterRegistration.setSemester(semester);
         semesterRegistration = semesterRegistrationRepository.save(semesterRegistration);

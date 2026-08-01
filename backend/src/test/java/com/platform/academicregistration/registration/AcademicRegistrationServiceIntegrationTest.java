@@ -9,8 +9,8 @@ import com.platform.academicregistration.registration.infrastructure.AcademicReg
 import com.platform.academicregistration.registration.presentation.dto.AcademicRegistrationResponse;
 import com.platform.academicregistration.registration.presentation.dto.CreateAcademicRegistrationRequest;
 import com.platform.academicregistration.registration.presentation.dto.UpdateAcademicRegistrationRequest;
-import com.platform.academicregistration.semesterregistration.infrastructer.SemesterRegestrationRepository;
-import com.platform.academicregistration.subjectmoduleregestration.infrastructure.SubjectRegestrationRepository;
+import com.platform.academicregistration.semesterregistration.infrastructure.SemesterRegistrationRepository;
+import com.platform.academicregistration.moduleregistration.infrastructure.ModuleRegistrationRepository;
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.AccountStatus;
 import com.platform.identityaccess.domain.Student;
@@ -70,13 +70,13 @@ class AcademicRegistrationServiceIntegrationTest {
     private AcademicRegistrationRepository academicRegistrationRepository;
 
     @Autowired
-    private SemesterRegestrationRepository semesterRegestrationRepository;
+    private SemesterRegistrationRepository semesterRegistrationRepository;
 
     @Autowired
     private SemesterRepository semesterRepository;
 
     @Autowired
-    private SubjectRegestrationRepository subjectRegestrationRepository;
+    private ModuleRegistrationRepository moduleRegistrationRepository;
 
     @Autowired
     private SubjectModuleRepository subjectModuleRepository;
@@ -175,15 +175,15 @@ class AcademicRegistrationServiceIntegrationTest {
 
         assertThat(first.status()).isEqualTo(AcademicRegistrationStatus.ACTIVE);
         assertThat(first.studentId()).isEqualTo(student.getId());
-        assertThat(semesterRegestrationRepository.findAll())
+        assertThat(semesterRegistrationRepository.findAll())
             .filteredOn(registration -> registration
                 .getAcademicRegistration()
                 .getId()
                 .equals(first.id()))
             .hasSize(2);
-        assertThat(subjectRegestrationRepository.findAll())
+        assertThat(moduleRegistrationRepository.findAll())
             .filteredOn(registration -> registration
-                .getSemesterRegestration()
+                .getSemesterRegistration()
                 .getAcademicRegistration()
                 .getId()
                 .equals(first.id()))
@@ -435,8 +435,8 @@ class AcademicRegistrationServiceIntegrationTest {
         var studentAccounts = studentRepository.findAll().stream()
             .map(Student::getUserAccount)
             .toList();
-        subjectRegestrationRepository.deleteAll();
-        semesterRegestrationRepository.deleteAll();
+        moduleRegistrationRepository.deleteAll();
+        semesterRegistrationRepository.deleteAll();
         academicRegistrationRepository.deleteAll();
         ruleAssignmentRepository.deleteAll();
         studentRepository.deleteAll();

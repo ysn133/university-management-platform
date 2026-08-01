@@ -9,11 +9,11 @@ import com.platform.academicregistration.classassignment.presentation.dto.Assign
 import com.platform.academicregistration.registration.domain.AcademicRegistration;
 import com.platform.academicregistration.registration.domain.AcademicRegistrationStatus;
 import com.platform.academicregistration.registration.infrastructure.AcademicRegistrationRepository;
-import com.platform.academicregistration.semesterregistration.domain.SemesterRegestration;
-import com.platform.academicregistration.semesterregistration.infrastructer.SemesterRegestrationRepository;
-import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegestration;
-import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegistrationStatus;
-import com.platform.academicregistration.subjectmoduleregestration.infrastructure.SubjectRegestrationRepository;
+import com.platform.academicregistration.semesterregistration.domain.SemesterRegistration;
+import com.platform.academicregistration.semesterregistration.infrastructure.SemesterRegistrationRepository;
+import com.platform.academicregistration.moduleregistration.domain.ModuleRegistration;
+import com.platform.academicregistration.moduleregistration.domain.ModuleRegistrationStatus;
+import com.platform.academicregistration.moduleregistration.infrastructure.ModuleRegistrationRepository;
 import com.platform.assessment.graderecord.application.GradeRecordService;
 import com.platform.assessment.graderecord.domain.GradeWorkflowStatus;
 import com.platform.assessment.graderecord.domain.ZeroGradeReason;
@@ -159,8 +159,8 @@ class GradeRecordServiceIntegrationTest {
     @Autowired private TeachingGroupMembershipRepository teachingGroupMembershipRepository;
     @Autowired private TeachingGroupRepository teachingGroupRepository;
     @Autowired private ModuleTeachingComponentRepository teachingComponentRepository;
-    @Autowired private SubjectRegestrationRepository moduleRegistrationRepository;
-    @Autowired private SemesterRegestrationRepository semesterRegistrationRepository;
+    @Autowired private ModuleRegistrationRepository moduleRegistrationRepository;
+    @Autowired private SemesterRegistrationRepository semesterRegistrationRepository;
     @Autowired private AcademicRegistrationRepository academicRegistrationRepository;
     @Autowired private PermissionRepository permissionRepository;
     @Autowired private AdminPermissionGrantRepository adminPermissionGrantRepository;
@@ -194,8 +194,8 @@ class GradeRecordServiceIntegrationTest {
     private ModuleClassResponsibility moduleResponsibility;
     private TeachingAssignment teachingAssignment;
     private ModuleExamResponse moduleExam;
-    private SubjectModuleRegestration firstModuleRegistration;
-    private SubjectModuleRegestration secondModuleRegistration;
+    private ModuleRegistration firstModuleRegistration;
+    private ModuleRegistration secondModuleRegistration;
     private Student firstStudent;
     private AcademicRuleProfile ruleProfile;
     private AuthenticatedUserPrincipal root;
@@ -395,8 +395,8 @@ class GradeRecordServiceIntegrationTest {
     @Test
     void semesterCompensationMarksEligibleModuleAsAvAndValidatesSemester() {
         SubjectModule secondSubject = saveSubjectModule(semester, "DB", "Databases");
-        SubjectModuleRegestration compensableRegistration = saveModuleRegistration(
-            firstModuleRegistration.getSemesterRegestration(),
+        ModuleRegistration compensableRegistration = saveModuleRegistration(
+            firstModuleRegistration.getSemesterRegistration(),
             secondSubject,
             1
         );
@@ -404,7 +404,7 @@ class GradeRecordServiceIntegrationTest {
         saveModuleResult(compensableRegistration, "8.00");
 
         semesterResultService.recalculateIfComplete(
-            firstModuleRegistration.getSemesterRegestration(),
+            firstModuleRegistration.getSemesterRegistration(),
             ruleProfile
         );
 
@@ -417,7 +417,7 @@ class GradeRecordServiceIntegrationTest {
                 assertThat(result.getResultStatus()).isEqualTo(ModuleResultStatus.AV);
             });
         assertThat(semesterResultRepository.findBySemesterRegistrationId(
-            firstModuleRegistration.getSemesterRegestration().getId()
+            firstModuleRegistration.getSemesterRegistration().getId()
         ))
             .get()
             .satisfies(result -> {
@@ -427,7 +427,7 @@ class GradeRecordServiceIntegrationTest {
                 );
             });
         assertThat(progressionDecisionRepository.findByAcademicRegistrationId(
-            firstModuleRegistration.getSemesterRegestration()
+            firstModuleRegistration.getSemesterRegistration()
                 .getAcademicRegistration()
                 .getId()
         ))
@@ -441,18 +441,18 @@ class GradeRecordServiceIntegrationTest {
         saveModuleResult(firstModuleRegistration, "6.00");
 
         semesterResultService.recalculateIfComplete(
-            firstModuleRegistration.getSemesterRegestration(),
+            firstModuleRegistration.getSemesterRegistration(),
             ruleProfile
         );
 
         assertThat(semesterResultRepository.findBySemesterRegistrationId(
-            firstModuleRegistration.getSemesterRegestration().getId()
+            firstModuleRegistration.getSemesterRegistration().getId()
         ))
             .get()
             .extracting(result -> result.getResultStatus())
             .isEqualTo(SemesterResultStatus.NON_VALIDATED);
         assertThat(progressionDecisionRepository.findByAcademicRegistrationId(
-            firstModuleRegistration.getSemesterRegestration()
+            firstModuleRegistration.getSemesterRegistration()
                 .getAcademicRegistration()
                 .getId()
         ))
@@ -472,12 +472,12 @@ class GradeRecordServiceIntegrationTest {
         saveModuleResult(firstModuleRegistration, "6.00");
 
         semesterResultService.recalculateIfComplete(
-            firstModuleRegistration.getSemesterRegestration(),
+            firstModuleRegistration.getSemesterRegistration(),
             ruleProfile
         );
 
         assertThat(progressionDecisionRepository.findByAcademicRegistrationId(
-            firstModuleRegistration.getSemesterRegestration()
+            firstModuleRegistration.getSemesterRegistration()
                 .getAcademicRegistration()
                 .getId()
         ))
@@ -696,22 +696,22 @@ class GradeRecordServiceIntegrationTest {
         ));
     }
 
-    private SubjectModuleRegestration saveModuleRegistration(
-        SemesterRegestration semesterRegistration,
+    private ModuleRegistration saveModuleRegistration(
+        SemesterRegistration semesterRegistration,
         SubjectModule module,
         int inscriptionNumber
     ) {
-        SubjectModuleRegestration registration = new SubjectModuleRegestration();
-        registration.setSemesterRegestration(semesterRegistration);
+        ModuleRegistration registration = new ModuleRegistration();
+        registration.setSemesterRegistration(semesterRegistration);
         registration.setSubjectModule(module);
         registration.setOriginAcademicLevel(null);
         registration.setInscriptionNumber(inscriptionNumber);
-        registration.setStatus(SubjectModuleRegistrationStatus.ACTIVE);
+        registration.setStatus(ModuleRegistrationStatus.ACTIVE);
         return moduleRegistrationRepository.save(registration);
     }
 
     private ModuleResult saveModuleResult(
-        SubjectModuleRegestration registration,
+        ModuleRegistration registration,
         String finalGrade
     ) {
         ModuleResult result = new ModuleResult();
@@ -782,7 +782,7 @@ class GradeRecordServiceIntegrationTest {
         ruleAssignmentRepository.save(assignment);
     }
 
-    private SubjectModuleRegestration registerStudent(Student student) {
+    private ModuleRegistration registerStudent(Student student) {
         AcademicRegistration registration = new AcademicRegistration();
         registration.setStudent(student);
         registration.setProgramFiliere(program);
@@ -791,7 +791,7 @@ class GradeRecordServiceIntegrationTest {
         registration.setStatus(AcademicRegistrationStatus.ACTIVE);
         registration = academicRegistrationRepository.save(registration);
 
-        SemesterRegestration semesterRegistration = new SemesterRegestration();
+        SemesterRegistration semesterRegistration = new SemesterRegistration();
         semesterRegistration.setAcademicRegistration(registration);
         semesterRegistration.setSemester(semester);
         semesterRegistration = semesterRegistrationRepository.save(semesterRegistration);
@@ -803,12 +803,12 @@ class GradeRecordServiceIntegrationTest {
             new AssignStudentClassRequest(classGroup.getId())
         );
 
-        SubjectModuleRegestration moduleRegistration = new SubjectModuleRegestration();
-        moduleRegistration.setSemesterRegestration(semesterRegistration);
+        ModuleRegistration moduleRegistration = new ModuleRegistration();
+        moduleRegistration.setSemesterRegistration(semesterRegistration);
         moduleRegistration.setSubjectModule(subjectModule);
         moduleRegistration.setOriginAcademicLevel(null);
         moduleRegistration.setInscriptionNumber(1);
-        moduleRegistration.setStatus(SubjectModuleRegistrationStatus.ACTIVE);
+        moduleRegistration.setStatus(ModuleRegistrationStatus.ACTIVE);
         return moduleRegistrationRepository.save(moduleRegistration);
     }
 
@@ -877,14 +877,14 @@ class GradeRecordServiceIntegrationTest {
         teachingGroup.setAudienceType(TeachingAudienceMode.CLASS_GROUP);
         teachingGroup = teachingGroupRepository.save(teachingGroup);
 
-        for (SubjectModuleRegestration moduleRegistration : List.of(
+        for (ModuleRegistration moduleRegistration : List.of(
             firstModuleRegistration,
             secondModuleRegistration
         )) {
             TeachingGroupMembership membership = new TeachingGroupMembership();
             membership.setTeachingGroup(teachingGroup);
             membership.setSemesterRegistration(
-                moduleRegistration.getSemesterRegestration()
+                moduleRegistration.getSemesterRegistration()
             );
             teachingGroupMembershipRepository.save(membership);
         }

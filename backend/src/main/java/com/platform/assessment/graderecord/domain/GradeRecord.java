@@ -1,6 +1,6 @@
 package com.platform.assessment.graderecord.domain;
 
-import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegestration;
+import com.platform.academicregistration.moduleregistration.domain.ModuleRegistration;
 import com.platform.scheduling.moduleexam.domain.ModuleExam;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -25,7 +25,7 @@ public class GradeRecord {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "module_registration_id", nullable = false)
-    private SubjectModuleRegestration moduleRegistration;
+    private ModuleRegistration moduleRegistration;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "module_exam_id", nullable = false)
@@ -73,12 +73,12 @@ public class GradeRecord {
         return id;
     }
 
-    public SubjectModuleRegestration getModuleRegistration() {
+    public ModuleRegistration getModuleRegistration() {
         return moduleRegistration;
     }
 
     public void setModuleRegistration(
-        SubjectModuleRegestration moduleRegistration
+        ModuleRegistration moduleRegistration
     ) {
         this.moduleRegistration = moduleRegistration;
     }

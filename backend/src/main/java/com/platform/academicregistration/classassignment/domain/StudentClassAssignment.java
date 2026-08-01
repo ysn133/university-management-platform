@@ -1,6 +1,6 @@
 package com.platform.academicregistration.classassignment.domain;
 
-import com.platform.academicregistration.semesterregistration.domain.SemesterRegestration;
+import com.platform.academicregistration.semesterregistration.domain.SemesterRegistration;
 import com.platform.universitygovernance.classgroup.domain.ClassGroup;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,7 +23,7 @@ public class StudentClassAssignment {
 
     @OneToOne(optional = false)
     @JoinColumn(name = "semester_registration_id", nullable = false, unique = true)
-    private SemesterRegestration semesterRegistration;
+    private SemesterRegistration semesterRegistration;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "class_group_id", nullable = false)
@@ -57,11 +57,11 @@ public class StudentClassAssignment {
         return id;
     }
 
-    public SemesterRegestration getSemesterRegistration() {
+    public SemesterRegistration getSemesterRegistration() {
         return semesterRegistration;
     }
 
-    public void setSemesterRegistration(SemesterRegestration semesterRegistration) {
+    public void setSemesterRegistration(SemesterRegistration semesterRegistration) {
         this.semesterRegistration = semesterRegistration;
     }
 

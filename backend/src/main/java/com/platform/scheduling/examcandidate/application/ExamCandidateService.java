@@ -1,8 +1,8 @@
 package com.platform.scheduling.examcandidate.application;
 
-import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegestration;
-import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegistrationStatus;
-import com.platform.academicregistration.subjectmoduleregestration.infrastructure.SubjectRegestrationRepository;
+import com.platform.academicregistration.moduleregistration.domain.ModuleRegistration;
+import com.platform.academicregistration.moduleregistration.domain.ModuleRegistrationStatus;
+import com.platform.academicregistration.moduleregistration.infrastructure.ModuleRegistrationRepository;
 import com.platform.assessment.graderecord.infrastructure.GradeRecordRepository;
 import com.platform.assessment.graderecord.domain.GradeWorkflowStatus;
 import com.platform.attendance.absencerecord.infrastructure.AbsenceRecordRepository;
@@ -37,7 +37,7 @@ public class ExamCandidateService {
 
     private final ExamCandidateRepository examCandidateRepository;
     private final ModuleExamRepository moduleExamRepository;
-    private final SubjectRegestrationRepository moduleRegistrationRepository;
+    private final ModuleRegistrationRepository moduleRegistrationRepository;
     private final AbsenceRecordRepository absenceRecordRepository;
     private final AcademicLevelRuleAssignmentRepository ruleAssignmentRepository;
     private final GradeRecordRepository gradeRecordRepository;
@@ -47,7 +47,7 @@ public class ExamCandidateService {
     public ExamCandidateService(
         ExamCandidateRepository examCandidateRepository,
         ModuleExamRepository moduleExamRepository,
-        SubjectRegestrationRepository moduleRegistrationRepository,
+        ModuleRegistrationRepository moduleRegistrationRepository,
         AbsenceRecordRepository absenceRecordRepository,
         AcademicLevelRuleAssignmentRepository ruleAssignmentRepository,
         GradeRecordRepository gradeRecordRepository,
@@ -82,13 +82,13 @@ public class ExamCandidateService {
             );
         }
 
-        List<SubjectModuleRegestration> registrations = moduleRegistrationRepository
+        List<ModuleRegistration> registrations = moduleRegistrationRepository
             .findEligibleForModuleExam(
                 moduleExam.getSubjectModule().getId(),
                 moduleExam.getClassGroup().getId(),
                 moduleExam.getExamSchedule().getAcademicYear().getId(),
                 moduleExam.getExamSchedule().getSemester().getId(),
-                SubjectModuleRegistrationStatus.ACTIVE
+                ModuleRegistrationStatus.ACTIVE
             );
         if (registrations.isEmpty()) {
             throw new ResponseStatusException(
@@ -148,7 +148,7 @@ public class ExamCandidateService {
 
     private ExamCandidate createCandidate(
         ModuleExam moduleExam,
-        SubjectModuleRegestration registration
+        ModuleRegistration registration
     ) {
         ExamCandidate candidate = new ExamCandidate();
         candidate.setModuleExam(moduleExam);
@@ -158,7 +158,7 @@ public class ExamCandidateService {
 
     private boolean isEligibleCandidate(
         ModuleExam moduleExam,
-        SubjectModuleRegestration registration
+        ModuleRegistration registration
     ) {
         AcademicRuleProfile ruleProfile = findRuleProfile(registration);
         long countedAbsences = absenceRecordRepository
@@ -197,15 +197,15 @@ public class ExamCandidateService {
     }
 
     private AcademicRuleProfile findRuleProfile(
-        SubjectModuleRegestration registration
+        ModuleRegistration registration
     ) {
         UUID academicLevelId = registration.getOriginAcademicLevel() == null
-            ? registration.getSemesterRegestration()
+            ? registration.getSemesterRegistration()
                 .getAcademicRegistration()
                 .getAcademicLevel()
                 .getId()
             : registration.getOriginAcademicLevel().getId();
-        UUID academicYearId = registration.getSemesterRegestration()
+        UUID academicYearId = registration.getSemesterRegistration()
             .getAcademicRegistration()
             .getAcademicYear()
             .getId();
@@ -259,13 +259,13 @@ public class ExamCandidateService {
     }
 
     private ExamCandidateResponse toResponse(ExamCandidate candidate) {
-        SubjectModuleRegestration registration = candidate.getModuleRegistration();
+        ModuleRegistration registration = candidate.getModuleRegistration();
         ModuleExam moduleExam = candidate.getModuleExam();
         return new ExamCandidateResponse(
             candidate.getId(),
             moduleExam.getId(),
             registration.getId(),
-            registration.getSemesterRegestration()
+            registration.getSemesterRegistration()
                 .getAcademicRegistration()
                 .getStudent()
                 .getId(),

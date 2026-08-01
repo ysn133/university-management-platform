@@ -1,6 +1,6 @@
 package com.platform.assessment.semesterresult.domain;
 
-import com.platform.academicregistration.semesterregistration.domain.SemesterRegestration;
+import com.platform.academicregistration.semesterregistration.domain.SemesterRegistration;
 import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfile;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -26,7 +26,7 @@ public class SemesterResult {
 
     @OneToOne(optional = false)
     @JoinColumn(name = "semester_registration_id", nullable = false, unique = true)
-    private SemesterRegestration semesterRegistration;
+    private SemesterRegistration semesterRegistration;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "academic_rule_profile_id", nullable = false)
@@ -70,11 +70,11 @@ public class SemesterResult {
         return id;
     }
 
-    public SemesterRegestration getSemesterRegistration() {
+    public SemesterRegistration getSemesterRegistration() {
         return semesterRegistration;
     }
 
-    public void setSemesterRegistration(SemesterRegestration semesterRegistration) {
+    public void setSemesterRegistration(SemesterRegistration semesterRegistration) {
         this.semesterRegistration = semesterRegistration;
     }
 

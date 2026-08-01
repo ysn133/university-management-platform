@@ -28,13 +28,13 @@ public interface GradeRecordRepository extends JpaRepository<GradeRecord, UUID> 
     @Query("""
         select grade
         from GradeRecord grade
-        where grade.moduleRegistration.semesterRegestration.academicRegistration.student.id = :studentId
+        where grade.moduleRegistration.semesterRegistration.academicRegistration.student.id = :studentId
           and grade.workflowStatus = :status
-          and (:academicYearId is null or grade.moduleRegistration.semesterRegestration.academicRegistration.academicYear.id = :academicYearId)
-          and (:academicLevelId is null or grade.moduleRegistration.semesterRegestration.academicRegistration.academicLevel.id = :academicLevelId)
-          and (:semesterId is null or grade.moduleRegistration.semesterRegestration.semester.id = :semesterId)
-        order by grade.moduleRegistration.semesterRegestration.academicRegistration.academicYear.startYear desc,
-                 grade.moduleRegistration.semesterRegestration.semester.semesterOrder asc
+          and (:academicYearId is null or grade.moduleRegistration.semesterRegistration.academicRegistration.academicYear.id = :academicYearId)
+          and (:academicLevelId is null or grade.moduleRegistration.semesterRegistration.academicRegistration.academicLevel.id = :academicLevelId)
+          and (:semesterId is null or grade.moduleRegistration.semesterRegistration.semester.id = :semesterId)
+        order by grade.moduleRegistration.semesterRegistration.academicRegistration.academicYear.startYear desc,
+                 grade.moduleRegistration.semesterRegistration.semester.semesterOrder asc
         """)
     List<GradeRecord> findStudentGrades(
         @Param("studentId") UUID studentId,

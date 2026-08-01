@@ -14,7 +14,7 @@ public interface ExamCandidateRepository extends JpaRepository<ExamCandidate, UU
     @Query("""
         select candidate
         from ExamCandidate candidate
-        where candidate.moduleRegistration.semesterRegestration.academicRegistration.student.id = :studentId
+        where candidate.moduleRegistration.semesterRegistration.academicRegistration.student.id = :studentId
           and candidate.moduleExam.examSchedule.publicationStatus = com.platform.scheduling.examschedule.domain.PublicationStatus.PUBLISHED
         order by candidate.moduleExam.examDate asc, candidate.moduleExam.startTime asc
         """)

@@ -1,6 +1,6 @@
 package com.platform.assessment.moduleresult.domain;
 
-import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegestration;
+import com.platform.academicregistration.moduleregistration.domain.ModuleRegistration;
 import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfile;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -26,7 +26,7 @@ public class ModuleResult {
 
     @OneToOne(optional = false)
     @JoinColumn(name = "module_registration_id", nullable = false, unique = true)
-    private SubjectModuleRegestration moduleRegistration;
+    private ModuleRegistration moduleRegistration;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "academic_rule_profile_id", nullable = false)
@@ -70,11 +70,11 @@ public class ModuleResult {
         return id;
     }
 
-    public SubjectModuleRegestration getModuleRegistration() {
+    public ModuleRegistration getModuleRegistration() {
         return moduleRegistration;
     }
 
-    public void setModuleRegistration(SubjectModuleRegestration moduleRegistration) {
+    public void setModuleRegistration(ModuleRegistration moduleRegistration) {
         this.moduleRegistration = moduleRegistration;
     }
 

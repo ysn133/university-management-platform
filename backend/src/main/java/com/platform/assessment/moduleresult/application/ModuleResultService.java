@@ -1,7 +1,7 @@
 package com.platform.assessment.moduleresult.application;
 
 import com.platform.academicregistration.registration.domain.AcademicRegistration;
-import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegestration;
+import com.platform.academicregistration.moduleregistration.domain.ModuleRegistration;
 import com.platform.assessment.graderecord.domain.GradeRecord;
 import com.platform.assessment.graderecord.domain.GradeWorkflowStatus;
 import com.platform.assessment.graderecord.infrastructure.GradeRecordRepository;
@@ -49,7 +49,7 @@ public class ModuleResultService {
 
     @Transactional
     public void recalculateForPublishedRecords(List<GradeRecord> publishedRecords) {
-        Map<UUID, SubjectModuleRegestration> registrations = new LinkedHashMap<>();
+        Map<UUID, ModuleRegistration> registrations = new LinkedHashMap<>();
         publishedRecords.forEach(record -> registrations.put(
             record.getModuleRegistration().getId(),
             record.getModuleRegistration()
@@ -57,9 +57,9 @@ public class ModuleResultService {
         registrations.values().forEach(this::recalculate);
     }
 
-    private void recalculate(SubjectModuleRegestration moduleRegistration) {
+    private void recalculate(ModuleRegistration moduleRegistration) {
         AcademicRegistration academicRegistration = moduleRegistration
-            .getSemesterRegestration()
+            .getSemesterRegistration()
             .getAcademicRegistration();
         AcademicLevelRuleAssignment assignment = ruleAssignmentRepository
             .findByAcademicLevelIdAndAcademicYearId(
@@ -103,7 +103,7 @@ public class ModuleResultService {
         moduleResultRepository.save(moduleResult);
 
         semesterResultService.recalculateIfComplete(
-            moduleRegistration.getSemesterRegestration(),
+            moduleRegistration.getSemesterRegistration(),
             ruleProfile
         );
     }

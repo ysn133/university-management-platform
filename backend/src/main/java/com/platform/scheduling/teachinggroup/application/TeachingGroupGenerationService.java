@@ -3,8 +3,8 @@ package com.platform.scheduling.teachinggroup.application;
 import com.platform.academicregistration.classassignment.domain.StudentClassAssignment;
 import com.platform.academicregistration.classassignment.infrastructure.StudentClassAssignmentRepository;
 import com.platform.academicregistration.registration.domain.AcademicRegistrationStatus;
-import com.platform.academicregistration.semesterregistration.domain.SemesterRegestration;
-import com.platform.academicregistration.semesterregistration.infrastructer.SemesterRegestrationRepository;
+import com.platform.academicregistration.semesterregistration.domain.SemesterRegistration;
+import com.platform.academicregistration.semesterregistration.infrastructure.SemesterRegistrationRepository;
 import com.platform.scheduling.teachinggroup.domain.TeachingGroup;
 import com.platform.scheduling.teachinggroup.domain.TeachingGroupMembership;
 import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupMembershipRepository;
@@ -32,7 +32,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class TeachingGroupGenerationService {
 
     private final SemesterRepository semesterRepository;
-    private final SemesterRegestrationRepository semesterRegistrationRepository;
+    private final SemesterRegistrationRepository semesterRegistrationRepository;
     private final StudentClassAssignmentRepository classAssignmentRepository;
     private final ModuleTeachingComponentRepository componentRepository;
     private final TeachingGroupRepository teachingGroupRepository;
@@ -41,7 +41,7 @@ public class TeachingGroupGenerationService {
 
     public TeachingGroupGenerationService(
         SemesterRepository semesterRepository,
-        SemesterRegestrationRepository semesterRegistrationRepository,
+        SemesterRegistrationRepository semesterRegistrationRepository,
         StudentClassAssignmentRepository classAssignmentRepository,
         ModuleTeachingComponentRepository componentRepository,
         TeachingGroupRepository teachingGroupRepository,
@@ -71,7 +71,7 @@ public class TeachingGroupGenerationService {
                 "Semester not found"
             ));
 
-        List<SemesterRegestration> activeRegistrations = semesterRegistrationRepository
+        List<SemesterRegistration> activeRegistrations = semesterRegistrationRepository
             .findBySemesterId(semesterId)
             .stream()
             .filter(registration -> registration.getAcademicRegistration().getStatus()
@@ -88,7 +88,7 @@ public class TeachingGroupGenerationService {
                 assignment
             );
         }
-        for (SemesterRegestration registration : activeRegistrations) {
+        for (SemesterRegistration registration : activeRegistrations) {
             if (!assignmentsByRegistration.containsKey(registration.getId())) {
                 throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
@@ -102,13 +102,13 @@ public class TeachingGroupGenerationService {
             return List.of();
         }
 
-        Map<ClassGroup, List<SemesterRegestration>> registrationsByClass = new LinkedHashMap<>();
+        Map<ClassGroup, List<SemesterRegistration>> registrationsByClass = new LinkedHashMap<>();
         activeRegistrations.stream()
             .map(registration -> assignmentsByRegistration.get(registration.getId()).getClassGroup())
             .distinct()
             .sorted(Comparator.comparing(ClassGroup::getName).thenComparing(ClassGroup::getId))
             .forEach(classGroup -> registrationsByClass.put(classGroup, new ArrayList<>()));
-        for (SemesterRegestration registration : activeRegistrations) {
+        for (SemesterRegistration registration : activeRegistrations) {
             ClassGroup classGroup = assignmentsByRegistration
                 .get(registration.getId())
                 .getClassGroup();
@@ -128,10 +128,10 @@ public class TeachingGroupGenerationService {
         generatedGroups.add(cohort);
         addMemberships(cohort, activeRegistrations, generatedMemberships);
 
-        for (Map.Entry<ClassGroup, List<SemesterRegestration>> entry :
+        for (Map.Entry<ClassGroup, List<SemesterRegistration>> entry :
             registrationsByClass.entrySet()) {
             ClassGroup classGroup = entry.getKey();
-            List<SemesterRegestration> classRegistrations = entry.getValue();
+            List<SemesterRegistration> classRegistrations = entry.getValue();
 
             TeachingGroup classAudience = createGroup(
                 semester,
@@ -143,7 +143,7 @@ public class TeachingGroupGenerationService {
             addMemberships(classAudience, classRegistrations, generatedMemberships);
 
             if (subgroupCapacity != null) {
-                List<List<SemesterRegestration>> subgroups = splitBalanced(
+                List<List<SemesterRegistration>> subgroups = splitBalanced(
                     classRegistrations,
                     subgroupCapacity
                 );
@@ -195,10 +195,10 @@ public class TeachingGroupGenerationService {
 
     private void addMemberships(
         TeachingGroup teachingGroup,
-        List<SemesterRegestration> registrations,
+        List<SemesterRegistration> registrations,
         List<TeachingGroupMembership> memberships
     ) {
-        for (SemesterRegestration registration : registrations) {
+        for (SemesterRegistration registration : registrations) {
             TeachingGroupMembership membership = new TeachingGroupMembership();
             membership.setTeachingGroup(teachingGroup);
             membership.setSemesterRegistration(registration);
@@ -206,14 +206,14 @@ public class TeachingGroupGenerationService {
         }
     }
 
-    private List<List<SemesterRegestration>> splitBalanced(
-        List<SemesterRegestration> registrations,
+    private List<List<SemesterRegistration>> splitBalanced(
+        List<SemesterRegistration> registrations,
         int maximumSize
     ) {
         int groupCount = (registrations.size() + maximumSize - 1) / maximumSize;
         int baseSize = registrations.size() / groupCount;
         int largerGroups = registrations.size() % groupCount;
-        List<List<SemesterRegestration>> groups = new ArrayList<>();
+        List<List<SemesterRegistration>> groups = new ArrayList<>();
         int offset = 0;
         for (int index = 0; index < groupCount; index++) {
             int groupSize = baseSize + (index < largerGroups ? 1 : 0);

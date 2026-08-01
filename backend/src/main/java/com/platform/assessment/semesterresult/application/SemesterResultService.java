@@ -1,8 +1,8 @@
 package com.platform.assessment.semesterresult.application;
 
-import com.platform.academicregistration.semesterregistration.domain.SemesterRegestration;
-import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegistrationStatus;
-import com.platform.academicregistration.subjectmoduleregestration.infrastructure.SubjectRegestrationRepository;
+import com.platform.academicregistration.semesterregistration.domain.SemesterRegistration;
+import com.platform.academicregistration.moduleregistration.domain.ModuleRegistrationStatus;
+import com.platform.academicregistration.moduleregistration.infrastructure.ModuleRegistrationRepository;
 import com.platform.assessment.moduleresult.domain.ModuleResult;
 import com.platform.assessment.moduleresult.domain.ModuleResultStatus;
 import com.platform.assessment.moduleresult.infrastructure.ModuleResultRepository;
@@ -23,13 +23,13 @@ public class SemesterResultService {
 
     private final SemesterResultRepository semesterResultRepository;
     private final ModuleResultRepository moduleResultRepository;
-    private final SubjectRegestrationRepository moduleRegistrationRepository;
+    private final ModuleRegistrationRepository moduleRegistrationRepository;
     private final ProgressionDecisionService progressionDecisionService;
 
     public SemesterResultService(
         SemesterResultRepository semesterResultRepository,
         ModuleResultRepository moduleResultRepository,
-        SubjectRegestrationRepository moduleRegistrationRepository,
+        ModuleRegistrationRepository moduleRegistrationRepository,
         ProgressionDecisionService progressionDecisionService
     ) {
         this.semesterResultRepository = semesterResultRepository;
@@ -40,17 +40,17 @@ public class SemesterResultService {
 
     @Transactional
     public void recalculateIfComplete(
-        SemesterRegestration semesterRegistration,
+        SemesterRegistration semesterRegistration,
         AcademicRuleProfile ruleProfile
     ) {
         int requiredModuleCount = moduleRegistrationRepository
-            .findBySemesterRegestrationIdAndStatus(
+            .findBySemesterRegistrationIdAndStatus(
                 semesterRegistration.getId(),
-                SubjectModuleRegistrationStatus.ACTIVE
+                ModuleRegistrationStatus.ACTIVE
             )
             .size();
         List<ModuleResult> moduleResults = moduleResultRepository
-            .findByModuleRegistrationSemesterRegestrationId(
+            .findByModuleRegistrationSemesterRegistrationId(
                 semesterRegistration.getId()
             );
         if (requiredModuleCount == 0 || moduleResults.size() != requiredModuleCount) {

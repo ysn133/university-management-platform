@@ -1,6 +1,6 @@
 package com.platform.attendance.absencerecord.domain;
 
-import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegestration;
+import com.platform.academicregistration.moduleregistration.domain.ModuleRegistration;
 import com.platform.teachingassignment.domain.TeachingAssignment;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,7 +23,7 @@ public class AbsenceRecord {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "module_registration_id", nullable = false)
-    private SubjectModuleRegestration moduleRegistration;
+    private ModuleRegistration moduleRegistration;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "teaching_assignment_id", nullable = false)
@@ -66,11 +66,11 @@ public class AbsenceRecord {
         return id;
     }
 
-    public SubjectModuleRegestration getModuleRegistration() {
+    public ModuleRegistration getModuleRegistration() {
         return moduleRegistration;
     }
 
-    public void setModuleRegistration(SubjectModuleRegestration moduleRegistration) {
+    public void setModuleRegistration(ModuleRegistration moduleRegistration) {
         this.moduleRegistration = moduleRegistration;
     }
 

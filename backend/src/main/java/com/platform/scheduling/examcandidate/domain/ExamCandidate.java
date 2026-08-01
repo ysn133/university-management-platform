@@ -1,6 +1,6 @@
 package com.platform.scheduling.examcandidate.domain;
 
-import com.platform.academicregistration.subjectmoduleregestration.domain.SubjectModuleRegestration;
+import com.platform.academicregistration.moduleregistration.domain.ModuleRegistration;
 import com.platform.scheduling.moduleexam.domain.ModuleExam;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -26,7 +26,7 @@ public class ExamCandidate {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "module_registration_id", nullable = false)
-    private SubjectModuleRegestration moduleRegistration;
+    private ModuleRegistration moduleRegistration;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -64,11 +64,11 @@ public class ExamCandidate {
         this.moduleExam = moduleExam;
     }
 
-    public SubjectModuleRegestration getModuleRegistration() {
+    public ModuleRegistration getModuleRegistration() {
         return moduleRegistration;
     }
 
-    public void setModuleRegistration(SubjectModuleRegestration moduleRegistration) {
+    public void setModuleRegistration(ModuleRegistration moduleRegistration) {
         this.moduleRegistration = moduleRegistration;
     }
 

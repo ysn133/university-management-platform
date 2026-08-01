@@ -7,8 +7,8 @@ import com.platform.academicregistration.classassignment.presentation.dto.Studen
 import com.platform.academicregistration.registration.domain.AcademicRegistration;
 import com.platform.academicregistration.registration.domain.AcademicRegistrationStatus;
 import com.platform.academicregistration.registration.infrastructure.AcademicRegistrationRepository;
-import com.platform.academicregistration.semesterregistration.domain.SemesterRegestration;
-import com.platform.academicregistration.semesterregistration.infrastructer.SemesterRegestrationRepository;
+import com.platform.academicregistration.semesterregistration.domain.SemesterRegistration;
+import com.platform.academicregistration.semesterregistration.infrastructure.SemesterRegistrationRepository;
 import com.platform.identityaccess.application.AdminPermissionAuthorizationService;
 import com.platform.identityaccess.domain.PermissionCode;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
@@ -25,14 +25,14 @@ import org.springframework.web.server.ResponseStatusException;
 public class StudentClassAssignmentService {
 
     private final AcademicRegistrationRepository academicRegistrationRepository;
-    private final SemesterRegestrationRepository semesterRegistrationRepository;
+    private final SemesterRegistrationRepository semesterRegistrationRepository;
     private final StudentClassAssignmentRepository classAssignmentRepository;
     private final ClassGroupRepository classGroupRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
 
     public StudentClassAssignmentService(
         AcademicRegistrationRepository academicRegistrationRepository,
-        SemesterRegestrationRepository semesterRegistrationRepository,
+        SemesterRegistrationRepository semesterRegistrationRepository,
         StudentClassAssignmentRepository classAssignmentRepository,
         ClassGroupRepository classGroupRepository,
         AdminPermissionAuthorizationService permissionAuthorizationService
@@ -59,7 +59,7 @@ public class StudentClassAssignmentService {
             registration,
             PermissionCode.ACADEMIC_REGISTRATION_UPDATE
         );
-        SemesterRegestration semesterRegistration = findSemesterRegistration(
+        SemesterRegistration semesterRegistration = findSemesterRegistration(
             academicRegistrationId,
             semesterId
         );
@@ -97,7 +97,7 @@ public class StudentClassAssignmentService {
             registration,
             PermissionCode.ACADEMIC_REGISTRATION_VIEW
         );
-        SemesterRegestration semesterRegistration = findSemesterRegistration(
+        SemesterRegistration semesterRegistration = findSemesterRegistration(
             academicRegistrationId,
             semesterId
         );
@@ -118,7 +118,7 @@ public class StudentClassAssignmentService {
             ));
     }
 
-    private SemesterRegestration findSemesterRegistration(
+    private SemesterRegistration findSemesterRegistration(
         UUID academicRegistrationId,
         UUID semesterId
     ) {
@@ -143,7 +143,7 @@ public class StudentClassAssignmentService {
 
     private void ensureAssignable(
         AcademicRegistration registration,
-        SemesterRegestration semesterRegistration,
+        SemesterRegistration semesterRegistration,
         ClassGroup classGroup
     ) {
         boolean compatible = registration.getStatus() == AcademicRegistrationStatus.ACTIVE
@@ -181,7 +181,7 @@ public class StudentClassAssignmentService {
     private StudentClassAssignmentResponse toResponse(
         StudentClassAssignment assignment
     ) {
-        SemesterRegestration semesterRegistration = assignment
+        SemesterRegistration semesterRegistration = assignment
             .getSemesterRegistration();
         return new StudentClassAssignmentResponse(
             assignment.getId(),

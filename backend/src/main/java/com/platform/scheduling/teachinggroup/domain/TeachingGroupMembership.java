@@ -1,6 +1,6 @@
 package com.platform.scheduling.teachinggroup.domain;
 
-import com.platform.academicregistration.semesterregistration.domain.SemesterRegestration;
+import com.platform.academicregistration.semesterregistration.domain.SemesterRegistration;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -24,7 +24,7 @@ public class TeachingGroupMembership {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "semester_registration_id", nullable = false)
-    private SemesterRegestration semesterRegistration;
+    private SemesterRegistration semesterRegistration;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -52,11 +52,11 @@ public class TeachingGroupMembership {
         this.teachingGroup = teachingGroup;
     }
 
-    public SemesterRegestration getSemesterRegistration() {
+    public SemesterRegistration getSemesterRegistration() {
         return semesterRegistration;
     }
 
-    public void setSemesterRegistration(SemesterRegestration semesterRegistration) {
+    public void setSemesterRegistration(SemesterRegistration semesterRegistration) {
         this.semesterRegistration = semesterRegistration;
     }
 
