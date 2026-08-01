@@ -10,14 +10,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.platform.shared.presentation.ActionResponse;
 import com.platform.universitygovernance.establishment.application.EstablishmentService;
+import com.platform.universitygovernance.establishment.domain.EstablishmentStatus;
+import com.platform.universitygovernance.establishment.domain.EstablishmentType;
 import com.platform.universitygovernance.establishment.presentation.dto.CreateEstablishmentRequest;
 import com.platform.universitygovernance.establishment.presentation.dto.EstablishmentResponse;
+import com.platform.universitygovernance.establishment.presentation.dto.UpdateEstablishmentRequest;
 
 
 
@@ -38,14 +43,28 @@ public class EstablishmentController {
     }
     @PreAuthorize("hasRole('ROOT_SUPER_ADMIN')")
     @GetMapping("/university/{universityId}/establishments")
-    public List<EstablishmentResponse> getEstablishments(@PathVariable("universityId") UUID universityId){
-        return this.establishmentService.getEstablishments(universityId);
+    public List<EstablishmentResponse> getEstablishments(
+        @PathVariable("universityId") UUID universityId,
+        @RequestParam(required = false) String query,
+        @RequestParam(required = false) EstablishmentType type,
+        @RequestParam(required = false) EstablishmentStatus status
+    ) {
+        return this.establishmentService.getEstablishments(universityId, query, type, status);
     }
 
     @PreAuthorize("hasRole('ROOT_SUPER_ADMIN')")
     @PostMapping("/establishments")
     public EstablishmentResponse createEstablishment(@Valid @RequestBody CreateEstablishmentRequest request) {
         return this.establishmentService.createEstablishment(request);
+    }
+
+    @PreAuthorize("hasRole('ROOT_SUPER_ADMIN')")
+    @PutMapping("/establishments/{id}")
+    public EstablishmentResponse updateEstablishment(
+        @PathVariable("id") UUID establishmentId,
+        @Valid @RequestBody UpdateEstablishmentRequest request
+    ) {
+        return establishmentService.updateEstablishment(establishmentId, request);
     }
 
     @PreAuthorize("hasRole('ROOT_SUPER_ADMIN')")

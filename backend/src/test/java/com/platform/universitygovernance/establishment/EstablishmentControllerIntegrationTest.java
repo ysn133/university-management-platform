@@ -362,6 +362,169 @@ class EstablishmentControllerIntegrationTest {
         assertThat(listResponse.statusCode()).isEqualTo(403);
     }
 
+    @Test
+    void rootCanSearchUpdateAndChangeEstablishmentStatus() throws Exception {
+        String accessToken = loginAndGetAccessToken();
+        Establishment school = createEstablishment("ENSA Agadir", EstablishmentType.SCHOOL);
+        createEstablishment("Faculty of Sciences", EstablishmentType.FACULTY);
+
+        HttpResponse<String> filteredResponse = getWithBearer(
+            "/api/v1/university/" + universityId
+                + "/establishments?query=ensa&type=SCHOOL&status=ACTIVE",
+            accessToken
+        );
+
+        assertThat(filteredResponse.statusCode()).isEqualTo(200);
+        JsonNode filteredJson = objectMapper.readTree(filteredResponse.body());
+        assertThat(filteredJson).hasSize(1);
+        assertThat(filteredJson.get(0).get("id").asText()).isEqualTo(school.getId().toString());
+
+        HttpResponse<String> updateResponse = putJsonWithBearer(
+            "/api/v1/establishments/" + school.getId(),
+            accessToken,
+            """
+                {
+                  "name": "National School of Applied Sciences Agadir",
+                  "type": "INSTITUTE"
+                }
+                """
+        );
+
+        assertThat(updateResponse.statusCode()).isEqualTo(200);
+        JsonNode updatedJson = objectMapper.readTree(updateResponse.body());
+        assertThat(updatedJson.get("name").asText())
+            .isEqualTo("National School of Applied Sciences Agadir");
+        assertThat(updatedJson.get("type").asText()).isEqualTo("INSTITUTE");
+
+        HttpResponse<String> deactivateResponse = postWithBearer(
+            "/api/v1/establishments/" + school.getId() + "/deactivate",
+            accessToken
+        );
+        assertThat(deactivateResponse.statusCode()).isEqualTo(200);
+        assertThat(establishmentRepository.findById(school.getId()).orElseThrow().getEstablishmentStatus())
+            .isEqualTo(EstablishmentStatus.INACTIVE);
+
+        HttpResponse<String> activateResponse = postWithBearer(
+            "/api/v1/establishments/" + school.getId() + "/activate",
+            accessToken
+        );
+        assertThat(activateResponse.statusCode()).isEqualTo(200);
+        assertThat(establishmentRepository.findById(school.getId()).orElseThrow().getEstablishmentStatus())
+            .isEqualTo(EstablishmentStatus.ACTIVE);
+    }
+
+    @Test
+    void rootCanSearchUpdateAndManageSuperAdminLifecycle() throws Exception {
+        String accessToken = loginAndGetAccessToken();
+        Establishment establishment = createEstablishment("ENSA Agadir", EstablishmentType.SCHOOL);
+        SuperAdmin superAdmin = createSuperAdmin(
+            establishment,
+            "super-admin@ensa.uiz.ac.ma",
+            "Old",
+            "Name"
+        );
+
+        HttpResponse<String> updateResponse = putJsonWithBearer(
+            "/api/v1/super-admins/" + superAdmin.getId(),
+            accessToken,
+            """
+                {
+                  "universityEmail": "manager@ensa.uiz.ac.ma",
+                  "firstName": "Yasmine",
+                  "lastName": "Manager",
+                  "birth_date": "1990-06-15",
+                  "cin": "AB123456",
+                  "sex": "FEMALE",
+                  "phone_number": "0612345678"
+                }
+                """
+        );
+
+        assertThat(updateResponse.statusCode()).isEqualTo(200);
+        JsonNode updatedJson = objectMapper.readTree(updateResponse.body());
+        assertThat(updatedJson.get("email").asText()).isEqualTo("manager@ensa.uiz.ac.ma");
+        assertThat(updatedJson.get("firstName").asText()).isEqualTo("Yasmine");
+        assertThat(updatedJson.get("cin").asText()).isEqualTo("AB123456");
+
+        HttpResponse<String> searchResponse = getWithBearer(
+            "/api/v1/establishments/" + establishment.getId()
+                + "/super-admins?query=AB123456&status=ACTIVE",
+            accessToken
+        );
+        assertThat(searchResponse.statusCode()).isEqualTo(200);
+        assertThat(objectMapper.readTree(searchResponse.body())).hasSize(1);
+
+        HttpResponse<String> resetResponse = postJsonWithBearer(
+            "/api/v1/super-admins/" + superAdmin.getId() + "/password-reset",
+            accessToken,
+            """
+                { "newPassword": "new-secure-password" }
+                """
+        );
+        assertThat(resetResponse.statusCode()).isEqualTo(200);
+
+        assertThat(postWithBearer(
+            "/api/v1/super-admins/" + superAdmin.getId() + "/lock",
+            accessToken
+        ).statusCode()).isEqualTo(200);
+        assertThat(superAdminStatus(superAdmin.getId())).isEqualTo(AccountStatus.LOCKED);
+        assertThat(postJson(
+            "/api/v1/auth/login",
+            """
+                {
+                  "universityEmail": "manager@ensa.uiz.ac.ma",
+                  "password": "new-secure-password"
+                }
+                """
+        ).statusCode()).isEqualTo(403);
+
+        assertThat(postWithBearer(
+            "/api/v1/super-admins/" + superAdmin.getId() + "/unlock",
+            accessToken
+        ).statusCode()).isEqualTo(200);
+        assertThat(superAdminStatus(superAdmin.getId())).isEqualTo(AccountStatus.ACTIVE);
+
+        assertThat(postWithBearer(
+            "/api/v1/super-admins/" + superAdmin.getId() + "/deactivate",
+            accessToken
+        ).statusCode()).isEqualTo(200);
+        assertThat(superAdminStatus(superAdmin.getId())).isEqualTo(AccountStatus.DEACTIVATED);
+
+        assertThat(postWithBearer(
+            "/api/v1/super-admins/" + superAdmin.getId() + "/archive",
+            accessToken
+        ).statusCode()).isEqualTo(200);
+        assertThat(superAdminStatus(superAdmin.getId())).isEqualTo(AccountStatus.ARCHIVED);
+        assertThat(superAdminRepository.findById(superAdmin.getId())).isPresent();
+        assertThat(userProfileRepository.findByUserAccountId(superAdmin.getUserAccount().getId())).isPresent();
+    }
+
+    @Test
+    void rootCannotCreateSuperAdminInInactiveEstablishment() throws Exception {
+        String accessToken = loginAndGetAccessToken();
+        Establishment establishment = createEstablishment("Inactive School", EstablishmentType.SCHOOL);
+        establishment.setEstablishmentStatus(EstablishmentStatus.INACTIVE);
+        establishmentRepository.save(establishment);
+
+        HttpResponse<String> response = postJsonWithBearer(
+            "/api/v1/establishments/" + establishment.getId() + "/super-admins",
+            accessToken,
+            """
+                {
+                  "universityEmail": "super-admin@inactive.uiz.ac.ma",
+                  "password": "change-me-now",
+                  "firstName": "Inactive",
+                  "lastName": "Manager",
+                  "birth_date": "1990-06-15",
+                  "sex": "MALE"
+                }
+                """
+        );
+
+        assertThat(response.statusCode()).isEqualTo(409);
+        assertThat(userAccountRepository.findByUniversityEmail("super-admin@inactive.uiz.ac.ma")).isEmpty();
+    }
+
     private Establishment createEstablishment(String name, EstablishmentType type) {
         Establishment establishment = new Establishment();
         establishment.setUniversity(universityRepository.findById(universityId).orElseThrow());
@@ -417,6 +580,12 @@ class EstablishmentControllerIntegrationTest {
         return loginJson.get("accessToken").asText();
     }
 
+    private AccountStatus superAdminStatus(UUID superAdminId) {
+        return superAdminRepository.findById(superAdminId).orElseThrow()
+            .getUserAccount()
+            .getAccountStatus();
+    }
+
     private HttpResponse<String> postJson(String path, String body) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(baseUrl() + path))
@@ -433,6 +602,27 @@ class EstablishmentControllerIntegrationTest {
             .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + accessToken)
             .POST(HttpRequest.BodyPublishers.ofString(body))
+            .build();
+
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private HttpResponse<String> postWithBearer(String path, String accessToken) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl() + path))
+            .header("Authorization", "Bearer " + accessToken)
+            .POST(HttpRequest.BodyPublishers.noBody())
+            .build();
+
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private HttpResponse<String> putJsonWithBearer(String path, String accessToken, String body) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl() + path))
+            .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + accessToken)
+            .PUT(HttpRequest.BodyPublishers.ofString(body))
             .build();
 
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString());

@@ -1,5 +1,6 @@
 package com.platform.usermanagement.superadmin.presentation.dto;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 import com.platform.identityaccess.domain.AccountRoleType;
@@ -14,7 +15,9 @@ public record SuperAdminProfileResponse (
     AccountRoleType role , 
     AccountStatus status,
     String firstName,
-    String lastName, 
+    String lastName,
+    LocalDate birthDate,
+    String cin,
     Sex sex,
     String phoneNumber
    
