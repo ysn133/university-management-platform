@@ -17,7 +17,7 @@ public interface EstablishmentRepository extends JpaRepository<Establishment, UU
         select establishment
         from Establishment establishment
         where establishment.university.id = :universityId
-          and (:query is null or lower(establishment.name) like lower(concat('%', :query, '%')))
+          and (:query = '' or lower(establishment.name) like lower(concat('%', :query, '%')))
           and (:type is null or establishment.establishmentType = :type)
           and (:status is null or establishment.establishmentStatus = :status)
         order by establishment.name asc
