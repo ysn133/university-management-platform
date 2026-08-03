@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ProfessorExpertiseRepository extends JpaRepository<ProfessorExpertise, UUID> {
 
     List<ProfessorExpertise> findByProfessorIdOrderByAcademicDomainNameAsc(UUID professorId);
+
+    boolean existsByProfessorIdAndAcademicDomainId(UUID professorId, UUID academicDomainId);
 }

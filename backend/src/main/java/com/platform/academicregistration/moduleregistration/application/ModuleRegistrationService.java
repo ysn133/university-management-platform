@@ -2,6 +2,7 @@ package com.platform.academicregistration.moduleregistration.application;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
@@ -9,6 +10,7 @@ import com.platform.academicregistration.semesterregistration.domain.SemesterReg
 import com.platform.academicregistration.moduleregistration.domain.ModuleRegistration;
 import com.platform.academicregistration.moduleregistration.domain.ModuleRegistrationStatus;
 import com.platform.academicregistration.moduleregistration.infrastructure.ModuleRegistrationRepository;
+import com.platform.academicregistration.moduleregistration.presentation.dto.ModuleRegistrationResponse;
 import com.platform.universitygovernance.semester.domain.Semester;
 import com.platform.universitygovernance.subjectmodules.domain.SubjectModule;
 import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleRepository;
@@ -47,5 +49,30 @@ public class ModuleRegistrationService {
         }
 
         return registrations;
+    }
+
+    public List<ModuleRegistrationResponse> getBySemesterRegistration(
+        UUID semesterRegistrationId
+    ) {
+        return moduleRegistrationRepository
+            .findBySemesterRegistrationIdOrderBySubjectModuleCodeAsc(semesterRegistrationId)
+            .stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    private ModuleRegistrationResponse toResponse(ModuleRegistration registration) {
+        return new ModuleRegistrationResponse(
+            registration.getId(),
+            registration.getSemesterRegistration().getId(),
+            registration.getSubjectModule().getId(),
+            registration.getSubjectModule().getCode(),
+            registration.getSubjectModule().getTitle(),
+            registration.getOriginAcademicLevel() == null
+                ? null
+                : registration.getOriginAcademicLevel().getId(),
+            registration.getInscriptionNumber(),
+            registration.getStatus()
+        );
     }
 }

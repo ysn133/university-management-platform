@@ -5,6 +5,7 @@ import com.platform.shared.presentation.ActionResponse;
 import com.platform.teachingassignment.application.TeachingAssignmentService;
 import com.platform.teachingassignment.presentation.dto.CreateTeachingAssignmentRequest;
 import com.platform.teachingassignment.presentation.dto.TeachingAssignmentResponse;
+import com.platform.teachingassignment.presentation.dto.TeachingAssignmentStudentResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -68,6 +69,18 @@ public class TeachingAssignmentController {
         @AuthenticationPrincipal AuthenticatedUserPrincipal principal
     ) {
         return teachingAssignmentService.getMyTeachingAssignments(principal);
+    }
+
+    @GetMapping("/teaching-assignments/{teachingAssignmentId}/students")
+    @PreAuthorize("hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN', 'ADMIN', 'PROFESSOR')")
+    public List<TeachingAssignmentStudentResponse> getTeachingAssignmentStudents(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+        @PathVariable UUID teachingAssignmentId
+    ) {
+        return teachingAssignmentService.getTeachingAssignmentStudents(
+            principal,
+            teachingAssignmentId
+        );
     }
 
     @DeleteMapping("/teaching-assignments/{teachingAssignmentId}")

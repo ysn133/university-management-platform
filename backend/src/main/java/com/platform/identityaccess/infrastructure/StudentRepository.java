@@ -12,7 +12,11 @@ public interface StudentRepository extends JpaRepository<Student, UUID> {
 
     boolean existsByApogeeCodeIgnoreCase(String apogeeCode);
 
+    boolean existsByApogeeCodeIgnoreCaseAndIdNot(String apogeeCode, UUID id);
+
     boolean existsByNationalStudentCodeIgnoreCase(String nationalStudentCode);
+
+    boolean existsByNationalStudentCodeIgnoreCaseAndIdNot(String nationalStudentCode, UUID id);
 
     List<Student> findByEstablishmentIdOrderByCreatedAtAsc(UUID establishmentId);
 }

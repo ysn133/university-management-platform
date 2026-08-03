@@ -8,9 +8,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.shared.presentation.ActionResponse;
@@ -19,6 +21,9 @@ import com.platform.usermanagement.admin.presentation.dto.AdminProfileResponse;
 import com.platform.usermanagement.admin.presentation.dto.CreateAdminRequest;
 import com.platform.usermanagement.admin.presentation.dto.CreateAdminResponse;
 import com.platform.usermanagement.admin.presentation.dto.ResetAdminPasswordRequest;
+import com.platform.usermanagement.admin.presentation.dto.UpdateAdminRequest;
+import com.platform.identityaccess.domain.AccountStatus;
+import java.time.LocalDate;
 
 import jakarta.validation.Valid;
 
@@ -32,7 +37,7 @@ public class AdminManagementController {
         this.adminManagementService = adminManagementService;
     }
 
-    @PreAuthorize("hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN', 'ADMIN')")
     @PostMapping("/establishments/{id}/admins")
     public CreateAdminResponse createAdmin(
         @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
@@ -46,9 +51,25 @@ public class AdminManagementController {
     @GetMapping("/establishments/{id}/admins")
     public List<AdminProfileResponse> getAdmins(
         @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
-        @PathVariable("id") UUID establishmentId
+        @PathVariable("id") UUID establishmentId,
+        @RequestParam(required = false) String query,
+        @RequestParam(required = false) AccountStatus status,
+        @RequestParam(required = false) LocalDate createdFrom,
+        @RequestParam(required = false) LocalDate createdTo
     ) {
-        return adminManagementService.getAdmins(principal, establishmentId);
+        return adminManagementService.getAdmins(
+            principal, establishmentId, query, status, createdFrom, createdTo
+        );
+    }
+
+    @PreAuthorize("hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN')")
+    @PutMapping("/admins/{id}")
+    public AdminProfileResponse updateAdmin(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+        @PathVariable("id") UUID adminId,
+        @Valid @RequestBody UpdateAdminRequest request
+    ) {
+        return adminManagementService.updateAdmin(principal, adminId, request);
     }
 
     @PreAuthorize("hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN')")

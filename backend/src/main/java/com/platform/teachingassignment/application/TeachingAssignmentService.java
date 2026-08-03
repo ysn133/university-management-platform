@@ -5,7 +5,10 @@ import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.AccountStatus;
 import com.platform.identityaccess.domain.PermissionCode;
 import com.platform.identityaccess.domain.Professor;
+import com.platform.identityaccess.domain.Student;
+import com.platform.identityaccess.domain.UserProfile;
 import com.platform.identityaccess.infrastructure.ProfessorRepository;
+import com.platform.identityaccess.infrastructure.UserProfileRepository;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.shared.presentation.ActionResponse;
 import com.platform.teachingassignment.domain.TeachingAssignment;
@@ -13,6 +16,7 @@ import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
 import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
 import com.platform.teachingassignment.presentation.dto.CreateTeachingAssignmentRequest;
 import com.platform.teachingassignment.presentation.dto.TeachingAssignmentResponse;
+import com.platform.teachingassignment.presentation.dto.TeachingAssignmentStudentResponse;
 import com.platform.teachingrequirement.domain.TeachingRequirement;
 import com.platform.teachingrequirement.domain.TeachingRequirementStatus;
 import com.platform.teachingrequirement.infrastructure.TeachingRequirementRepository;
@@ -20,6 +24,8 @@ import com.platform.universitygovernance.academicyear.domain.AcademicYearStatus;
 import com.platform.universitygovernance.moduleteachingcomponent.domain.ModuleTeachingComponent;
 import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleDomainRepository;
 import com.platform.usermanagement.professor.expertise.infrastructure.ProfessorExpertiseRepository;
+import com.platform.scheduling.teachinggroup.domain.TeachingGroupMembership;
+import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupMembershipRepository;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -38,6 +44,8 @@ public class TeachingAssignmentService {
     private final SubjectModuleDomainRepository subjectModuleDomainRepository;
     private final ProfessorExpertiseRepository professorExpertiseRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
+    private final TeachingGroupMembershipRepository teachingGroupMembershipRepository;
+    private final UserProfileRepository userProfileRepository;
 
     public TeachingAssignmentService(
         TeachingAssignmentRepository assignmentRepository,
@@ -45,7 +53,9 @@ public class TeachingAssignmentService {
         ProfessorRepository professorRepository,
         SubjectModuleDomainRepository subjectModuleDomainRepository,
         ProfessorExpertiseRepository professorExpertiseRepository,
-        AdminPermissionAuthorizationService permissionAuthorizationService
+        AdminPermissionAuthorizationService permissionAuthorizationService,
+        TeachingGroupMembershipRepository teachingGroupMembershipRepository,
+        UserProfileRepository userProfileRepository
     ) {
         this.assignmentRepository = assignmentRepository;
         this.requirementRepository = requirementRepository;
@@ -53,6 +63,8 @@ public class TeachingAssignmentService {
         this.subjectModuleDomainRepository = subjectModuleDomainRepository;
         this.professorExpertiseRepository = professorExpertiseRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
+        this.teachingGroupMembershipRepository = teachingGroupMembershipRepository;
+        this.userProfileRepository = userProfileRepository;
     }
 
     @Transactional
@@ -139,6 +151,32 @@ public class TeachingAssignmentService {
             .findByProfessorIdOrderByCreatedAtDesc(principal.roleEntityId())
             .stream()
             .map(this::toResponse)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TeachingAssignmentStudentResponse> getTeachingAssignmentStudents(
+        AuthenticatedUserPrincipal principal,
+        UUID teachingAssignmentId
+    ) {
+        TeachingAssignment assignment = findAssignment(teachingAssignmentId);
+        if (!isAssignedProfessor(principal, assignment)) {
+            permissionAuthorizationService.requirePermission(
+                principal,
+                establishmentId(assignment),
+                PermissionCode.TEACHING_ASSIGNMENT_VIEW
+            );
+        }
+        return teachingGroupMembershipRepository
+            .findByTeachingGroupId(assignment.getTeachingRequirement().getTeachingGroup().getId())
+            .stream()
+            .map(TeachingGroupMembership::getSemesterRegistration)
+            .map(registration -> registration.getAcademicRegistration().getStudent())
+            .distinct()
+            .map(this::toStudentResponse)
+            .sorted(java.util.Comparator
+                .comparing(TeachingAssignmentStudentResponse::lastName)
+                .thenComparing(TeachingAssignmentStudentResponse::firstName))
             .toList();
     }
 
@@ -293,6 +331,23 @@ public class TeachingAssignmentService {
             assignment.getStatus(),
             assignment.getCreatedAt(),
             assignment.getUpdatedAt()
+        );
+    }
+
+    private TeachingAssignmentStudentResponse toStudentResponse(Student student) {
+        UserProfile profile = userProfileRepository
+            .findByUserAccountId(student.getUserAccount().getId())
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Student profile not found"
+            ));
+        return new TeachingAssignmentStudentResponse(
+            student.getId(),
+            student.getApogeeCode(),
+            student.getNationalStudentCode(),
+            student.getUserAccount().getUniversityEmail(),
+            profile.getFirstName(),
+            profile.getLastName()
         );
     }
 }

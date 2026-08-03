@@ -10,6 +10,10 @@ import org.springframework.data.repository.query.Param;
 
 public interface ModuleRegistrationRepository extends JpaRepository<ModuleRegistration ,UUID>{
 
+    List<ModuleRegistration> findBySemesterRegistrationIdOrderBySubjectModuleCodeAsc(
+        UUID semesterRegistrationId
+    );
+
     List<ModuleRegistration> findBySemesterRegistrationIdAndStatus(
         UUID semesterRegistrationId,
         ModuleRegistrationStatus status

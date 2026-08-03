@@ -16,6 +16,12 @@ import com.platform.universitygovernance.establishment.infrastructure.Establishm
 import com.platform.usermanagement.professor.presentation.dto.CreateProfessorRequest;
 import com.platform.usermanagement.professor.presentation.dto.CreateProfessorResponse;
 import com.platform.usermanagement.professor.presentation.dto.ProfessorProfileResponse;
+import com.platform.usermanagement.professor.presentation.dto.UpdateProfessorRequest;
+import com.platform.usermanagement.professor.expertise.infrastructure.ProfessorExpertiseRepository;
+import com.platform.usermanagement.shared.presentation.dto.ResetManagedPasswordRequest;
+import com.platform.shared.presentation.ActionResponse;
+import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -34,6 +40,7 @@ public class ProfessorManagementService {
     private final UserProfileRepository userProfileRepository;
     private final PasswordEncoder passwordEncoder;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
+    private final ProfessorExpertiseRepository professorExpertiseRepository;
 
     public ProfessorManagementService(
         EstablishmentRepository establishmentRepository,
@@ -41,7 +48,8 @@ public class ProfessorManagementService {
         UserAccountRepository userAccountRepository,
         UserProfileRepository userProfileRepository,
         PasswordEncoder passwordEncoder,
-        AdminPermissionAuthorizationService permissionAuthorizationService
+        AdminPermissionAuthorizationService permissionAuthorizationService,
+        ProfessorExpertiseRepository professorExpertiseRepository
     ) {
         this.establishmentRepository = establishmentRepository;
         this.professorRepository = professorRepository;
@@ -49,6 +57,7 @@ public class ProfessorManagementService {
         this.userProfileRepository = userProfileRepository;
         this.passwordEncoder = passwordEncoder;
         this.permissionAuthorizationService = permissionAuthorizationService;
+        this.professorExpertiseRepository = professorExpertiseRepository;
     }
 
     @Transactional
@@ -130,12 +139,36 @@ public class ProfessorManagementService {
         AuthenticatedUserPrincipal principal,
         UUID establishmentId
     ) {
+        return getProfessors(principal, establishmentId, null, null, null, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProfessorProfileResponse> getProfessors(
+        AuthenticatedUserPrincipal principal,
+        UUID establishmentId,
+        String query,
+        AccountStatus status,
+        LocalDate joinedFrom,
+        LocalDate joinedTo,
+        UUID academicDomainId
+    ) {
         requirePermission(principal, establishmentId, PermissionCode.PROFESSOR_VIEW);
         findEstablishment(establishmentId);
 
-        return professorRepository.findByEstablishmentIdOrderByCreatedAtAsc(establishmentId)
-            .stream()
+        String normalizedQuery = normalizeQuery(query);
+        return professorRepository.findByEstablishmentIdOrderByCreatedAtAsc(establishmentId).stream()
+            .filter(professor -> status == null || professor.getUserAccount().getAccountStatus() == status)
+            .filter(professor -> joinedFrom == null || professor.getHireDate() != null
+                && !professor.getHireDate().isBefore(joinedFrom))
+            .filter(professor -> joinedTo == null || professor.getHireDate() != null
+                && !professor.getHireDate().isAfter(joinedTo))
+            .filter(professor -> academicDomainId == null
+                || professorExpertiseRepository.existsByProfessorIdAndAcademicDomainId(professor.getId(), academicDomainId))
+            .filter(professor -> normalizedQuery == null
+                || matchesQuery(professor, findProfile(professor), normalizedQuery))
             .map(this::toResponse)
+            .sorted(Comparator.comparing(ProfessorProfileResponse::lastName, String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(ProfessorProfileResponse::firstName, String.CASE_INSENSITIVE_ORDER))
             .toList();
     }
 
@@ -153,6 +186,91 @@ public class ProfessorManagementService {
         return toResponse(professor);
     }
 
+    @Transactional
+    public ProfessorProfileResponse updateProfessor(AuthenticatedUserPrincipal principal, UUID professorId,
+        UpdateProfessorRequest request) {
+        Professor professor = findProfessor(professorId);
+        requirePermission(principal, professor.getEstablishment().getId(), PermissionCode.PROFESSOR_UPDATE);
+        if (request.hireDate() != null && request.hireDate().isBefore(request.birthDate())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hire date cannot be before birth date");
+        }
+
+        UserAccount account = professor.getUserAccount();
+        UserProfile profile = findProfile(professor);
+        String email = request.universityEmail().trim().toLowerCase(Locale.ROOT);
+        String employeeNumber = request.employeeNumber().trim().toUpperCase(Locale.ROOT);
+        String cin = normalizeOptionalUppercase(request.cin());
+        if (userAccountRepository.existsByUniversityEmailAndIdNot(email, account.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "University email already exists");
+        }
+        if (professorRepository.existsByEmployeeNumberIgnoreCaseAndIdNot(employeeNumber, professor.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee number already exists");
+        }
+        if (cin != null && userProfileRepository.existsByCinIgnoreCaseAndIdNot(cin, profile.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "CIN already exists");
+        }
+
+        account.setUniversityEmail(email);
+        professor.setEmployeeNumber(employeeNumber);
+        professor.setAcademicRank(normalizeOptional(request.academicRank()));
+        professor.setHireDate(request.hireDate());
+        professor.setMaximumWeeklyTeachingMinutes(request.maximumWeeklyTeachingMinutes());
+        profile.setFirstName(request.firstName().trim());
+        profile.setLastName(request.lastName().trim());
+        profile.setBirthDate(request.birthDate());
+        profile.setPlaceOfBirth(request.placeOfBirth().trim());
+        profile.setNationality(request.nationality().trim());
+        profile.setCin(cin);
+        profile.setSex(request.sex());
+        profile.setPhoneNumber(normalizeOptional(request.phoneNumber()));
+        return toResponse(professor);
+    }
+
+    @Transactional
+    public ActionResponse resetPassword(AuthenticatedUserPrincipal principal, UUID professorId,
+        ResetManagedPasswordRequest request) {
+        UserAccount account = findManagedProfessor(principal, professorId).getUserAccount();
+        if (passwordEncoder.matches(request.newPassword(), account.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "New password must be different from the current password");
+        }
+        account.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        return new ActionResponse(true, "Password has been reset");
+    }
+
+    @Transactional
+    public ActionResponse lockAccount(AuthenticatedUserPrincipal principal, UUID professorId) {
+        UserAccount account = findManagedProfessor(principal, professorId).getUserAccount();
+        ensureCanLock(account);
+        account.setAccountStatus(AccountStatus.LOCKED);
+        return new ActionResponse(true, "Account locked");
+    }
+
+    @Transactional
+    public ActionResponse unlockAccount(AuthenticatedUserPrincipal principal, UUID professorId) {
+        UserAccount account = findManagedProfessor(principal, professorId).getUserAccount();
+        if (account.getAccountStatus() != AccountStatus.LOCKED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only a locked account can be unlocked");
+        }
+        account.setAccountStatus(AccountStatus.ACTIVE);
+        return new ActionResponse(true, "Account unlocked");
+    }
+
+    @Transactional
+    public ActionResponse deactivateAccount(AuthenticatedUserPrincipal principal, UUID professorId) {
+        UserAccount account = findManagedProfessor(principal, professorId).getUserAccount();
+        if (account.getAccountStatus() == AccountStatus.ARCHIVED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Archived account cannot be deactivated");
+        }
+        account.setAccountStatus(AccountStatus.DEACTIVATED);
+        return new ActionResponse(true, "Account deactivated");
+    }
+
+    @Transactional
+    public ActionResponse archiveAccount(AuthenticatedUserPrincipal principal, UUID professorId) {
+        findManagedProfessor(principal, professorId).getUserAccount().setAccountStatus(AccountStatus.ARCHIVED);
+        return new ActionResponse(true, "Account archived");
+    }
+
     private Establishment findEstablishment(UUID establishmentId) {
         return establishmentRepository.findById(establishmentId)
             .orElseThrow(() -> new ResponseStatusException(
@@ -167,6 +285,12 @@ public class ProfessorManagementService {
                 HttpStatus.NOT_FOUND,
                 "Professor not found"
             ));
+    }
+
+    private Professor findManagedProfessor(AuthenticatedUserPrincipal principal, UUID professorId) {
+        Professor professor = findProfessor(professorId);
+        requirePermission(principal, professor.getEstablishment().getId(), PermissionCode.PROFESSOR_ACCOUNT_MANAGE);
+        return professor;
     }
 
     private UserProfile findProfile(Professor professor) {
@@ -225,5 +349,25 @@ public class ProfessorManagementService {
     private String normalizeOptionalUppercase(String value) {
         String normalized = normalizeOptional(value);
         return normalized == null ? null : normalized.toUpperCase(Locale.ROOT);
+    }
+
+    private String normalizeQuery(String value) {
+        String normalized = normalizeOptional(value);
+        return normalized == null ? null : normalized.toLowerCase(Locale.ROOT);
+    }
+
+    private boolean matchesQuery(Professor professor, UserProfile profile, String query) {
+        String fullName = (profile.getFirstName() + " " + profile.getLastName()).toLowerCase(Locale.ROOT);
+        return fullName.contains(query)
+            || professor.getUserAccount().getUniversityEmail().toLowerCase(Locale.ROOT).contains(query)
+            || professor.getEmployeeNumber().toLowerCase(Locale.ROOT).contains(query)
+            || profile.getCin() != null && profile.getCin().toLowerCase(Locale.ROOT).contains(query);
+    }
+
+    private void ensureCanLock(UserAccount account) {
+        if (account.getAccountStatus() == AccountStatus.DEACTIVATED
+            || account.getAccountStatus() == AccountStatus.ARCHIVED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Inactive account cannot be locked");
+        }
     }
 }

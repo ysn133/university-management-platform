@@ -12,6 +12,7 @@ import com.platform.academicregistration.registration.domain.AcademicRegistratio
 import com.platform.academicregistration.semesterregistration.domain.SemesterRegistration;
 import com.platform.academicregistration.semesterregistration.infrastructure.SemesterRegistrationRepository;
 import com.platform.academicregistration.moduleregistration.application.ModuleRegistrationService;
+import com.platform.academicregistration.semesterregistration.presentation.dto.SemesterRegistrationResponse;
 import com.platform.universitygovernance.semester.domain.Semester;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
 
@@ -70,6 +71,29 @@ public class SemesterRegistrationService {
 
 
         return semesterRegistrations;
+    }
+
+    public List<SemesterRegistrationResponse> getByAcademicRegistration(
+        UUID academicRegistrationId
+    ) {
+        return semesterRegistrationRepository
+            .findByAcademicRegistrationId(academicRegistrationId)
+            .stream()
+            .sorted(java.util.Comparator.comparingInt(
+                registration -> registration.getSemester().getSemesterOrder()
+            ))
+            .map(this::toResponse)
+            .toList();
+    }
+
+    private SemesterRegistrationResponse toResponse(SemesterRegistration registration) {
+        return new SemesterRegistrationResponse(
+            registration.getId(),
+            registration.getAcademicRegistration().getId(),
+            registration.getSemester().getId(),
+            registration.getSemester().getName(),
+            registration.getSemester().getSemesterOrder()
+        );
     }
 
 

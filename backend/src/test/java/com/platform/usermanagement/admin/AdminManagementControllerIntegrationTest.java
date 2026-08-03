@@ -455,8 +455,11 @@ class AdminManagementControllerIntegrationTest {
         assertThat(catalogResponse.statusCode()).isEqualTo(200);
         JsonNode catalog = objectMapper.readTree(catalogResponse.body());
         assertThat(catalog).hasSize(PermissionCode.values().length);
-        assertThat(catalog.toString()).contains("DEPARTMENT_CREATE", "STUDENT_VIEW");
-        assertThat(catalog.toString()).doesNotContain("ADMIN_CREATE");
+        assertThat(catalog.toString()).contains(
+            "ADMIN_CREATE",
+            "DEPARTMENT_CREATE",
+            "STUDENT_VIEW"
+        );
 
         HttpResponse<String> replaceResponse = putJsonWithBearer(
             "/api/v1/admins/" + adminId + "/permission-grants",
@@ -559,6 +562,93 @@ class AdminManagementControllerIntegrationTest {
         );
         assertThat(getWithBearer("/api/v1/permissions", adminAccessToken).statusCode())
             .isEqualTo(403);
+    }
+
+    @Test
+    void adminWithAdminCreateGrantCanCreateOnlyInsideOwnEstablishment() throws Exception {
+        String rootAccessToken = loginAndGetAccessToken("root@uiz.ac.ma", "change-me-now");
+        String ownEstablishmentId = createEstablishment(rootAccessToken);
+        String otherEstablishmentId = createEstablishment(
+            rootAccessToken,
+            """
+                {
+                  "universityId": "%s",
+                  "name": "Faculty of Sciences",
+                  "type": "FACULTY"
+                }
+                """.formatted(universityId)
+        );
+        String delegatedAdminId = createAdmin(
+            rootAccessToken,
+            ownEstablishmentId,
+            "delegated-admin@ensa.uiz.ac.ma",
+            "Delegated"
+        );
+        String delegatedAdminToken = loginAndGetAccessToken(
+            "delegated-admin@ensa.uiz.ac.ma",
+            "change-me-now"
+        );
+
+        assertThat(createAdminResponse(
+            delegatedAdminToken,
+            ownEstablishmentId,
+            "denied-before-grant@ensa.uiz.ac.ma"
+        ).statusCode()).isEqualTo(403);
+
+        assertThat(putJsonWithBearer(
+            "/api/v1/admins/" + delegatedAdminId + "/permission-grants",
+            rootAccessToken,
+            "{\"permissions\":[\"ADMIN_CREATE\"]}"
+        ).statusCode()).isEqualTo(200);
+
+        HttpResponse<String> ownCreation = createAdminResponse(
+            delegatedAdminToken,
+            ownEstablishmentId,
+            "created-by-admin@ensa.uiz.ac.ma"
+        );
+        assertThat(ownCreation.statusCode()).isEqualTo(200);
+        assertThat(objectMapper.readTree(ownCreation.body()).get("establishmentId").asText())
+            .isEqualTo(ownEstablishmentId);
+
+        assertThat(createAdminResponse(
+            delegatedAdminToken,
+            otherEstablishmentId,
+            "cross-establishment@fsa.uiz.ac.ma"
+        ).statusCode()).isEqualTo(403);
+        assertThat(getWithBearer(
+            "/api/v1/establishments/" + ownEstablishmentId,
+            delegatedAdminToken
+        ).statusCode()).isEqualTo(200);
+        assertThat(getWithBearer(
+            "/api/v1/establishments/" + otherEstablishmentId,
+            delegatedAdminToken
+        ).statusCode()).isEqualTo(403);
+        assertThat(getWithBearer(
+            "/api/v1/establishments/" + ownEstablishmentId + "/admins",
+            delegatedAdminToken
+        ).statusCode()).isEqualTo(403);
+    }
+
+    private HttpResponse<String> createAdminResponse(
+        String accessToken,
+        String establishmentId,
+        String universityEmail
+    ) throws Exception {
+        return postJsonWithBearer(
+            "/api/v1/establishments/" + establishmentId + "/admins",
+            accessToken,
+            """
+                {
+                  "universityEmail": "%s",
+                  "password": "change-me-now",
+                  "firstName": "Created",
+                  "lastName": "Admin",
+                  "birth_date": "1990-01-01",
+                  "sex": "MALE",
+                  "phone_number": "0600000000"
+                }
+                """.formatted(universityEmail)
+        );
     }
 
     private String createAdmin(
