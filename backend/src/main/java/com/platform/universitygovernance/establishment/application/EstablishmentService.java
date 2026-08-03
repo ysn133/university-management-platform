@@ -69,7 +69,7 @@ public class EstablishmentService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "University not found");
         }
 
-        String normalizedQuery = query == null || query.isBlank() ? null : query.trim();
+        String normalizedQuery = query == null || query.isBlank() ? "" : query.trim();
 
         return establishmentRepository.searchByUniversity(universityId, normalizedQuery, type, status)
             .stream()

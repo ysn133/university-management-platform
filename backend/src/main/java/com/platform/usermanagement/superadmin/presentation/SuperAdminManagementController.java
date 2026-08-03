@@ -66,9 +66,19 @@ public class SuperAdminManagementController {
         return superAdminManagementService.deactivateAccount(superAdminId);
     }
 
+    @PostMapping("/super-admins/{id}/activate")
+    public ActionResponse activateAccount(@PathVariable("id") UUID superAdminId) {
+        return superAdminManagementService.activateAccount(superAdminId);
+    }
+
     @PostMapping("/super-admins/{id}/archive")
     public ActionResponse archiveAccount(@PathVariable("id") UUID superAdminId) {
         return superAdminManagementService.archiveAccount(superAdminId);
+    }
+
+    @PostMapping("/super-admins/{id}/restore")
+    public ActionResponse restoreAccount(@PathVariable("id") UUID superAdminId) {
+        return superAdminManagementService.restoreAccount(superAdminId);
     }
 
 

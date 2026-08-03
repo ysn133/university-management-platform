@@ -1,11 +1,15 @@
 import { WorkspaceLayout } from "@/shared/layouts/WorkspaceLayout";
-import { managementNavigation } from "../navigation/management-navigation";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { getManagementNavigation } from "../navigation/management-navigation";
 
 export function ManagementLayout() {
+  const { user } = useAuth();
+
   return (
     <WorkspaceLayout
-      navigation={managementNavigation}
+      navigation={getManagementNavigation(user?.role)}
       scopeLabel="University governance"
+      variant="management"
       workspaceName="Management"
     />
   );

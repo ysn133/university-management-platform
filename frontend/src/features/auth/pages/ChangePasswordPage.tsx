@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { type ComponentProps, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { ApiRequestError } from "@/shared/api/client/ApiRequestError";
@@ -18,8 +18,34 @@ const changePasswordSchema = z
 
 type ChangePasswordForm = z.infer<typeof changePasswordSchema>;
 
+interface PasswordFieldProps extends ComponentProps<"input"> {
+  label: string;
+  error?: string;
+}
+
+function PasswordField({ label, error, id, ...inputProps }: PasswordFieldProps) {
+  const [isVisible, setVisible] = useState(false);
+
+  return (
+    <div className="security-field">
+      <label htmlFor={id}>{label}</label>
+      <div className="password-input">
+        <input id={id} type={isVisible ? "text" : "password"} {...inputProps} />
+        <button
+          aria-label={`${isVisible ? "Hide" : "Show"} ${label.toLowerCase()}`}
+          onClick={() => setVisible((current) => !current)}
+          type="button"
+        >
+          {isVisible ? "Hide" : "Show"}
+        </button>
+      </div>
+      {error && <p className="field-error">{error}</p>}
+    </div>
+  );
+}
+
 export function ChangePasswordPage() {
-  const { changePassword } = useAuth();
+  const { changePassword, user } = useAuth();
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const {
     register,
@@ -46,34 +72,101 @@ export function ChangePasswordPage() {
   }
 
   return (
-    <section className="account-page">
-      <p className="eyebrow">Account security</p>
-      <h1>Change password</h1>
-      <p>Choose a password that is not used for another service.</p>
+    <section className="security-page">
+      <header className="security-page-header">
+        <div>
+          <p className="management-kicker">Account control</p>
+          <h1>Security &amp; password</h1>
+          <p>Manage the password used to access your university account.</p>
+        </div>
+        <span className="security-state"><span /> Protected account</span>
+      </header>
 
-      <form className="account-form" noValidate onSubmit={handleSubmit(submit)}>
-        <label htmlFor="current-password">Current password</label>
-        <input id="current-password" type="password" {...register("currentPassword")} />
-        {errors.currentPassword && <p className="field-error">{errors.currentPassword.message}</p>}
+      <div className="security-layout">
+        <article className="security-card security-card--form">
+          <header className="security-card-header">
+            <span className="security-icon" aria-hidden="true">
+              <svg fill="none" viewBox="0 0 24 24">
+                <rect height="10" rx="2" stroke="currentColor" strokeWidth="1.8" width="14" x="5" y="10" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+                <path d="M12 14v2" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+              </svg>
+            </span>
+            <div>
+              <h2>Change your password</h2>
+              <p>Confirm your current password before choosing a new one.</p>
+            </div>
+          </header>
 
-        <label htmlFor="new-password">New password</label>
-        <input id="new-password" type="password" {...register("newPassword")} />
-        {errors.newPassword && <p className="field-error">{errors.newPassword.message}</p>}
+          <form className="security-form" noValidate onSubmit={handleSubmit(submit)}>
+            <PasswordField
+              autoComplete="current-password"
+              error={errors.currentPassword?.message}
+              id="current-password"
+              label="Current password"
+              {...register("currentPassword")}
+            />
 
-        <label htmlFor="confirm-password">Confirm new password</label>
-        <input id="confirm-password" type="password" {...register("confirmPassword")} />
-        {errors.confirmPassword && <p className="field-error">{errors.confirmPassword.message}</p>}
+            <div className="security-form-divider"><span>New credentials</span></div>
 
-        {message && (
-          <div className={`form-alert form-alert--${message.type}`} role="status">
-            {message.text}
-          </div>
-        )}
+            <PasswordField
+              autoComplete="new-password"
+              error={errors.newPassword?.message}
+              id="new-password"
+              label="New password"
+              {...register("newPassword")}
+            />
+            <PasswordField
+              autoComplete="new-password"
+              error={errors.confirmPassword?.message}
+              id="confirm-password"
+              label="Confirm new password"
+              {...register("confirmPassword")}
+            />
 
-        <button className="primary-button" disabled={isSubmitting} type="submit">
-          {isSubmitting ? "Updating…" : "Update password"}
-        </button>
-      </form>
+            {message && (
+              <div className={`security-alert security-alert--${message.type}`} role="status">
+                <strong>{message.type === "success" ? "Password updated" : "Update failed"}</strong>
+                <span>{message.text}</span>
+              </div>
+            )}
+
+            <footer className="security-form-actions">
+              <p>You will use the new password the next time you sign in.</p>
+              <button className="management-primary-button" disabled={isSubmitting} type="submit">
+                {isSubmitting ? "Updating..." : "Update password"}
+              </button>
+            </footer>
+          </form>
+        </article>
+
+        <aside className="security-aside">
+          <article className="security-card security-account-card">
+            <p className="management-kicker">Signed-in account</p>
+            <div className="security-account-identity">
+              <span>{user?.firstName.slice(0, 1)}{user?.lastName.slice(0, 1)}</span>
+              <div>
+                <strong>{user?.firstName} {user?.lastName}</strong>
+                <small>{user?.role.replaceAll("_", " ")}</small>
+              </div>
+            </div>
+            <dl>
+              <div><dt>University email</dt><dd>{user?.universityEmail}</dd></div>
+              <div><dt>Account status</dt><dd className="account-active"><span /> {user?.accountStatus}</dd></div>
+            </dl>
+            <p className="security-account-note">Your university email is managed by authorized administration and cannot be changed here.</p>
+          </article>
+
+          <article className="security-card security-guidance-card">
+            <h2>Password guidance</h2>
+            <ul>
+              <li><span>01</span> Use at least 8 characters.</li>
+              <li><span>02</span> Do not reuse a password from another service.</li>
+              <li><span>03</span> Keep your password private.</li>
+            </ul>
+          </article>
+        </aside>
+      </div>
     </section>
   );
 }

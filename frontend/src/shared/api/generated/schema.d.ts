@@ -415,6 +415,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/super-admins/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["restoreAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/super-admins/{id}/password-reset": {
         parameters: {
             query?: never;
@@ -473,6 +489,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["archiveAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/super-admins/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["activateAccount"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4551,6 +4583,28 @@ export interface operations {
             };
         };
     };
+    restoreAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ActionResponse"];
+                };
+            };
+        };
+    };
     resetPassword: {
         parameters: {
             query?: never;
@@ -4622,6 +4676,28 @@ export interface operations {
         };
     };
     archiveAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ActionResponse"];
+                };
+            };
+        };
+    };
+    activateAccount: {
         parameters: {
             query?: never;
             header?: never;
