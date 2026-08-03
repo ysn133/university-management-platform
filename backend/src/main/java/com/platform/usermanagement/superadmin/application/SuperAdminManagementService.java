@@ -158,10 +158,48 @@ public class SuperAdminManagementService {
     }
 
     @Transactional
+    public ActionResponse activateAccount(UUID superAdminId) {
+        SuperAdmin superAdmin = findSuperAdmin(superAdminId);
+        UserAccount userAccount = findUserAccount(superAdmin);
+
+        if (userAccount.getAccountStatus() != AccountStatus.DEACTIVATED) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Only a deactivated account can be activated"
+            );
+        }
+
+        if (superAdmin.getEstablishment().getEstablishmentStatus() != EstablishmentStatus.ACTIVE) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Account cannot be activated in an inactive establishment"
+            );
+        }
+
+        userAccount.setAccountStatus(AccountStatus.ACTIVE);
+        return new ActionResponse(true, "Account activated");
+    }
+
+    @Transactional
     public ActionResponse archiveAccount(UUID superAdminId) {
         UserAccount userAccount = findUserAccount(findSuperAdmin(superAdminId));
         userAccount.setAccountStatus(AccountStatus.ARCHIVED);
         return new ActionResponse(true, "Account archived");
+    }
+
+    @Transactional
+    public ActionResponse restoreAccount(UUID superAdminId) {
+        UserAccount userAccount = findUserAccount(findSuperAdmin(superAdminId));
+
+        if (userAccount.getAccountStatus() != AccountStatus.ARCHIVED) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Only an archived account can be restored"
+            );
+        }
+
+        userAccount.setAccountStatus(AccountStatus.DEACTIVATED);
+        return new ActionResponse(true, "Account restored in deactivated state");
     }
 
     @Transactional

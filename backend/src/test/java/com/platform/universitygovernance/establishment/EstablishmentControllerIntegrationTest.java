@@ -491,12 +491,24 @@ class EstablishmentControllerIntegrationTest {
         assertThat(superAdminStatus(superAdmin.getId())).isEqualTo(AccountStatus.DEACTIVATED);
 
         assertThat(postWithBearer(
+            "/api/v1/super-admins/" + superAdmin.getId() + "/activate",
+            accessToken
+        ).statusCode()).isEqualTo(200);
+        assertThat(superAdminStatus(superAdmin.getId())).isEqualTo(AccountStatus.ACTIVE);
+
+        assertThat(postWithBearer(
             "/api/v1/super-admins/" + superAdmin.getId() + "/archive",
             accessToken
         ).statusCode()).isEqualTo(200);
         assertThat(superAdminStatus(superAdmin.getId())).isEqualTo(AccountStatus.ARCHIVED);
         assertThat(superAdminRepository.findById(superAdmin.getId())).isPresent();
         assertThat(userProfileRepository.findByUserAccountId(superAdmin.getUserAccount().getId())).isPresent();
+
+        assertThat(postWithBearer(
+            "/api/v1/super-admins/" + superAdmin.getId() + "/restore",
+            accessToken
+        ).statusCode()).isEqualTo(200);
+        assertThat(superAdminStatus(superAdmin.getId())).isEqualTo(AccountStatus.DEACTIVATED);
     }
 
     @Test
