@@ -16,11 +16,13 @@ import org.springframework.web.server.ResponseStatusException;
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.AccountStatus;
 import com.platform.identityaccess.domain.Admin;
+import com.platform.identityaccess.domain.PermissionCode;
 import com.platform.identityaccess.domain.UserAccount;
 import com.platform.identityaccess.domain.UserProfile;
 import com.platform.identityaccess.infrastructure.AdminRepository;
 import com.platform.identityaccess.infrastructure.UserAccountRepository;
 import com.platform.identityaccess.infrastructure.UserProfileRepository;
+import com.platform.identityaccess.application.AdminPermissionAuthorizationService;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.shared.presentation.ActionResponse;
 import com.platform.universitygovernance.establishment.domain.Establishment;
@@ -41,19 +43,22 @@ public class AdminManagementService {
     private final UserAccountRepository userAccountRepository;
     private final UserProfileRepository userProfileRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AdminPermissionAuthorizationService permissionAuthorizationService;
 
     public AdminManagementService(
         EstablishmentRepository establishmentRepository,
         AdminRepository adminRepository,
         UserAccountRepository userAccountRepository,
         UserProfileRepository userProfileRepository,
-        PasswordEncoder passwordEncoder
+        PasswordEncoder passwordEncoder,
+        AdminPermissionAuthorizationService permissionAuthorizationService
     ) {
         this.establishmentRepository = establishmentRepository;
         this.adminRepository = adminRepository;
         this.userAccountRepository = userAccountRepository;
         this.userProfileRepository = userProfileRepository;
         this.passwordEncoder = passwordEncoder;
+        this.permissionAuthorizationService = permissionAuthorizationService;
     }
 
     @Transactional
@@ -265,7 +270,11 @@ public class AdminManagementService {
     }
 
     private void ensureCallerCanCreateAdmin(AuthenticatedUserPrincipal principal, UUID establishmentId) {
-        ensureCallerCanManageEstablishment(principal, establishmentId);
+        permissionAuthorizationService.requirePermission(
+            principal,
+            establishmentId,
+            PermissionCode.ADMIN_CREATE
+        );
     }
 
     private void ensureCallerCanManageEstablishment(

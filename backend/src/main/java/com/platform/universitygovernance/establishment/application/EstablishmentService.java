@@ -48,8 +48,10 @@ public class EstablishmentService {
         if (principal == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
         }
+        boolean establishmentMember = principal.role() == AccountRoleType.SUPER_ADMIN
+            || principal.role() == AccountRoleType.ADMIN;
         if (principal.role() != AccountRoleType.ROOT_SUPER_ADMIN
-            && (principal.role() != AccountRoleType.SUPER_ADMIN
+            && (!establishmentMember
                 || !establishmentId.equals(principal.establishmentId()))) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied for this establishment");
         }

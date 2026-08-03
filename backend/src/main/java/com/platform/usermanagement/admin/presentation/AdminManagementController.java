@@ -37,7 +37,7 @@ public class AdminManagementController {
         this.adminManagementService = adminManagementService;
     }
 
-    @PreAuthorize("hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN', 'ADMIN')")
     @PostMapping("/establishments/{id}/admins")
     public CreateAdminResponse createAdmin(
         @AuthenticationPrincipal AuthenticatedUserPrincipal principal,

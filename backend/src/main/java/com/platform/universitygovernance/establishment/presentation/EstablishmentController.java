@@ -38,7 +38,7 @@ public class EstablishmentController {
 
         this.establishmentService = establishmentService;
     }
-    @PreAuthorize("hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN', 'ADMIN')")
     @GetMapping("/establishments/{id}")
     public EstablishmentResponse getEstablishmentById(
         @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
