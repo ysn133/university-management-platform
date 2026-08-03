@@ -165,6 +165,24 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
+    void configuredFrontendOriginCanCallAuthenticationApi() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl() + "/api/v1/auth/login"))
+            .header("Origin", "http://localhost:5173")
+            .header("Access-Control-Request-Method", "POST")
+            .method("OPTIONS", HttpRequest.BodyPublishers.noBody())
+            .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.headers().firstValue("Access-Control-Allow-Origin"))
+            .contains("http://localhost:5173");
+        assertThat(response.headers().firstValue("Access-Control-Allow-Methods").orElse(""))
+            .contains("POST");
+    }
+
+    @Test
     void superAdminCanLoginAndGetCurrentUser() throws Exception {
         University university = new University();
         university.setName("Universite Ibn Zohr");
