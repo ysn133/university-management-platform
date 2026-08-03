@@ -1,4 +1,6 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { getWorkspacePath } from "@/features/auth/model/auth-types";
 
 export interface WorkspaceNavigationItem {
   label: string;
@@ -17,6 +19,8 @@ export function WorkspaceLayout({
   scopeLabel,
   navigation,
 }: WorkspaceLayoutProps) {
+  const { user, logout } = useAuth();
+
   return (
     <div className="workspace-shell">
       <aside className="workspace-sidebar">
@@ -52,7 +56,16 @@ export function WorkspaceLayout({
       <div className="workspace-main">
         <header className="workspace-topbar">
           <span>University Management Platform</span>
-          <span className="environment-badge">Foundation</span>
+          {user && (
+            <div className="account-menu">
+              <div>
+                <strong>{user.firstName} {user.lastName}</strong>
+                <small>{user.role.replaceAll("_", " ")}</small>
+              </div>
+              <Link to={`${getWorkspacePath(user.role)}/account/password`}>Security</Link>
+              <button onClick={() => void logout()} type="button">Sign out</button>
+            </div>
+          )}
         </header>
         <main className="workspace-content">
           <Outlet />

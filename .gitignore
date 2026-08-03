@@ -23,6 +23,8 @@ Thumbs.db
 **/node_modules/
 **/dist/
 **/coverage/
+**/playwright-report/
+**/test-results/
 *.tsbuildinfo
 frontend/vite.config.js
 frontend/vite.config.d.ts
