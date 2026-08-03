@@ -12,17 +12,19 @@ interface WorkspaceLayoutProps {
   workspaceName: string;
   scopeLabel: string;
   navigation: WorkspaceNavigationItem[];
+  variant?: "default" | "management";
 }
 
 export function WorkspaceLayout({
   workspaceName,
   scopeLabel,
   navigation,
+  variant = "default",
 }: WorkspaceLayoutProps) {
   const { user, logout } = useAuth();
 
   return (
-    <div className="workspace-shell">
+    <div className={`workspace-shell workspace-shell--${variant}`}>
       <aside className="workspace-sidebar">
         <header className="brand-lockup">
           <span className="brand-mark">UIZ</span>
