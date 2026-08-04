@@ -26,6 +26,7 @@ import com.platform.identityaccess.application.AdminPermissionAuthorizationServi
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.shared.presentation.ActionResponse;
 import com.platform.universitygovernance.establishment.domain.Establishment;
+import com.platform.universitygovernance.establishment.domain.EstablishmentStatus;
 import com.platform.universitygovernance.establishment.infrastructure.EstablishmentRepository;
 import com.platform.usermanagement.admin.presentation.dto.AdminProfileResponse;
 import com.platform.usermanagement.admin.presentation.dto.CreateAdminRequest;
@@ -263,10 +264,49 @@ public class AdminManagementService {
     }
 
     @Transactional
+    public ActionResponse activateAccount(AuthenticatedUserPrincipal principal, UUID adminId) {
+        Admin admin = findManagedAdmin(principal, adminId);
+        UserAccount account = admin.getUserAccount();
+
+        if (account.getAccountStatus() != AccountStatus.DEACTIVATED) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Only a deactivated account can be activated"
+            );
+        }
+
+        if (admin.getEstablishment().getEstablishmentStatus() != EstablishmentStatus.ACTIVE) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Account cannot be activated in an inactive establishment"
+            );
+        }
+
+        account.setAccountStatus(AccountStatus.ACTIVE);
+        return new ActionResponse(true, "Account activated");
+    }
+
+    @Transactional
     public ActionResponse archiveAccount(AuthenticatedUserPrincipal principal, UUID adminId) {
         Admin admin = findManagedAdmin(principal, adminId);
         admin.getUserAccount().setAccountStatus(AccountStatus.ARCHIVED);
         return new ActionResponse(true, "Account archived");
+    }
+
+    @Transactional
+    public ActionResponse restoreAccount(AuthenticatedUserPrincipal principal, UUID adminId) {
+        Admin admin = findManagedAdmin(principal, adminId);
+        UserAccount account = admin.getUserAccount();
+
+        if (account.getAccountStatus() != AccountStatus.ARCHIVED) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Only an archived account can be restored"
+            );
+        }
+
+        account.setAccountStatus(AccountStatus.DEACTIVATED);
+        return new ActionResponse(true, "Account restored in deactivated state");
     }
 
     private void ensureCallerCanCreateAdmin(AuthenticatedUserPrincipal principal, UUID establishmentId) {
