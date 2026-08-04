@@ -3,29 +3,23 @@ import { useDeferredValue, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ApiRequestError } from "@/shared/api/client/ApiRequestError";
 import {
-  activateEstablishment,
   changeSuperAdminStatus,
   createSuperAdmin,
-  deactivateEstablishment,
   getEstablishment,
   getSuperAdmins,
   resetSuperAdminPassword,
   rootGovernanceKeys,
-  updateEstablishment,
   updateSuperAdmin,
   type AccountStatus,
   type SuperAdmin,
   type SuperAdminLifecycleAction,
 } from "../api/root-governance-api";
 import { ConfirmActionModal } from "../components/ConfirmActionModal";
-import { EstablishmentForm, type EstablishmentFormValues } from "../components/EstablishmentForm";
 import { ManagementModal } from "../components/ManagementModal";
 import { StatusBadge } from "../components/StatusBadge";
 import { SuperAdminForm, type SuperAdminFormValues } from "../components/SuperAdminForm";
 
-type Confirmation =
-  | { kind: "establishment"; action: "activate" | "deactivate" }
-  | { kind: "super-admin"; action: SuperAdminLifecycleAction; superAdmin: SuperAdmin };
+type Confirmation = { action: SuperAdminLifecycleAction; superAdmin: SuperAdmin };
 
 function errorMessage(error: unknown): string {
   return error instanceof ApiRequestError ? error.message : "The request could not be completed.";
@@ -40,7 +34,6 @@ export function EstablishmentDetailsPage() {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<AccountStatus | "">("");
-  const [isEditOpen, setEditOpen] = useState(false);
   const [isCreateAdminOpen, setCreateAdminOpen] = useState(false);
   const [editingSuperAdmin, setEditingSuperAdmin] = useState<SuperAdmin | null>(null);
   const [resettingSuperAdmin, setResettingSuperAdmin] = useState<SuperAdmin | null>(null);
@@ -64,34 +57,12 @@ export function EstablishmentDetailsPage() {
     enabled: Boolean(establishmentId),
   });
 
-  async function refreshEstablishmentData() {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: rootGovernanceKeys.establishment(establishmentId) }),
-      queryClient.invalidateQueries({ queryKey: ["root-governance", "establishments"] }),
-    ]);
-  }
-
   async function refreshSuperAdmins() {
     await queryClient.invalidateQueries({
       queryKey: ["root-governance", "super-admins", establishmentId],
     });
   }
 
-  const updateEstablishmentMutation = useMutation({
-    mutationFn: (values: EstablishmentFormValues) => updateEstablishment(establishmentId, values),
-    onSuccess: async () => {
-      await refreshEstablishmentData();
-      setEditOpen(false);
-    },
-  });
-  const establishmentStatusMutation = useMutation({
-    mutationFn: (action: "activate" | "deactivate") =>
-      action === "activate" ? activateEstablishment(establishmentId) : deactivateEstablishment(establishmentId),
-    onSuccess: async () => {
-      await refreshEstablishmentData();
-      setConfirmation(null);
-    },
-  });
   const createSuperAdminMutation = useMutation({
     mutationFn: (values: SuperAdminFormValues) =>
       createSuperAdmin(establishmentId, {
@@ -172,58 +143,25 @@ export function EstablishmentDetailsPage() {
 
   function confirmAction() {
     if (!confirmation) return;
-    if (confirmation.kind === "establishment") {
-      establishmentStatusMutation.mutate(confirmation.action);
-    } else {
-      superAdminStatusMutation.mutate({
-        superAdminId: confirmation.superAdmin.id,
-        action: confirmation.action,
-      });
-    }
+    superAdminStatusMutation.mutate({
+      superAdminId: confirmation.superAdmin.id,
+      action: confirmation.action,
+    });
   }
-
-  const confirmationError = establishmentStatusMutation.error ?? superAdminStatusMutation.error;
 
   return (
     <div className="management-page establishment-details-page">
-      <Link className="back-link" to="/management/establishments">← Establishments</Link>
-      <header className="establishment-identity">
-        <span className="establishment-emblem">{establishment.name.slice(0, 2).toUpperCase()}</span>
-        <div>
-          <div className="identity-meta">
-            <span>{establishment.type[0] + establishment.type.slice(1).toLowerCase()}</span>
-            <StatusBadge status={establishment.status} />
-          </div>
-          <h1>{establishment.name}</h1>
-          <p>Manage establishment identity, operational status, and Super Admin leadership.</p>
-        </div>
-        <div className="header-actions">
-          <button className="secondary-button" onClick={() => setEditOpen(true)} type="button">Edit details</button>
-          {establishment.status === "ACTIVE" && (
-            <button className="danger-ghost-button" onClick={() => setConfirmation({ kind: "establishment", action: "deactivate" })} type="button">Deactivate</button>
-          )}
-          {establishment.status === "INACTIVE" && (
-            <button className="management-primary-button" onClick={() => setConfirmation({ kind: "establishment", action: "activate" })} type="button">Activate</button>
-          )}
-        </div>
-      </header>
+      <header className="management-page-header management-page-header--compact">
+          <div><p className="management-kicker">Establishment leadership</p><h1>Super Admins</h1><p>Root-managed accounts with complete authority inside {establishment.name}.</p></div>
+          <button className="management-primary-button" disabled={establishment.status !== "ACTIVE"} onClick={() => setCreateAdminOpen(true)} type="button">Add Super Admin</button>
+        </header>
 
-      <section className="detail-summary-grid">
-        <article><span>Establishment ID</span><strong>{establishment.id}</strong></article>
-        <article><span>Super Admins</span><strong>{superAdmins.length}</strong></article>
-        <article><span>Created</span><strong>{establishment.createdAt ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(new Date(establishment.createdAt)) : "-"}</strong></article>
-      </section>
-
-      <section className="management-panel directory-panel">
+        <section className="management-panel directory-panel">
         <header className="panel-header panel-header--bordered">
           <div>
-            <p className="management-kicker">Establishment leadership</p>
-            <h2>Super Admins</h2>
-            <p>Root-managed accounts with full authority inside this establishment.</p>
+            <h2>Leadership directory</h2>
+            <p>{superAdmins.length} accounts found</p>
           </div>
-          <button className="management-primary-button" disabled={establishment.status !== "ACTIVE"} onClick={() => setCreateAdminOpen(true)} type="button">
-            Add Super Admin
-          </button>
         </header>
 
         <div className="directory-toolbar directory-toolbar--inside" aria-label="Super Admin filters">
@@ -271,12 +209,12 @@ export function EstablishmentDetailsPage() {
                       <div className="row-actions">
                         <button onClick={() => setEditingSuperAdmin(superAdmin)} type="button">Edit</button>
                         {superAdmin.status !== "ARCHIVED" && <button onClick={() => { setResettingSuperAdmin(superAdmin); setNewPassword(""); }} type="button">Reset password</button>}
-                        {superAdmin.status === "ACTIVE" && <button onClick={() => setConfirmation({ kind: "super-admin", action: "lock", superAdmin })} type="button">Lock</button>}
-                        {superAdmin.status === "LOCKED" && <button onClick={() => setConfirmation({ kind: "super-admin", action: "unlock", superAdmin })} type="button">Unlock</button>}
-                        {(superAdmin.status === "ACTIVE" || superAdmin.status === "LOCKED") && <button className="danger-text" onClick={() => setConfirmation({ kind: "super-admin", action: "deactivate", superAdmin })} type="button">Deactivate</button>}
-                        {superAdmin.status === "DEACTIVATED" && <button onClick={() => setConfirmation({ kind: "super-admin", action: "activate", superAdmin })} type="button">Activate</button>}
-                        {superAdmin.status !== "ARCHIVED" && <button className="danger-text" onClick={() => setConfirmation({ kind: "super-admin", action: "archive", superAdmin })} type="button">Archive</button>}
-                        {superAdmin.status === "ARCHIVED" && <button onClick={() => setConfirmation({ kind: "super-admin", action: "restore", superAdmin })} type="button">Restore</button>}
+                        {superAdmin.status === "ACTIVE" && <button onClick={() => setConfirmation({ action: "lock", superAdmin })} type="button">Lock</button>}
+                        {superAdmin.status === "LOCKED" && <button onClick={() => setConfirmation({ action: "unlock", superAdmin })} type="button">Unlock</button>}
+                        {(superAdmin.status === "ACTIVE" || superAdmin.status === "LOCKED") && <button className="danger-text" onClick={() => setConfirmation({ action: "deactivate", superAdmin })} type="button">Deactivate</button>}
+                        {superAdmin.status === "DEACTIVATED" && <button onClick={() => setConfirmation({ action: "activate", superAdmin })} type="button">Activate</button>}
+                        {superAdmin.status !== "ARCHIVED" && <button className="danger-text" onClick={() => setConfirmation({ action: "archive", superAdmin })} type="button">Archive</button>}
+                        {superAdmin.status === "ARCHIVED" && <button onClick={() => setConfirmation({ action: "restore", superAdmin })} type="button">Restore</button>}
                       </div>
                     </td>
                   </tr>
@@ -285,19 +223,7 @@ export function EstablishmentDetailsPage() {
             </table>
           </div>
         )}
-      </section>
-
-      {isEditOpen && (
-        <ManagementModal title="Edit establishment" description="Correct the official establishment name or type." onClose={() => setEditOpen(false)}>
-          <EstablishmentForm
-            establishment={establishment}
-            isSubmitting={updateEstablishmentMutation.isPending}
-            requestError={updateEstablishmentMutation.isError ? errorMessage(updateEstablishmentMutation.error) : null}
-            onCancel={() => setEditOpen(false)}
-            onSubmit={async (values) => { try { await updateEstablishmentMutation.mutateAsync(values); } catch { /* shown by mutation state */ } }}
-          />
-        </ManagementModal>
-      )}
+        </section>
 
       {isCreateAdminOpen && (
         <ManagementModal title="Create Super Admin" description={`Create an establishment leader for ${establishment.name}.`} onClose={() => setCreateAdminOpen(false)}>
@@ -345,12 +271,10 @@ export function EstablishmentDetailsPage() {
         <ConfirmActionModal
           actionLabel={lifecycleLabel(confirmation.action)}
           destructive={confirmation.action === "deactivate" || confirmation.action === "archive"}
-          description={confirmation.kind === "establishment"
-            ? `${lifecycleLabel(confirmation.action)} ${establishment.name}? This changes whether establishment operations are available.`
-            : `${lifecycleLabel(confirmation.action)} the account for ${confirmation.superAdmin.firstName} ${confirmation.superAdmin.lastName}?`}
-          error={confirmationError ? errorMessage(confirmationError) : null}
-          isSubmitting={establishmentStatusMutation.isPending || superAdminStatusMutation.isPending}
-          title={confirmation.kind === "establishment" ? `${lifecycleLabel(confirmation.action)} establishment` : `${lifecycleLabel(confirmation.action)} Super Admin`}
+          description={`${lifecycleLabel(confirmation.action)} the account for ${confirmation.superAdmin.firstName} ${confirmation.superAdmin.lastName}?`}
+          error={superAdminStatusMutation.isError ? errorMessage(superAdminStatusMutation.error) : null}
+          isSubmitting={superAdminStatusMutation.isPending}
+          title={`${lifecycleLabel(confirmation.action)} Super Admin`}
           onCancel={() => setConfirmation(null)}
           onConfirm={confirmAction}
         />

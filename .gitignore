@@ -36,3 +36,4 @@ frontend/vite.config.d.ts
 # Local infrastructure and uploaded files
 infra/compose/.data/
 storage/
+.local/

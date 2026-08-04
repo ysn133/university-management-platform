@@ -1279,6 +1279,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admins/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["restoreAccount_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admins/{id}/password-reset": {
         parameters: {
             query?: never;
@@ -1337,6 +1353,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["archiveAccount_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admins/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["activateAccount_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6365,6 +6397,28 @@ export interface operations {
             };
         };
     };
+    restoreAccount_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ActionResponse"];
+                };
+            };
+        };
+    };
     resetPassword_3: {
         parameters: {
             query?: never;
@@ -6436,6 +6490,28 @@ export interface operations {
         };
     };
     archiveAccount_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ActionResponse"];
+                };
+            };
+        };
+    };
+    activateAccount_1: {
         parameters: {
             query?: never;
             header?: never;
