@@ -416,11 +416,25 @@ class AdminManagementControllerIntegrationTest {
         ).statusCode()).isEqualTo(409);
 
         assertThat(postJsonWithBearer(
+            "/api/v1/admins/" + adminId + "/activate",
+            rootAccessToken,
+            ""
+        ).statusCode()).isEqualTo(200);
+        assertAdminStatus(adminId, AccountStatus.ACTIVE);
+
+        assertThat(postJsonWithBearer(
             "/api/v1/admins/" + adminId + "/archive",
             rootAccessToken,
             ""
         ).statusCode()).isEqualTo(200);
         assertAdminStatus(adminId, AccountStatus.ARCHIVED);
+
+        assertThat(postJsonWithBearer(
+            "/api/v1/admins/" + adminId + "/restore",
+            rootAccessToken,
+            ""
+        ).statusCode()).isEqualTo(200);
+        assertAdminStatus(adminId, AccountStatus.DEACTIVATED);
     }
 
     @Test

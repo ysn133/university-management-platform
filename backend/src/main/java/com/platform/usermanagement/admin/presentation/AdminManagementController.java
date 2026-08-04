@@ -119,11 +119,29 @@ public class AdminManagementController {
     }
 
     @PreAuthorize("hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN')")
+    @PostMapping("/admins/{id}/activate")
+    public ActionResponse activateAccount(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+        @PathVariable("id") UUID adminId
+    ) {
+        return adminManagementService.activateAccount(principal, adminId);
+    }
+
+    @PreAuthorize("hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN')")
     @PostMapping("/admins/{id}/archive")
     public ActionResponse archiveAccount(
         @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
         @PathVariable("id") UUID adminId
     ) {
         return adminManagementService.archiveAccount(principal, adminId);
+    }
+
+    @PreAuthorize("hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN')")
+    @PostMapping("/admins/{id}/restore")
+    public ActionResponse restoreAccount(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+        @PathVariable("id") UUID adminId
+    ) {
+        return adminManagementService.restoreAccount(principal, adminId);
     }
 }
