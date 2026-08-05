@@ -34,15 +34,72 @@ const programFiliereSchema = z.object({
   updatedAt: z.string().optional(),
 });
 
+const academicLevelSchema = z.object({
+  id: z.string().uuid(),
+  programFiliereId: z.string().uuid(),
+  establishmentId: z.string().uuid(),
+  name: z.string(),
+  levelOrder: z.number().int(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
+const semesterSchema = z.object({
+  id: z.string().uuid(),
+  academicLevelId: z.string().uuid(),
+  academicYearId: z.string().uuid(),
+  establishmentId: z.string().uuid(),
+  name: z.string(),
+  semesterOrder: z.number().int(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
+const subjectModuleSchema = z.object({
+  id: z.string().uuid(),
+  semesterId: z.string().uuid(),
+  code: z.string(),
+  title: z.string(),
+  academicDomainIds: z.array(z.string().uuid()),
+});
+
+const academicRuleProfileSchema = z.object({
+  id: z.string().uuid(),
+  establishmentId: z.string().uuid(),
+  name: z.string(),
+  version: z.number().int(),
+  status: z.enum(["ACTIVE", "INACTIVE"]),
+}).passthrough();
+
+const academicDomainSchema = z.object({
+  id: z.string().uuid(),
+  establishmentId: z.string().uuid(),
+  code: z.string(),
+  name: z.string(),
+});
+
 export type NamedResource = z.infer<typeof namedResourceSchema>;
 export type AcademicYear = z.infer<typeof academicYearSchema>;
 export type ProgramFiliere = z.infer<typeof programFiliereSchema>;
+export type AcademicLevel = z.infer<typeof academicLevelSchema>;
+export type Semester = z.infer<typeof semesterSchema>;
+export type SubjectModule = z.infer<typeof subjectModuleSchema>;
+export type AcademicRuleProfile = z.infer<typeof academicRuleProfileSchema>;
+export type AcademicDomain = z.infer<typeof academicDomainSchema>;
 export type AcademicYearStatus = AcademicYear["status"];
 
 export type CreateAcademicYearRequest = components["schemas"]["CreateAcademicYearRequest"];
 export type UpdateAcademicYearRequest = components["schemas"]["UpdateAcademicYearRequest"];
 export type CreateProgramFiliereRequest = components["schemas"]["CreateProgramFiliereRequest"];
 export type UpdateProgramFiliereRequest = components["schemas"]["UpdateProgramFiliereRequest"];
+export type CreateAcademicLevelRequest = components["schemas"]["CreateAcademicLevelRequest"];
+export type UpdateAcademicLevelRequest = components["schemas"]["UpdateAcademicLevelRequest"];
+export type CreateAcademicRuleProfileRequest = components["schemas"]["CreateAcademicRuleProfileRequest"];
+export type CreateAcademicDomainRequest = components["schemas"]["CreateAcademicDomainRequest"];
+export type CreateSemesterRequest = components["schemas"]["CreateSemesterRequest"];
+export type UpdateSemesterRequest = components["schemas"]["UpdateSemesterRequest"];
+export type CreateSubjectModuleRequest = components["schemas"]["CreateSubjectModuleRequest"];
+export type UpdateSubjectModuleRequest = components["schemas"]["UpdateSubjectModuleRequest"];
 
 export const academicStructureKeys = {
   departments: (establishmentId: string) => ["academic-structure", "departments", establishmentId] as const,
@@ -50,6 +107,12 @@ export const academicStructureKeys = {
   degreeCycles: (establishmentId: string) => ["academic-structure", "degree-cycles", establishmentId] as const,
   academicYears: (establishmentId: string) => ["academic-structure", "academic-years", establishmentId] as const,
   programFilieres: (departmentId: string) => ["academic-structure", "program-filieres", departmentId] as const,
+  programFiliere: (programFiliereId: string) => ["academic-structure", "program-filiere", programFiliereId] as const,
+  academicLevels: (programFiliereId: string) => ["academic-structure", "academic-levels", programFiliereId] as const,
+  semesters: (academicLevelId: string, academicYearId: string) => ["academic-structure", "semesters", academicLevelId, academicYearId] as const,
+  subjectModules: (semesterId: string) => ["academic-structure", "subject-modules", semesterId] as const,
+  ruleProfiles: (establishmentId: string) => ["academic-structure", "rule-profiles", establishmentId] as const,
+  academicDomains: (establishmentId: string) => ["academic-structure", "academic-domains", establishmentId] as const,
 };
 
 async function parseResponse<T>(result: { response: Response; data?: unknown; error?: unknown }, schema: z.ZodType<T>): Promise<T> {
@@ -129,6 +192,10 @@ export async function getProgramFilieres(departmentId: string): Promise<ProgramF
   return parseResponse(await apiClient.GET("/api/v1/departments/{departmentId}/program-filieres", { params: { path: { departmentId } } }), z.array(programFiliereSchema));
 }
 
+export async function getProgramFiliere(id: string): Promise<ProgramFiliere> {
+  return parseResponse(await apiClient.GET("/api/v1/program-filieres/{programFiliereId}", { params: { path: { programFiliereId: id } } }), programFiliereSchema);
+}
+
 export async function createProgramFiliere(departmentId: string, request: CreateProgramFiliereRequest): Promise<ProgramFiliere> {
   return parseResponse(await apiClient.POST("/api/v1/departments/{departmentId}/program-filieres", { params: { path: { departmentId } }, body: request }), programFiliereSchema);
 }
@@ -139,4 +206,68 @@ export async function updateProgramFiliere(id: string, request: UpdateProgramFil
 
 export async function deleteProgramFiliere(id: string): Promise<void> {
   await ensureSuccess(await apiClient.DELETE("/api/v1/program-filieres/{programFiliereId}", { params: { path: { programFiliereId: id } } }));
+}
+
+export async function getAcademicLevels(programFiliereId: string): Promise<AcademicLevel[]> {
+  return parseResponse(await apiClient.GET("/api/v1/program-filieres/{programFiliereId}/academic-levels", { params: { path: { programFiliereId } } }), z.array(academicLevelSchema));
+}
+
+export async function createAcademicLevel(programFiliereId: string, request: CreateAcademicLevelRequest): Promise<AcademicLevel> {
+  return parseResponse(await apiClient.POST("/api/v1/program-filieres/{programFiliereId}/academic-levels", { params: { path: { programFiliereId } }, body: request }), academicLevelSchema);
+}
+
+export async function updateAcademicLevel(id: string, request: UpdateAcademicLevelRequest): Promise<AcademicLevel> {
+  return parseResponse(await apiClient.PUT("/api/v1/academic-levels/{academicLevelId}", { params: { path: { academicLevelId: id } }, body: request }), academicLevelSchema);
+}
+
+export async function deleteAcademicLevel(id: string): Promise<void> {
+  await ensureSuccess(await apiClient.DELETE("/api/v1/academic-levels/{academicLevelId}", { params: { path: { academicLevelId: id } } }));
+}
+
+export async function getSemesters(academicLevelId: string, academicYearId: string): Promise<Semester[]> {
+  return parseResponse(await apiClient.GET("/api/v1/academic-levels/{academicLevelId}/semesters", { params: { path: { academicLevelId }, query: { academicYearId } } }), z.array(semesterSchema));
+}
+
+export async function createSemester(academicLevelId: string, academicYearId: string, request: CreateSemesterRequest): Promise<Semester> {
+  return parseResponse(await apiClient.POST("/api/v1/academic-levels/{academicLevelId}/semesters", { params: { path: { academicLevelId }, query: { academicYearId } }, body: request }), semesterSchema);
+}
+
+export async function updateSemester(id: string, request: UpdateSemesterRequest): Promise<Semester> {
+  return parseResponse(await apiClient.PUT("/api/v1/semesters/{semesterId}", { params: { path: { semesterId: id } }, body: request }), semesterSchema);
+}
+
+export async function deleteSemester(id: string): Promise<void> {
+  await ensureSuccess(await apiClient.DELETE("/api/v1/semesters/{semesterId}", { params: { path: { semesterId: id } } }));
+}
+
+export async function getSubjectModules(semesterId: string): Promise<SubjectModule[]> {
+  return parseResponse(await apiClient.GET("/api/v1/semesters/{semesterId}/subject-modules", { params: { path: { semesterId } } }), z.array(subjectModuleSchema));
+}
+
+export async function createSubjectModule(semesterId: string, request: CreateSubjectModuleRequest): Promise<SubjectModule> {
+  return parseResponse(await apiClient.POST("/api/v1/semesters/{semesterId}/subject-modules", { params: { path: { semesterId } }, body: request }), subjectModuleSchema);
+}
+
+export async function updateSubjectModule(id: string, request: UpdateSubjectModuleRequest): Promise<SubjectModule> {
+  return parseResponse(await apiClient.PUT("/api/v1/subject-modules/{subjectModuleId}", { params: { path: { subjectModuleId: id } }, body: request }), subjectModuleSchema);
+}
+
+export async function deleteSubjectModule(id: string): Promise<void> {
+  await ensureSuccess(await apiClient.DELETE("/api/v1/subject-modules/{subjectModuleId}", { params: { path: { subjectModuleId: id } } }));
+}
+
+export async function getAcademicRuleProfiles(establishmentId: string): Promise<AcademicRuleProfile[]> {
+  return parseResponse(await apiClient.GET("/api/v1/establishments/{establishmentId}/academic-rule-profiles", { params: { path: { establishmentId } } }), z.array(academicRuleProfileSchema));
+}
+
+export async function createAcademicRuleProfile(establishmentId: string, request: CreateAcademicRuleProfileRequest): Promise<AcademicRuleProfile> {
+  return parseResponse(await apiClient.POST("/api/v1/establishments/{establishmentId}/academic-rule-profiles", { params: { path: { establishmentId } }, body: request }), academicRuleProfileSchema);
+}
+
+export async function getAcademicDomains(establishmentId: string): Promise<AcademicDomain[]> {
+  return parseResponse(await apiClient.GET("/api/v1/establishments/{establishmentId}/academic-domains", { params: { path: { establishmentId } } }), z.array(academicDomainSchema));
+}
+
+export async function createAcademicDomain(establishmentId: string, request: CreateAcademicDomainRequest): Promise<AcademicDomain> {
+  return parseResponse(await apiClient.POST("/api/v1/establishments/{establishmentId}/academic-domains", { params: { path: { establishmentId } }, body: request }), academicDomainSchema);
 }

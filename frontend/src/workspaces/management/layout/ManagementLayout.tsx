@@ -26,6 +26,7 @@ export function ManagementLayout() {
     ? `/management/establishments/${establishmentId}`
     : "/management";
   const adminDetailMatch = location.pathname.match(/\/admins\/([^/]+)$/);
+  const programDetailMatch = location.pathname.match(/\/programs\/([^/]+)$/);
   const sectionLabels: Record<string, string> = {
     "super-admins": "Super Admins",
     admins: "Admins",
@@ -40,6 +41,9 @@ export function ManagementLayout() {
   const adminsPath = user?.role === "ROOT_SUPER_ADMIN"
     ? `${contextPath}/admins`
     : "/management/admins";
+  const programsPath = user?.role === "ROOT_SUPER_ADMIN"
+    ? `${contextPath}/programs`
+    : "/management/programs";
   const breadcrumbs = establishmentId
     ? [
         ...(user?.role === "ROOT_SUPER_ADMIN"
@@ -54,6 +58,12 @@ export function ManagementLayout() {
           ? [
               { label: "Admins", to: adminsPath },
               { label: "Admin details" },
+            ]
+          : []),
+        ...(programDetailMatch
+          ? [
+              { label: "Programs / Filières", to: programsPath },
+              { label: "Program curriculum" },
             ]
           : []),
       ]

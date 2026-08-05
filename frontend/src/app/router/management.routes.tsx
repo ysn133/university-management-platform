@@ -12,6 +12,7 @@ import { AdminDetailsPage } from "@/features/establishment-management/pages/Admi
 import { EstablishmentOperationRoute } from "@/features/academic-structure/components/EstablishmentOperationRoute";
 import { AcademicYearsPage } from "@/features/academic-structure/pages/AcademicYearsPage";
 import { ProgramFilieresPage } from "@/features/academic-structure/pages/ProgramFilieresPage";
+import { ProgramCurriculumPage } from "@/features/academic-structure/pages/ProgramCurriculumPage";
 import { DegreeCyclesPage, DepartmentsPage, ProgramPathsPage } from "@/features/academic-structure/pages/ReferenceCatalogPages";
 
 export const managementRoutes: RouteObject = {
@@ -31,6 +32,7 @@ export const managementRoutes: RouteObject = {
         { path: "establishments/:establishmentId/program-paths", element: <ProgramPathsPage /> },
         { path: "establishments/:establishmentId/degree-cycles", element: <DegreeCyclesPage /> },
         { path: "establishments/:establishmentId/programs", element: <ProgramFilieresPage /> },
+        { path: "establishments/:establishmentId/programs/:programFiliereId", element: <ProgramCurriculumPage /> },
         { path: "establishments/:establishmentId/academic-years", element: <AcademicYearsPage /> },
       ],
     },
@@ -48,6 +50,7 @@ export const managementRoutes: RouteObject = {
         { path: "program-paths", element: <ProgramPathsPage /> },
         { path: "degree-cycles", element: <DegreeCyclesPage /> },
         { path: "programs", element: <ProgramFilieresPage /> },
+        { path: "programs/:programFiliereId", element: <ProgramCurriculumPage /> },
         { path: "academic-years", element: <AcademicYearsPage /> },
       ],
     },
