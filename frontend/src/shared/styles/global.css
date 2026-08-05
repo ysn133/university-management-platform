@@ -2658,6 +2658,64 @@ a.workspace-module-card:hover {
   grid-template-columns: minmax(16rem, 1fr) 11rem 11rem 11rem;
 }
 
+.student-directory-toolbar {
+  grid-template-columns: minmax(16rem, 1fr) 10rem 11rem 11rem;
+}
+
+.student-filter-panel {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.student-academic-filters {
+  display: grid;
+  align-items: end;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--management-line);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.9);
+  grid-template-columns: repeat(3, minmax(0, 1fr)) repeat(3, minmax(0, 0.85fr)) auto;
+}
+
+.student-academic-filters label {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.student-academic-filters label > span {
+  color: var(--management-ink);
+  font-size: 0.65rem;
+  font-weight: 720;
+}
+
+.student-academic-filters select {
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.68rem 0.75rem;
+  border: 1px solid var(--management-line);
+  border-radius: 0.55rem;
+  outline: none;
+  background: #fbfdff;
+  color: var(--management-ink);
+  font-size: 0.72rem;
+}
+
+.student-academic-filters select:focus {
+  border-color: var(--management-blue);
+  box-shadow: 0 0 0 3px rgba(23, 105, 170, 0.09);
+}
+
+.student-academic-filters select:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.student-directory-table th:nth-child(3),
+.student-directory-table td:nth-child(3) {
+  width: 15rem;
+}
+
 .admin-create-progress {
   display: grid;
   align-items: center;
@@ -3353,6 +3411,35 @@ a.workspace-module-card:hover {
   font-size: 0.7rem;
 }
 
+.curriculum-section-tabs {
+  display: flex;
+  gap: 0.35rem;
+  width: fit-content;
+  padding: 0.3rem;
+  border: 1px solid var(--management-line);
+  border-radius: 0.7rem;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(35, 75, 105, 0.04);
+}
+
+.curriculum-section-tabs button {
+  min-height: 2.35rem;
+  padding: 0.55rem 1rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--management-muted);
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 740;
+}
+
+.curriculum-section-tabs button[aria-selected="true"] {
+  background: var(--management-blue-dark);
+  color: #fff;
+  box-shadow: 0 5px 14px rgba(15, 78, 127, 0.18);
+}
+
 .curriculum-layout {
   display: grid;
   align-items: start;
@@ -3626,6 +3713,126 @@ a.workspace-module-card:hover {
   line-height: 1.4;
 }
 
+.cohort-toolbar {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--management-line);
+  background: #f8fbfd;
+  grid-template-columns: minmax(0, 1fr) 11rem minmax(13rem, 0.65fr);
+}
+
+.cohort-toolbar label {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.cohort-toolbar label > span {
+  color: var(--management-ink);
+  font-size: 0.65rem;
+  font-weight: 720;
+}
+
+.cohort-toolbar input,
+.cohort-toolbar select {
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.68rem 0.75rem;
+  border: 1px solid var(--management-line);
+  border-radius: 0.55rem;
+  outline: none;
+  background: #fff;
+  color: var(--management-ink);
+  font-size: 0.75rem;
+}
+
+.cohort-toolbar input:focus,
+.cohort-toolbar select:focus {
+  border-color: var(--management-blue);
+  box-shadow: 0 0 0 3px rgba(23, 105, 170, 0.09);
+}
+
+.second-inscription {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.second-inscription strong {
+  color: #9a5a0a;
+  font-size: 0.68rem;
+}
+
+.second-inscription span,
+.cohort-standard-label,
+.cohort-context-loading {
+  color: var(--management-muted);
+  font-size: 0.64rem;
+}
+
+.second-inscription > span {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.second-inscription-link {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid rgba(154, 90, 10, 0.35);
+  background: transparent;
+  color: #8a5008;
+  cursor: pointer;
+  font: inherit;
+}
+
+.second-inscription-link:hover {
+  border-bottom-color: #8a5008;
+}
+
+.registration-context-summary {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1rem;
+  border: 1px solid rgba(23, 105, 170, 0.18);
+  border-radius: 0.65rem;
+  background: #f4f9fd;
+}
+
+.registration-context-summary > span {
+  color: var(--management-blue);
+  font-size: 0.6rem;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.registration-context-summary > strong {
+  color: var(--management-ink);
+  font-size: 0.82rem;
+}
+
+.registration-context-summary > small {
+  color: var(--management-muted);
+  font-size: 0.68rem;
+}
+
+.registration-create-student {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.85rem 1rem;
+  border: 1px dashed rgba(23, 105, 170, 0.35);
+  border-radius: 0.65rem;
+  background: transparent;
+  color: var(--management-blue-dark);
+  cursor: pointer;
+  text-align: left;
+}
+
+.registration-create-student span {
+  color: var(--management-muted);
+  font-size: 0.66rem;
+}
+
 .curriculum-domain-field > div label {
   display: flex;
   align-items: center;
@@ -3727,7 +3934,12 @@ a.workspace-module-card:hover {
     grid-template-columns: 1fr;
   }
 
-  .admin-directory-toolbar {
+  .admin-directory-toolbar,
+  .student-directory-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .student-academic-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -3911,7 +4123,8 @@ a.workspace-module-card:hover {
 
   .curriculum-level-list,
   .semester-card-grid,
-  .curriculum-domain-field > div {
+  .curriculum-domain-field > div,
+  .cohort-toolbar {
     grid-template-columns: 1fr;
   }
 
@@ -3938,7 +4151,12 @@ a.workspace-module-card:hover {
     display: none;
   }
 
-  .admin-directory-toolbar {
+  .admin-directory-toolbar,
+  .student-directory-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .student-academic-filters {
     grid-template-columns: 1fr;
   }
 

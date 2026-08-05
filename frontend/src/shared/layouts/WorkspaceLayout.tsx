@@ -6,7 +6,7 @@ export interface WorkspaceNavigationItem {
   label: string;
   to: string;
   end?: boolean;
-  icon?: "overview" | "establishments" | "information" | "leadership" | "admins" | "departments" | "paths" | "cycles" | "programs" | "years";
+  icon?: "overview" | "establishments" | "information" | "leadership" | "admins" | "students" | "departments" | "paths" | "cycles" | "programs" | "years";
   group?: string;
 }
 
@@ -39,6 +39,7 @@ function NavigationIcon({ icon }: { icon?: WorkspaceNavigationItem["icon"] }) {
     information: <><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7h.01" /></>,
     leadership: <><circle cx="9" cy="8" r="3" /><path d="M3.5 20c.4-4 2.2-6 5.5-6s5.1 2 5.5 6M16 7h5M18.5 4.5v5" /></>,
     admins: <><circle cx="9" cy="8" r="3" /><path d="M3.5 20c.4-4 2.2-6 5.5-6s5.1 2 5.5 6M16 12h5M18.5 9.5v5" /></>,
+    students: <><path d="m3 8 9-4 9 4-9 4-9-4Z" /><path d="M7 10.2V15c2.8 2.1 7.2 2.1 10 0v-4.8M21 8v6" /></>,
     departments: <><path d="M4 20V7h16v13M8 7V4h8v3M8 11h2M14 11h2M8 15h2M14 15h2M3 20h18" /></>,
     paths: <><circle cx="6" cy="6" r="2" /><circle cx="18" cy="18" r="2" /><path d="M8 6h3a3 3 0 0 1 3 3v6a3 3 0 0 0 3 3M14 11l3-3M14 11l-3-3" /></>,
     cycles: <><path d="M20 7h-5V2M4 17h5v5M19 12a7 7 0 0 0-12-5l-2 2M5 12a7 7 0 0 0 12 5l2-2" /></>,

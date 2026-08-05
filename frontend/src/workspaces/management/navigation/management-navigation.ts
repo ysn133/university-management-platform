@@ -28,6 +28,7 @@ export function getManagementNavigation(
             group: "People and access",
           } as const]
         : []),
+      { label: "Students", to: `${contextPath}/students`, icon: "students", group: "People and access" },
       { label: "Departments", to: `${contextPath}/departments`, icon: "departments", group: "Academic structure" },
       { label: "Program Paths", to: `${contextPath}/program-paths`, icon: "paths", group: "Academic structure" },
       { label: "Degree Cycles", to: `${contextPath}/degree-cycles`, icon: "cycles", group: "Academic structure" },

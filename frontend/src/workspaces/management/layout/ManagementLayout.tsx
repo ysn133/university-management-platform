@@ -26,10 +26,12 @@ export function ManagementLayout() {
     ? `/management/establishments/${establishmentId}`
     : "/management";
   const adminDetailMatch = location.pathname.match(/\/admins\/([^/]+)$/);
+  const studentDetailMatch = location.pathname.match(/\/students\/([^/]+)$/);
   const programDetailMatch = location.pathname.match(/\/programs\/([^/]+)$/);
   const sectionLabels: Record<string, string> = {
     "super-admins": "Super Admins",
     admins: "Admins",
+    students: "Students",
     departments: "Departments",
     "program-paths": "Program Paths",
     "degree-cycles": "Degree Cycles",
@@ -58,6 +60,12 @@ export function ManagementLayout() {
           ? [
               { label: "Admins", to: adminsPath },
               { label: "Admin details" },
+            ]
+          : []),
+        ...(studentDetailMatch
+          ? [
+              { label: "Students", to: `${contextPath}/students` },
+              { label: "Student record" },
             ]
           : []),
         ...(programDetailMatch
