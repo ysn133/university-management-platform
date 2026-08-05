@@ -351,6 +351,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/academic-levels/{academicLevelId}/class-groups/rebalance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["rebalanceClassGroups"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic-levels/{academicLevelId}/class-groups/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["bulkAssignStudentClasses"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/academic-domains/{academicDomainId}": {
         parameters: {
             query?: never;
@@ -1423,6 +1455,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/academic-levels/{academicLevelId}/class-groups/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["generateClassGroups"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/program-paths/{programPathId}": {
         parameters: {
             query?: never;
@@ -1863,6 +1911,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getProgressionDecision"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic-levels/{academicLevelId}/class-groups/roster": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getClassGroupRoster"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2520,6 +2584,49 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        GenerateClassGroupsRequest: {
+            /** Format: int32 */
+            minimumGroupSize?: number;
+            /** Format: int32 */
+            maximumGroupSize?: number;
+        };
+        ClassGroupRebalanceResponse: {
+            /** Format: uuid */
+            academicLevelId?: string;
+            /** Format: uuid */
+            academicYearId?: string;
+            /** Format: int32 */
+            totalStudents?: number;
+            /** Format: int32 */
+            semesterAssignmentsChanged?: number;
+            groups?: components["schemas"]["GeneratedClassGroupResponse"][];
+        };
+        GeneratedClassGroupResponse: {
+            /** Format: uuid */
+            classGroupId?: string;
+            name?: string;
+            /** Format: int32 */
+            studentCount?: number;
+        };
+        BulkAssignStudentClassesRequest: {
+            assignments: components["schemas"]["BulkClassAssignmentItemRequest"][];
+        };
+        BulkClassAssignmentItemRequest: {
+            /** Format: uuid */
+            academicRegistrationId: string;
+            /** Format: uuid */
+            classGroupId: string;
+        };
+        BulkClassAssignmentResponse: {
+            /** Format: uuid */
+            academicLevelId?: string;
+            /** Format: uuid */
+            academicYearId?: string;
+            /** Format: int32 */
+            studentsProcessed?: number;
+            /** Format: int32 */
+            semesterAssignmentsCreated?: number;
+        };
         UpdateAcademicDomainRequest: {
             code: string;
             name: string;
@@ -3040,6 +3147,17 @@ export interface components {
             /** @enum {string} */
             status: "ACTIVE" | "INACTIVE" | "ARCHIVED";
         };
+        ClassGroupGenerationResponse: {
+            /** Format: uuid */
+            academicLevelId?: string;
+            /** Format: uuid */
+            academicYearId?: string;
+            /** Format: int32 */
+            totalStudents?: number;
+            /** Format: int32 */
+            semesterAssignmentsCreated?: number;
+            groups?: components["schemas"]["GeneratedClassGroupResponse"][];
+        };
         UpdateProgramPathRequest: {
             name: string;
         };
@@ -3183,6 +3301,24 @@ export interface components {
             outstandingModuleCount?: number;
             /** Format: date-time */
             decidedAt?: string;
+        };
+        ClassGroupRosterGroupResponse: {
+            /** Format: uuid */
+            classGroupId?: string;
+            name?: string;
+            academicRegistrationIds?: string[];
+        };
+        ClassGroupRosterResponse: {
+            /** Format: uuid */
+            academicLevelId?: string;
+            /** Format: uuid */
+            academicYearId?: string;
+            /** Format: uuid */
+            semesterId?: string;
+            /** Format: int32 */
+            totalStudents?: number;
+            unassignedAcademicRegistrationIds?: string[];
+            groups?: components["schemas"]["ClassGroupRosterGroupResponse"][];
         };
     };
     responses: never;
@@ -4445,6 +4581,62 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ActionResponse"];
+                };
+            };
+        };
+    };
+    rebalanceClassGroups: {
+        parameters: {
+            query: {
+                academicYearId: string;
+            };
+            header?: never;
+            path: {
+                academicLevelId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateClassGroupsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClassGroupRebalanceResponse"];
+                };
+            };
+        };
+    };
+    bulkAssignStudentClasses: {
+        parameters: {
+            query: {
+                academicYearId: string;
+            };
+            header?: never;
+            path: {
+                academicLevelId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkAssignStudentClassesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BulkClassAssignmentResponse"];
                 };
             };
         };
@@ -6685,6 +6877,34 @@ export interface operations {
             };
         };
     };
+    generateClassGroups: {
+        parameters: {
+            query: {
+                academicYearId: string;
+            };
+            header?: never;
+            path: {
+                academicLevelId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateClassGroupsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClassGroupGenerationResponse"];
+                };
+            };
+        };
+    };
     getProgramPath: {
         parameters: {
             query?: never;
@@ -7538,6 +7758,31 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ProgressionDecisionResponse"];
+                };
+            };
+        };
+    };
+    getClassGroupRoster: {
+        parameters: {
+            query: {
+                academicYearId: string;
+                semesterId: string;
+            };
+            header?: never;
+            path: {
+                academicLevelId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClassGroupRosterResponse"];
                 };
             };
         };

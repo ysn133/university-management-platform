@@ -264,7 +264,7 @@ export function ProgramCurriculumPage() {
             <h2>Academic Levels</h2>
             <span>{levels.length ? `${levels.length} configured` : "Build the program hierarchy"}</span>
           </div>
-          <button className="curriculum-level-add" disabled={!canCreateLevel} onClick={() => { setLevelForm({ name: "", levelOrder: String(levels.length + 1), initialAcademicYearId: academicYearId || yearsQuery.data?.[0]?.id || "", academicRuleProfileId: activeProfiles[0]?.id || "" }); setCreatingRuleProfile(false); setCreatingLevel(true); }} type="button">Add level</button>
+          {activeSection === "curriculum" && <button className="curriculum-level-add" disabled={!canCreateLevel} onClick={() => { setLevelForm({ name: "", levelOrder: String(levels.length + 1), initialAcademicYearId: academicYearId || yearsQuery.data?.[0]?.id || "", academicRuleProfileId: activeProfiles[0]?.id || "" }); setCreatingRuleProfile(false); setCreatingLevel(true); }} type="button">Add level</button>}
         </header>
         {levelsQuery.isPending ? <div className="panel-empty">Loading levels...</div> : levelsQuery.isError ? <div className="panel-empty panel-empty--error">{errorMessage(levelsQuery.error)}</div> : levels.length === 0 ? <div className="panel-empty curriculum-level-empty"><strong>No levels configured</strong><p>{canCreateLevel ? "Add the first level and define its initial academic rules." : "Create an academic year before adding levels."}</p></div> : <div className="curriculum-level-list">{levels.map((level) => {
           const isSelected = level.id === academicLevelId;
@@ -273,10 +273,10 @@ export function ProgramCurriculumPage() {
               <strong>{level.name}</strong>
               <small>{isSelected ? "Currently viewing" : activeSection === "students" ? "View student cohort" : "View semesters and modules"}</small>
             </button>
-            <div className="row-actions">
+            {activeSection === "curriculum" && <div className="row-actions">
               <button onClick={() => { setEditingLevel(level); setLevelForm({ name: level.name, levelOrder: String(level.levelOrder), initialAcademicYearId: "", academicRuleProfileId: "" }); }} type="button">Edit</button>
               <button className="danger-text" onClick={() => setDeletingLevel(level)} type="button">Delete</button>
-            </div>
+            </div>}
           </article>;
         })}</div>}
       </aside>

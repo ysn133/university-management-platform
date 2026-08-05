@@ -2,8 +2,12 @@ package com.platform.universitygovernance.classgroup.presentation;
 
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.universitygovernance.classgroup.application.ClassGroupService;
+import com.platform.universitygovernance.classgroup.application.ClassGroupGenerationService;
+import com.platform.universitygovernance.classgroup.presentation.dto.ClassGroupGenerationResponse;
+import com.platform.universitygovernance.classgroup.presentation.dto.ClassGroupRebalanceResponse;
 import com.platform.universitygovernance.classgroup.presentation.dto.ClassGroupResponse;
 import com.platform.universitygovernance.classgroup.presentation.dto.CreateClassGroupRequest;
+import com.platform.universitygovernance.classgroup.presentation.dto.GenerateClassGroupsRequest;
 import com.platform.universitygovernance.classgroup.presentation.dto.UpdateClassGroupRequest;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -25,9 +29,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class ClassGroupController {
 
     private final ClassGroupService classGroupService;
+    private final ClassGroupGenerationService classGroupGenerationService;
 
-    public ClassGroupController(ClassGroupService classGroupService) {
+    public ClassGroupController(
+        ClassGroupService classGroupService,
+        ClassGroupGenerationService classGroupGenerationService
+    ) {
         this.classGroupService = classGroupService;
+        this.classGroupGenerationService = classGroupGenerationService;
     }
 
     @PostMapping("/academic-levels/{academicLevelId}/class-groups")
@@ -47,6 +56,36 @@ public class ClassGroupController {
         @RequestParam UUID academicYearId
     ) {
         return classGroupService.getClassGroups(principal, academicLevelId, academicYearId);
+    }
+
+    @PostMapping("/academic-levels/{academicLevelId}/class-groups/generate")
+    public ClassGroupGenerationResponse generateClassGroups(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+        @PathVariable UUID academicLevelId,
+        @RequestParam UUID academicYearId,
+        @Valid @RequestBody GenerateClassGroupsRequest request
+    ) {
+        return classGroupGenerationService.generateClassGroups(
+            principal,
+            academicLevelId,
+            academicYearId,
+            request
+        );
+    }
+
+    @PutMapping("/academic-levels/{academicLevelId}/class-groups/rebalance")
+    public ClassGroupRebalanceResponse rebalanceClassGroups(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+        @PathVariable UUID academicLevelId,
+        @RequestParam UUID academicYearId,
+        @Valid @RequestBody GenerateClassGroupsRequest request
+    ) {
+        return classGroupGenerationService.rebalanceClassGroups(
+            principal,
+            academicLevelId,
+            academicYearId,
+            request
+        );
     }
 
     @GetMapping("/class-groups/{classGroupId}")

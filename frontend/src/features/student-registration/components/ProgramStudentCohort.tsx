@@ -14,6 +14,7 @@ import {
   studentRegistrationKeys,
 } from "../api/student-registration-api";
 import { StudentForm, type StudentFormValues } from "./StudentForm";
+import { ClassGroupWorkspace } from "./ClassGroupWorkspace";
 
 interface ProgramStudentCohortProps {
   establishmentId: string;
@@ -40,6 +41,7 @@ export function ProgramStudentCohort({ establishmentId, programFiliereId, academ
   const [isRegistrationOpen, setRegistrationOpen] = useState(false);
   const [isCreatingStudent, setCreatingStudent] = useState(true);
   const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [classGroupRegistrationIds, setClassGroupRegistrationIds] = useState<Set<string> | null>(null);
   const deferredSearch = useDeferredValue(search.trim().toLowerCase());
 
   useEffect(() => {
@@ -101,7 +103,8 @@ export function ProgramStudentCohort({ establishmentId, programFiliereId, academ
       (!semesterFilter || item.semester.semesterId === semesterFilter)
       && (!moduleFilter || item.modules.some((module) => module.subjectModuleId === moduleFilter)),
     );
-    return matchesSearch && Boolean(matchesStudyContext);
+    const matchesClassGroup = classGroupRegistrationIds === null || classGroupRegistrationIds.has(registration.id);
+    return matchesSearch && Boolean(matchesStudyContext) && matchesClassGroup;
   });
 
   async function refresh() {
@@ -162,10 +165,18 @@ export function ProgramStudentCohort({ establishmentId, programFiliereId, academ
       <label><span>Study period</span><select onChange={(event) => setSemesterFilter(event.target.value)} value={semesterFilter}><option value="">Entire academic level</option>{semesters.map((semester) => <option key={semester.id} value={semester.id}>{semester.name}</option>)}</select></label>
       <label><span>Module</span><select onChange={(event) => setModuleFilter(event.target.value)} value={moduleFilter}><option value="">All modules</option>{cohortModules.map((module) => <option key={module.subjectModuleId} value={module.subjectModuleId}>{module.subjectModuleCode} · {module.subjectModuleTitle}</option>)}</select></label>
     </div>}
+    {academicLevel && academicYearId && <ClassGroupWorkspace
+      academicLevelId={academicLevel.id}
+      academicYearId={academicYearId}
+      semesterId={semesterFilter || semesters[0]?.id || ""}
+      registrations={programRegistrations.filter((registration) => registration.academicLevelId === academicLevel.id && registration.status === "ACTIVE")}
+      students={studentsQuery.data ?? []}
+      onFilterChange={setClassGroupRegistrationIds}
+    />}
     {!academicLevel ? <div className="panel-empty"><strong>Select an academic level.</strong></div>
       : studentsQuery.isPending || registrationsQuery.isPending ? <div className="panel-empty">Loading student cohort...</div>
       : studentsQuery.isError || registrationsQuery.isError ? <div className="panel-empty panel-empty--error">{errorMessage(studentsQuery.error ?? registrationsQuery.error)}</div>
-      : visibleCohort.length === 0 ? <div className="panel-empty"><strong>No students found in this context.</strong><p>Add the first Student registration for {academicLevel.name}.</p></div>
+      : visibleCohort.length === 0 ? <div className="panel-empty"><strong>{classGroupRegistrationIds === null ? "No students found in this context." : "No students in this class-group view."}</strong><p>{classGroupRegistrationIds === null ? `Add the first Student registration for ${academicLevel.name}.` : "Choose another group or return to All Students."}</p></div>
       : <div className="resource-table-wrapper"><table className="resource-table"><thead><tr><th>Student</th><th>Registration</th><th>Module history</th><th>Status</th></tr></thead><tbody>{visibleCohort.map((registration) => {
         const student = studentById.get(registration.studentId);
         const context = contextByRegistration.get(registration.id);
