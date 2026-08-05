@@ -14,6 +14,8 @@ import { AcademicYearsPage } from "@/features/academic-structure/pages/AcademicY
 import { ProgramFilieresPage } from "@/features/academic-structure/pages/ProgramFilieresPage";
 import { ProgramCurriculumPage } from "@/features/academic-structure/pages/ProgramCurriculumPage";
 import { DegreeCyclesPage, DepartmentsPage, ProgramPathsPage } from "@/features/academic-structure/pages/ReferenceCatalogPages";
+import { StudentDirectoryPage } from "@/features/student-registration/pages/StudentDirectoryPage";
+import { StudentDetailsPage } from "@/features/student-registration/pages/StudentDetailsPage";
 
 export const managementRoutes: RouteObject = {
   path: "/management",
@@ -28,6 +30,8 @@ export const managementRoutes: RouteObject = {
         { path: "establishments/:establishmentId/super-admins", element: <EstablishmentDetailsPage /> },
         { path: "establishments/:establishmentId/admins", element: <AdminManagementPage /> },
         { path: "establishments/:establishmentId/admins/:adminId", element: <AdminDetailsPage /> },
+        { path: "establishments/:establishmentId/students", element: <StudentDirectoryPage /> },
+        { path: "establishments/:establishmentId/students/:studentId", element: <StudentDetailsPage /> },
         { path: "establishments/:establishmentId/departments", element: <DepartmentsPage /> },
         { path: "establishments/:establishmentId/program-paths", element: <ProgramPathsPage /> },
         { path: "establishments/:establishmentId/degree-cycles", element: <DegreeCyclesPage /> },
@@ -52,6 +56,8 @@ export const managementRoutes: RouteObject = {
         { path: "programs", element: <ProgramFilieresPage /> },
         { path: "programs/:programFiliereId", element: <ProgramCurriculumPage /> },
         { path: "academic-years", element: <AcademicYearsPage /> },
+        { path: "students", element: <StudentDirectoryPage /> },
+        { path: "students/:studentId", element: <StudentDetailsPage /> },
       ],
     },
     { path: "account/password", element: <ChangePasswordPage /> },
