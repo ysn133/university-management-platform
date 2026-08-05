@@ -3860,6 +3860,239 @@ a.workspace-module-card:hover {
   font-size: 0.56rem;
 }
 
+.module-record-link strong {
+  transition: color 150ms ease;
+}
+
+.module-record-link:hover strong {
+  color: var(--management-blue);
+}
+
+.module-workspace-header {
+  display: grid;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 1.5rem;
+  border: 1px solid var(--management-line);
+  border-radius: 0.9rem;
+  background:
+    radial-gradient(circle at 82% 10%, rgba(23, 105, 170, 0.1), transparent 16rem),
+    #fff;
+  box-shadow: 0 12px 32px rgba(35, 75, 105, 0.045);
+  grid-template-columns: auto minmax(0, 1fr) minmax(13rem, 0.3fr);
+}
+
+.module-workspace-code {
+  display: grid;
+  min-width: 4.5rem;
+  height: 4.5rem;
+  padding: 0.65rem;
+  place-items: center;
+  border-radius: 0.85rem;
+  background: linear-gradient(145deg, var(--management-blue-dark), var(--management-blue));
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 780;
+  letter-spacing: 0.04em;
+}
+
+.module-workspace-header h1 {
+  margin: 0.12rem 0 0.35rem;
+  color: var(--management-ink);
+  font-family: "Manrope Variable", sans-serif;
+  font-size: clamp(1.9rem, 3vw, 2.8rem);
+  font-weight: 730;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.module-workspace-header p:last-child {
+  margin: 0;
+  color: var(--management-muted);
+  font-size: 0.7rem;
+}
+
+.module-workspace-domains {
+  display: grid;
+  gap: 0.4rem;
+  padding-left: 1.2rem;
+  border-left: 1px solid var(--management-line);
+}
+
+.module-workspace-domains span {
+  color: var(--management-muted);
+  font-size: 0.58rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.module-workspace-domains strong {
+  color: var(--management-ink);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.teaching-component-count {
+  padding: 0.48rem 0.75rem;
+  border: 1px solid rgba(23, 105, 170, 0.18);
+  border-radius: 999px;
+  background: #f2f8fc;
+  color: var(--management-blue-dark);
+  font-size: 0.62rem;
+  font-weight: 750;
+}
+
+.teaching-component-form {
+  padding: 1.25rem;
+}
+
+.teaching-component-grid {
+  display: grid;
+  align-items: start;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.teaching-component-grid > article {
+  overflow: hidden;
+  border: 1px solid var(--management-line);
+  border-radius: 0.8rem;
+  background: #f9fbfd;
+  opacity: 0.72;
+  transition: border-color 150ms ease, box-shadow 150ms ease, opacity 150ms ease;
+}
+
+.teaching-component-grid > article.is-enabled {
+  border-color: rgba(23, 105, 170, 0.34);
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(35, 75, 105, 0.07);
+  opacity: 1;
+}
+
+.teaching-component-grid article > header {
+  display: flex;
+  min-height: 7.1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--management-line);
+}
+
+.teaching-component-grid article > header > div > span {
+  color: var(--management-ink);
+  font-family: "Newsreader Variable", serif;
+  font-size: 1.4rem;
+  font-weight: 650;
+}
+
+.teaching-component-grid article > header p {
+  margin: 0.35rem 0 0;
+  color: var(--management-muted);
+  font-size: 0.63rem;
+  line-height: 1.5;
+}
+
+.component-enable-control {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: center;
+  gap: 0.3rem;
+  color: var(--management-muted);
+  cursor: pointer;
+  font-size: 0.52rem;
+  font-weight: 700;
+}
+
+.component-enable-control input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--management-blue);
+}
+
+.teaching-component-grid fieldset {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 1rem;
+  border: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.teaching-component-grid fieldset > label {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.teaching-component-grid fieldset > label > span {
+  color: var(--management-ink);
+  font-size: 0.59rem;
+  font-weight: 720;
+}
+
+.teaching-component-grid fieldset input,
+.teaching-component-grid fieldset select {
+  width: 100%;
+  min-height: 2.45rem;
+  padding: 0.58rem 0.65rem;
+  border: 1px solid var(--management-line);
+  border-radius: 0.5rem;
+  background: #fbfdff;
+  color: var(--management-ink);
+  font-size: 0.66rem;
+}
+
+.component-input-unit {
+  display: grid;
+  position: relative;
+}
+
+.component-input-unit input {
+  padding-right: 3.8rem;
+}
+
+.component-input-unit small {
+  position: absolute;
+  top: 50%;
+  right: 0.65rem;
+  color: var(--management-muted);
+  font-size: 0.54rem;
+  transform: translateY(-50%);
+}
+
+.teaching-component-grid .component-group-size {
+  grid-column: 1 / -1;
+}
+
+.component-group-size > span {
+  display: flex;
+  justify-content: space-between;
+}
+
+.component-group-size > span small {
+  color: var(--management-muted);
+  font-size: 0.52rem;
+  font-weight: 600;
+}
+
+.teaching-component-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.1rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--management-line);
+}
+
+.teaching-component-actions p {
+  margin: 0;
+  color: var(--management-muted);
+  font-size: 0.62rem;
+}
+
 @media (max-width: 900px) {
   .management-global-rail {
     display: none;
@@ -3927,6 +4160,20 @@ a.workspace-module-card:hover {
   .curriculum-level-list {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .module-workspace-header {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .module-workspace-domains {
+    padding: 0;
+    border: 0;
+    grid-column: 1 / -1;
+  }
+
+  .teaching-component-grid {
+    grid-template-columns: 1fr;
   }
 
   .workspace-module-grid,

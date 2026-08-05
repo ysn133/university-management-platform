@@ -63,6 +63,19 @@ const subjectModuleSchema = z.object({
   academicDomainIds: z.array(z.string().uuid()),
 });
 
+const moduleTeachingComponentSchema = z.object({
+  id: z.string().uuid(),
+  subjectModuleId: z.string().uuid(),
+  componentType: z.enum(["COURSE", "TD", "TP"]),
+  sessionsPerWeek: z.number().int().positive(),
+  sessionDurationMinutes: z.number().int().positive(),
+  audienceMode: z.enum(["WHOLE_COHORT", "CLASS_GROUP", "SUBGROUP"]),
+  maximumGroupSize: z.number().int().positive().nullable().optional(),
+  requiredRoomType: z.enum(["LECTURE_HALL", "CLASSROOM", "COMPUTER_LAB"]),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
 const academicRuleProfileSchema = z.object({
   id: z.string().uuid(),
   establishmentId: z.string().uuid(),
@@ -84,6 +97,7 @@ export type ProgramFiliere = z.infer<typeof programFiliereSchema>;
 export type AcademicLevel = z.infer<typeof academicLevelSchema>;
 export type Semester = z.infer<typeof semesterSchema>;
 export type SubjectModule = z.infer<typeof subjectModuleSchema>;
+export type ModuleTeachingComponent = z.infer<typeof moduleTeachingComponentSchema>;
 export type AcademicRuleProfile = z.infer<typeof academicRuleProfileSchema>;
 export type AcademicDomain = z.infer<typeof academicDomainSchema>;
 export type AcademicYearStatus = AcademicYear["status"];
@@ -100,6 +114,7 @@ export type CreateSemesterRequest = components["schemas"]["CreateSemesterRequest
 export type UpdateSemesterRequest = components["schemas"]["UpdateSemesterRequest"];
 export type CreateSubjectModuleRequest = components["schemas"]["CreateSubjectModuleRequest"];
 export type UpdateSubjectModuleRequest = components["schemas"]["UpdateSubjectModuleRequest"];
+export type ReplaceModuleTeachingComponentsRequest = components["schemas"]["ReplaceModuleTeachingComponentsRequest"];
 
 export const academicStructureKeys = {
   departments: (establishmentId: string) => ["academic-structure", "departments", establishmentId] as const,
@@ -111,6 +126,8 @@ export const academicStructureKeys = {
   academicLevels: (programFiliereId: string) => ["academic-structure", "academic-levels", programFiliereId] as const,
   semesters: (academicLevelId: string, academicYearId: string) => ["academic-structure", "semesters", academicLevelId, academicYearId] as const,
   subjectModules: (semesterId: string) => ["academic-structure", "subject-modules", semesterId] as const,
+  subjectModule: (subjectModuleId: string) => ["academic-structure", "subject-module", subjectModuleId] as const,
+  moduleTeachingComponents: (subjectModuleId: string) => ["academic-structure", "module-teaching-components", subjectModuleId] as const,
   ruleProfiles: (establishmentId: string) => ["academic-structure", "rule-profiles", establishmentId] as const,
   academicDomains: (establishmentId: string) => ["academic-structure", "academic-domains", establishmentId] as const,
 };
@@ -244,6 +261,10 @@ export async function getSubjectModules(semesterId: string): Promise<SubjectModu
   return parseResponse(await apiClient.GET("/api/v1/semesters/{semesterId}/subject-modules", { params: { path: { semesterId } } }), z.array(subjectModuleSchema));
 }
 
+export async function getSubjectModule(id: string): Promise<SubjectModule> {
+  return parseResponse(await apiClient.GET("/api/v1/subject-modules/{subjectModuleId}", { params: { path: { subjectModuleId: id } } }), subjectModuleSchema);
+}
+
 export async function createSubjectModule(semesterId: string, request: CreateSubjectModuleRequest): Promise<SubjectModule> {
   return parseResponse(await apiClient.POST("/api/v1/semesters/{semesterId}/subject-modules", { params: { path: { semesterId } }, body: request }), subjectModuleSchema);
 }
@@ -254,6 +275,17 @@ export async function updateSubjectModule(id: string, request: UpdateSubjectModu
 
 export async function deleteSubjectModule(id: string): Promise<void> {
   await ensureSuccess(await apiClient.DELETE("/api/v1/subject-modules/{subjectModuleId}", { params: { path: { subjectModuleId: id } } }));
+}
+
+export async function getModuleTeachingComponents(subjectModuleId: string): Promise<ModuleTeachingComponent[]> {
+  return parseResponse(await apiClient.GET("/api/v1/subject-modules/{subjectModuleId}/teaching-components", { params: { path: { subjectModuleId } } }), z.array(moduleTeachingComponentSchema));
+}
+
+export async function replaceModuleTeachingComponents(
+  subjectModuleId: string,
+  request: ReplaceModuleTeachingComponentsRequest,
+): Promise<ModuleTeachingComponent[]> {
+  return parseResponse(await apiClient.PUT("/api/v1/subject-modules/{subjectModuleId}/teaching-components", { params: { path: { subjectModuleId } }, body: request }), z.array(moduleTeachingComponentSchema));
 }
 
 export async function getAcademicRuleProfiles(establishmentId: string): Promise<AcademicRuleProfile[]> {
