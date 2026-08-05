@@ -1,6 +1,7 @@
 package com.platform.academicregistration.semesterregistration.infrastructure;
 
 import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,4 +21,8 @@ public interface SemesterRegistrationRepository extends JpaRepository<SemesterRe
     );
 
     List<SemesterRegistration> findBySemesterId(UUID semesterId);
+
+    List<SemesterRegistration> findByAcademicRegistrationIdIn(
+        Collection<UUID> academicRegistrationIds
+    );
 }

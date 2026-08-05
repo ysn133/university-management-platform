@@ -13,6 +13,7 @@ import { EstablishmentOperationRoute } from "@/features/academic-structure/compo
 import { AcademicYearsPage } from "@/features/academic-structure/pages/AcademicYearsPage";
 import { ProgramFilieresPage } from "@/features/academic-structure/pages/ProgramFilieresPage";
 import { ProgramCurriculumPage } from "@/features/academic-structure/pages/ProgramCurriculumPage";
+import { SubjectModulePage } from "@/features/academic-structure/pages/SubjectModulePage";
 import { DegreeCyclesPage, DepartmentsPage, ProgramPathsPage } from "@/features/academic-structure/pages/ReferenceCatalogPages";
 import { StudentDirectoryPage } from "@/features/student-registration/pages/StudentDirectoryPage";
 import { StudentDetailsPage } from "@/features/student-registration/pages/StudentDetailsPage";
@@ -37,6 +38,7 @@ export const managementRoutes: RouteObject = {
         { path: "establishments/:establishmentId/degree-cycles", element: <DegreeCyclesPage /> },
         { path: "establishments/:establishmentId/programs", element: <ProgramFilieresPage /> },
         { path: "establishments/:establishmentId/programs/:programFiliereId", element: <ProgramCurriculumPage /> },
+        { path: "establishments/:establishmentId/programs/:programFiliereId/modules/:subjectModuleId", element: <SubjectModulePage /> },
         { path: "establishments/:establishmentId/academic-years", element: <AcademicYearsPage /> },
       ],
     },
@@ -55,6 +57,7 @@ export const managementRoutes: RouteObject = {
         { path: "degree-cycles", element: <DegreeCyclesPage /> },
         { path: "programs", element: <ProgramFilieresPage /> },
         { path: "programs/:programFiliereId", element: <ProgramCurriculumPage /> },
+        { path: "programs/:programFiliereId/modules/:subjectModuleId", element: <SubjectModulePage /> },
         { path: "academic-years", element: <AcademicYearsPage /> },
         { path: "students", element: <StudentDirectoryPage /> },
         { path: "students/:studentId", element: <StudentDetailsPage /> },

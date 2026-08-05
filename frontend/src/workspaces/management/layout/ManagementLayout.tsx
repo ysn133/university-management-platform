@@ -28,6 +28,7 @@ export function ManagementLayout() {
   const adminDetailMatch = location.pathname.match(/\/admins\/([^/]+)$/);
   const studentDetailMatch = location.pathname.match(/\/students\/([^/]+)$/);
   const programDetailMatch = location.pathname.match(/\/programs\/([^/]+)$/);
+  const moduleDetailMatch = location.pathname.match(/\/programs\/([^/]+)\/modules\/([^/]+)$/);
   const sectionLabels: Record<string, string> = {
     "super-admins": "Super Admins",
     admins: "Admins",
@@ -72,6 +73,13 @@ export function ManagementLayout() {
           ? [
               { label: "Programs / Filières", to: programsPath },
               { label: "Program curriculum" },
+            ]
+          : []),
+        ...(moduleDetailMatch
+          ? [
+              { label: "Programs / Filières", to: programsPath },
+              { label: "Program curriculum", to: `${programsPath}/${moduleDetailMatch[1]}` },
+              { label: "Module delivery" },
             ]
           : []),
       ]

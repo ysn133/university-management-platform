@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ApiRequestError } from "@/shared/api/client/ApiRequestError";
 import { useEstablishmentScope } from "@/features/establishment-management/context/useEstablishmentScope";
 import { ConfirmActionModal } from "@/features/root-governance/components/ConfirmActionModal";
@@ -72,12 +72,13 @@ function errorMessage(error: unknown): string {
 
 export function ProgramCurriculumPage() {
   const { programFiliereId } = useParams();
+  const [searchParams] = useSearchParams();
   const { establishmentId, workspacePath } = useEstablishmentScope();
   const queryClient = useQueryClient();
   const [activeSection, setActiveSection] = useState<"curriculum" | "students">("curriculum");
-  const [academicYearId, setAcademicYearId] = useState("");
-  const [academicLevelId, setAcademicLevelId] = useState("");
-  const [semesterId, setSemesterId] = useState("");
+  const [academicYearId, setAcademicYearId] = useState(() => searchParams.get("academicYearId") ?? "");
+  const [academicLevelId, setAcademicLevelId] = useState(() => searchParams.get("academicLevelId") ?? "");
+  const [semesterId, setSemesterId] = useState(() => searchParams.get("semesterId") ?? "");
   const [levelForm, setLevelForm] = useState<LevelForm>(emptyLevelForm);
   const [semesterForm, setSemesterForm] = useState<SemesterForm>(emptySemesterForm);
   const [moduleForm, setModuleForm] = useState<ModuleForm>(emptyModuleForm);
@@ -110,10 +111,10 @@ export function ProgramCurriculumPage() {
     }
   }, [academicYearId, yearsQuery.data]);
   useEffect(() => {
-    if (!levelsQuery.data?.some((level) => level.id === academicLevelId)) setAcademicLevelId(levelsQuery.data?.[0]?.id ?? "");
+    if (levelsQuery.data && !levelsQuery.data.some((level) => level.id === academicLevelId)) setAcademicLevelId(levelsQuery.data[0]?.id ?? "");
   }, [academicLevelId, levelsQuery.data]);
   useEffect(() => {
-    if (!semestersQuery.data?.some((semester) => semester.id === semesterId)) setSemesterId(semestersQuery.data?.[0]?.id ?? "");
+    if (semestersQuery.data && !semestersQuery.data.some((semester) => semester.id === semesterId)) setSemesterId(semestersQuery.data[0]?.id ?? "");
   }, [semesterId, semestersQuery.data]);
 
   async function refreshLevels() { await queryClient.invalidateQueries({ queryKey: academicStructureKeys.academicLevels(programFiliereId!) }); }
@@ -263,7 +264,7 @@ export function ProgramCurriculumPage() {
             <h2>Academic Levels</h2>
             <span>{levels.length ? `${levels.length} configured` : "Build the program hierarchy"}</span>
           </div>
-          <button className="curriculum-level-add" disabled={!canCreateLevel} onClick={() => { setLevelForm({ name: "", levelOrder: String(levels.length + 1), initialAcademicYearId: academicYearId || yearsQuery.data?.[0]?.id || "", academicRuleProfileId: activeProfiles[0]?.id || "" }); setCreatingRuleProfile(false); setCreatingLevel(true); }} type="button">Add level</button>
+          {activeSection === "curriculum" && <button className="curriculum-level-add" disabled={!canCreateLevel} onClick={() => { setLevelForm({ name: "", levelOrder: String(levels.length + 1), initialAcademicYearId: academicYearId || yearsQuery.data?.[0]?.id || "", academicRuleProfileId: activeProfiles[0]?.id || "" }); setCreatingRuleProfile(false); setCreatingLevel(true); }} type="button">Add level</button>}
         </header>
         {levelsQuery.isPending ? <div className="panel-empty">Loading levels...</div> : levelsQuery.isError ? <div className="panel-empty panel-empty--error">{errorMessage(levelsQuery.error)}</div> : levels.length === 0 ? <div className="panel-empty curriculum-level-empty"><strong>No levels configured</strong><p>{canCreateLevel ? "Add the first level and define its initial academic rules." : "Create an academic year before adding levels."}</p></div> : <div className="curriculum-level-list">{levels.map((level) => {
           const isSelected = level.id === academicLevelId;
@@ -272,10 +273,10 @@ export function ProgramCurriculumPage() {
               <strong>{level.name}</strong>
               <small>{isSelected ? "Currently viewing" : activeSection === "students" ? "View student cohort" : "View semesters and modules"}</small>
             </button>
-            <div className="row-actions">
+            {activeSection === "curriculum" && <div className="row-actions">
               <button onClick={() => { setEditingLevel(level); setLevelForm({ name: level.name, levelOrder: String(level.levelOrder), initialAcademicYearId: "", academicRuleProfileId: "" }); }} type="button">Edit</button>
               <button className="danger-text" onClick={() => setDeletingLevel(level)} type="button">Delete</button>
-            </div>
+            </div>}
           </article>;
         })}</div>}
       </aside>
@@ -284,7 +285,7 @@ export function ProgramCurriculumPage() {
         {activeSection === "curriculum" ? <>
           <section className="management-panel curriculum-semesters"><header className="panel-header panel-header--bordered"><div><p className="management-kicker">{selectedYear?.label ?? "Academic year required"}</p><h2>{selectedLevel ? `${selectedLevel.name} Semesters` : "Select an Academic Level"}</h2><p>Each academic year has its own semester structure and modules.</p></div><button className="management-primary-button" disabled={!academicLevelId || !academicYearId} onClick={() => { setSemesterForm({ name: "", semesterOrder: String(semesters.length + 1) }); setCreatingSemester(true); }} type="button">New Semester</button></header>{!academicYearId ? <div className="panel-empty"><strong>Select an academic year.</strong><p>The year determines which semesters and modules are displayed.</p></div> : !academicLevelId ? <div className="panel-empty"><strong>Select an academic level.</strong></div> : semestersQuery.isPending ? <div className="panel-empty">Loading semesters...</div> : semestersQuery.isError ? <div className="panel-empty panel-empty--error">{errorMessage(semestersQuery.error)}</div> : semesters.length === 0 ? <div className="panel-empty"><strong>No semesters configured.</strong><p>Create the first semester for this level and academic year.</p></div> : <div className="semester-card-grid">{semesters.map((semester) => <article className={semester.id === semesterId ? "is-active" : ""} key={semester.id}><button onClick={() => setSemesterId(semester.id)} type="button"><span>Semester {semester.semesterOrder}</span><strong>{semester.name}</strong></button><div className="row-actions"><button onClick={() => { setEditingSemester(semester); setSemesterForm({ name: semester.name, semesterOrder: String(semester.semesterOrder) }); }} type="button">Edit</button><button className="danger-text" onClick={() => setDeletingSemester(semester)} type="button">Delete</button></div></article>)}</div>}</section>
 
-          <section className="management-panel curriculum-modules"><header className="panel-header panel-header--bordered"><div><p className="management-kicker">{selectedSemester?.name ?? "Semester modules"}</p><h2>Subject Modules</h2><p>{selectedSemester ? `Modules delivered in ${selectedSemester.name} for ${selectedYear?.label}.` : "Select a semester to manage its modules."}</p></div><button className="management-primary-button" disabled={!semesterId} onClick={() => { setModuleForm(emptyModuleForm); setCreatingModule(true); }} type="button">New Module</button></header>{!semesterId ? <div className="panel-empty"><strong>Select a semester.</strong></div> : modulesQuery.isPending ? <div className="panel-empty">Loading modules...</div> : modulesQuery.isError ? <div className="panel-empty panel-empty--error">{errorMessage(modulesQuery.error)}</div> : modules.length === 0 ? <div className="panel-empty"><strong>No modules configured.</strong><p>Create the first subject module for this semester.</p></div> : <div className="resource-table-wrapper"><table className="resource-table"><thead><tr><th>Module</th><th>Academic domains</th><th>Actions</th></tr></thead><tbody>{modules.map((module) => <tr key={module.id}><td><div className="resource-name"><span className="resource-monogram">{module.code.slice(0, 2)}</span><div><strong>{module.title}</strong><small>{module.code}</small></div></div></td><td>{module.academicDomainIds.length ? module.academicDomainIds.map((id) => domainNames.get(id) ?? "Unknown domain").join(", ") : "No domain assigned"}</td><td><div className="row-actions"><button onClick={() => { setEditingModule(module); setModuleForm({ code: module.code, title: module.title, academicDomainIds: module.academicDomainIds }); }} type="button">Edit</button><button className="danger-text" onClick={() => setDeletingModule(module)} type="button">Delete</button></div></td></tr>)}</tbody></table></div>}</section>
+          <section className="management-panel curriculum-modules"><header className="panel-header panel-header--bordered"><div><p className="management-kicker">{selectedSemester?.name ?? "Semester modules"}</p><h2>Subject Modules</h2><p>{selectedSemester ? `Modules delivered in ${selectedSemester.name} for ${selectedYear?.label}.` : "Select a semester to manage its modules."}</p></div><button className="management-primary-button" disabled={!semesterId} onClick={() => { setModuleForm(emptyModuleForm); setCreatingModule(true); }} type="button">New Module</button></header>{!semesterId ? <div className="panel-empty"><strong>Select a semester.</strong></div> : modulesQuery.isPending ? <div className="panel-empty">Loading modules...</div> : modulesQuery.isError ? <div className="panel-empty panel-empty--error">{errorMessage(modulesQuery.error)}</div> : modules.length === 0 ? <div className="panel-empty"><strong>No modules configured.</strong><p>Create the first subject module for this semester.</p></div> : <div className="resource-table-wrapper"><table className="resource-table"><thead><tr><th>Module</th><th>Academic domains</th><th>Actions</th></tr></thead><tbody>{modules.map((module) => <tr key={module.id}><td><Link className="resource-name resource-name--link module-record-link" to={`${workspacePath}/programs/${programFiliereId}/modules/${module.id}?academicYearId=${academicYearId}&academicLevelId=${academicLevelId}&semesterId=${semesterId}`}><span className="resource-monogram">{module.code.slice(0, 2)}</span><div><strong>{module.title}</strong><small>{module.code}</small></div></Link></td><td>{module.academicDomainIds.length ? module.academicDomainIds.map((id) => domainNames.get(id) ?? "Unknown domain").join(", ") : "No domain assigned"}</td><td><div className="row-actions"><button onClick={() => { setEditingModule(module); setModuleForm({ code: module.code, title: module.title, academicDomainIds: module.academicDomainIds }); }} type="button">Edit</button><button className="danger-text" onClick={() => setDeletingModule(module)} type="button">Delete</button></div></td></tr>)}</tbody></table></div>}</section>
         </> : <ProgramStudentCohort academicLevel={selectedLevel} academicLevels={levels} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} onSelectAcademicLevel={(levelId) => { setAcademicLevelId(levelId); setSemesterId(""); }} programFiliereId={programFiliereId} semesters={semesters} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />}
       </main>
     </div>

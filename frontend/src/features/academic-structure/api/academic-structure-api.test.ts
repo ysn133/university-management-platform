@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createAcademicDomain, createAcademicRuleProfile, createAcademicYear, createProgramFiliere, getAcademicLevels, getDepartments, getSemesters } from "./academic-structure-api";
+import { createAcademicDomain, createAcademicRuleProfile, createAcademicYear, createProgramFiliere, getAcademicLevels, getDepartments, getModuleTeachingComponents, getSemesters, replaceModuleTeachingComponents } from "./academic-structure-api";
 
 const establishmentId = "00000000-0000-4000-8000-000000000001";
 const departmentId = "00000000-0000-4000-8000-000000000002";
@@ -142,6 +142,51 @@ describe("academic structure API", () => {
 
     const submittedRequest = fetchMock.mock.calls[0][0] as Request;
     expect(submittedRequest.url).toContain(`/api/v1/establishments/${establishmentId}/academic-domains`);
+    await expect(submittedRequest.clone().json()).resolves.toEqual(request);
+  });
+
+  it("loads a subject module teaching configuration", async () => {
+    const subjectModuleId = "00000000-0000-4000-8000-000000000014";
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify([{
+      id: "00000000-0000-4000-8000-000000000015",
+      subjectModuleId,
+      componentType: "COURSE",
+      sessionsPerWeek: 1,
+      sessionDurationMinutes: 120,
+      audienceMode: "WHOLE_COHORT",
+      maximumGroupSize: null,
+      requiredRoomType: "LECTURE_HALL",
+    }]), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getModuleTeachingComponents(subjectModuleId);
+
+    expect((fetchMock.mock.calls[0][0] as Request).url).toContain(`/api/v1/subject-modules/${subjectModuleId}/teaching-components`);
+  });
+
+  it("replaces the complete subject module teaching configuration", async () => {
+    const subjectModuleId = "00000000-0000-4000-8000-000000000016";
+    const request = {
+      components: [{
+        componentType: "TP" as const,
+        sessionsPerWeek: 1,
+        sessionDurationMinutes: 120,
+        audienceMode: "SUBGROUP" as const,
+        maximumGroupSize: 25,
+        requiredRoomType: "COMPUTER_LAB" as const,
+      }],
+    };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify([{
+      id: "00000000-0000-4000-8000-000000000017",
+      subjectModuleId,
+      ...request.components[0],
+    }]), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await replaceModuleTeachingComponents(subjectModuleId, request);
+
+    const submittedRequest = fetchMock.mock.calls[0][0] as Request;
+    expect(submittedRequest.method).toBe("PUT");
     await expect(submittedRequest.clone().json()).resolves.toEqual(request);
   });
 });
