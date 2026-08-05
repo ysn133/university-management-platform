@@ -6,7 +6,7 @@ export function getManagementNavigation(
   establishmentId?: string | null,
 ): WorkspaceNavigationItem[] {
   const isRoot = role === "ROOT_SUPER_ADMIN";
-  const hasEstablishmentContext = Boolean(establishmentId) || role === "SUPER_ADMIN";
+  const hasEstablishmentContext = Boolean(establishmentId) || role === "SUPER_ADMIN" || role === "ADMIN";
 
   if (hasEstablishmentContext) {
     const contextPath = isRoot
@@ -28,6 +28,11 @@ export function getManagementNavigation(
             group: "People and access",
           } as const]
         : []),
+      { label: "Departments", to: `${contextPath}/departments`, icon: "departments", group: "Academic structure" },
+      { label: "Program Paths", to: `${contextPath}/program-paths`, icon: "paths", group: "Academic structure" },
+      { label: "Degree Cycles", to: `${contextPath}/degree-cycles`, icon: "cycles", group: "Academic structure" },
+      { label: "Programs", to: `${contextPath}/programs`, icon: "programs", group: "Academic structure" },
+      { label: "Academic Years", to: `${contextPath}/academic-years`, icon: "years", group: "Academic structure" },
     ];
   }
 

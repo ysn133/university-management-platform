@@ -9,6 +9,10 @@ import { EstablishmentAuthorityRoute } from "@/features/establishment-management
 import { EstablishmentWorkspacePage } from "@/features/establishment-management/pages/EstablishmentWorkspacePage";
 import { AdminManagementPage } from "@/features/establishment-management/pages/AdminManagementPage";
 import { AdminDetailsPage } from "@/features/establishment-management/pages/AdminDetailsPage";
+import { EstablishmentOperationRoute } from "@/features/academic-structure/components/EstablishmentOperationRoute";
+import { AcademicYearsPage } from "@/features/academic-structure/pages/AcademicYearsPage";
+import { ProgramFilieresPage } from "@/features/academic-structure/pages/ProgramFilieresPage";
+import { DegreeCyclesPage, DepartmentsPage, ProgramPathsPage } from "@/features/academic-structure/pages/ReferenceCatalogPages";
 
 export const managementRoutes: RouteObject = {
   path: "/management",
@@ -23,6 +27,11 @@ export const managementRoutes: RouteObject = {
         { path: "establishments/:establishmentId/super-admins", element: <EstablishmentDetailsPage /> },
         { path: "establishments/:establishmentId/admins", element: <AdminManagementPage /> },
         { path: "establishments/:establishmentId/admins/:adminId", element: <AdminDetailsPage /> },
+        { path: "establishments/:establishmentId/departments", element: <DepartmentsPage /> },
+        { path: "establishments/:establishmentId/program-paths", element: <ProgramPathsPage /> },
+        { path: "establishments/:establishmentId/degree-cycles", element: <DegreeCyclesPage /> },
+        { path: "establishments/:establishmentId/programs", element: <ProgramFilieresPage /> },
+        { path: "establishments/:establishmentId/academic-years", element: <AcademicYearsPage /> },
       ],
     },
     {
@@ -30,6 +39,16 @@ export const managementRoutes: RouteObject = {
       children: [
         { path: "admins", element: <AdminManagementPage /> },
         { path: "admins/:adminId", element: <AdminDetailsPage /> },
+      ],
+    },
+    {
+      element: <EstablishmentOperationRoute />,
+      children: [
+        { path: "departments", element: <DepartmentsPage /> },
+        { path: "program-paths", element: <ProgramPathsPage /> },
+        { path: "degree-cycles", element: <DegreeCyclesPage /> },
+        { path: "programs", element: <ProgramFilieresPage /> },
+        { path: "academic-years", element: <AcademicYearsPage /> },
       ],
     },
     { path: "account/password", element: <ChangePasswordPage /> },
