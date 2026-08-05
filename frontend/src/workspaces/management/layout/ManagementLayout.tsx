@@ -26,11 +26,17 @@ export function ManagementLayout() {
     ? `/management/establishments/${establishmentId}`
     : "/management";
   const adminDetailMatch = location.pathname.match(/\/admins\/([^/]+)$/);
-  const section = location.pathname.endsWith("/super-admins")
-      ? "Super Admins"
-      : location.pathname.endsWith("/admins")
-        ? "Admins"
-        : null;
+  const sectionLabels: Record<string, string> = {
+    "super-admins": "Super Admins",
+    admins: "Admins",
+    departments: "Departments",
+    "program-paths": "Program Paths",
+    "degree-cycles": "Degree Cycles",
+    programs: "Programs / Filières",
+    "academic-years": "Academic Years",
+  };
+  const lastPathSegment = location.pathname.split("/").filter(Boolean).at(-1) ?? "";
+  const section = sectionLabels[lastPathSegment] ?? null;
   const adminsPath = user?.role === "ROOT_SUPER_ADMIN"
     ? `${contextPath}/admins`
     : "/management/admins";

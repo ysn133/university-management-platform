@@ -1,4 +1,4 @@
-import { type PropsWithChildren, useEffect, useId, useRef } from "react";
+import { type PropsWithChildren, useEffect, useEffectEvent, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 
 interface ManagementModalProps extends PropsWithChildren {
@@ -12,6 +12,7 @@ export function ManagementModal({ title, description, onClose, children, size = 
   const titleId = useId();
   const descriptionId = useId();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const closeModal = useEffectEvent(onClose);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -19,7 +20,7 @@ export function ManagementModal({ title, description, onClose, children, size = 
 
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        onClose();
+        closeModal();
       }
     }
 
@@ -32,7 +33,7 @@ export function ManagementModal({ title, description, onClose, children, size = 
       document.removeEventListener("keydown", closeOnEscape);
       previouslyFocused?.focus();
     };
-  }, [onClose]);
+  }, []);
 
   return createPortal(
     <div className="management-modal-backdrop" onMouseDown={onClose}>

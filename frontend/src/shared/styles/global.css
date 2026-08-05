@@ -3230,6 +3230,58 @@ a.workspace-module-card:hover {
   }
 }
 
+/* Academic structure */
+.academic-directory-toolbar {
+  grid-template-columns: minmax(18rem, 1fr) auto;
+}
+
+.program-directory-toolbar {
+  grid-template-columns: minmax(11rem, 0.55fr) minmax(11rem, 0.55fr) minmax(11rem, 0.55fr) minmax(16rem, 1fr) auto;
+}
+
+.directory-result-count {
+  align-self: center;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--management-line);
+  border-radius: 100px;
+  background: #f7fafc;
+  color: var(--management-muted);
+  font-size: 0.64rem;
+  font-weight: 720;
+  white-space: nowrap;
+}
+
+.academic-resource-table th:last-child,
+.academic-resource-table td:last-child {
+  width: 10rem;
+}
+
+.status-badge--planned {
+  background: #e8f2fb;
+  color: #256da5;
+}
+
+.status-badge--closed {
+  background: #edf0f3;
+  color: #667580;
+}
+
+.academic-prerequisite-note {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e7d9ba;
+  border-radius: 0.7rem;
+  background: #fffaf0;
+  color: #795d20;
+  font-size: 0.68rem;
+}
+
+.academic-prerequisite-note strong {
+  color: #604714;
+}
+
 @media (max-width: 900px) {
   .management-global-rail {
     display: none;
@@ -3285,6 +3337,25 @@ a.workspace-module-card:hover {
 
   .admin-directory-toolbar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .academic-directory-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .program-directory-toolbar {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .program-directory-toolbar .search-field {
+    grid-column: 1 / 3;
+    grid-row: 2;
+  }
+
+  .program-directory-toolbar .directory-result-count {
+    justify-self: end;
+    grid-column: 3;
+    grid-row: 2;
   }
 
   .security-layout {
@@ -3665,6 +3736,26 @@ a.workspace-module-card:hover {
   .directory-toolbar--inside,
   .management-form--two-columns {
     grid-template-columns: 1fr;
+  }
+
+  .academic-directory-toolbar,
+  .program-directory-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .program-directory-toolbar .search-field {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .directory-result-count {
+    justify-self: start;
+  }
+
+  .program-directory-toolbar .directory-result-count {
+    justify-self: start;
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .directory-toolbar--inside {
