@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createAcademicYear, createProgramFiliere, getDepartments } from "./academic-structure-api";
+import { createAcademicDomain, createAcademicRuleProfile, createAcademicYear, createProgramFiliere, getAcademicLevels, getDepartments, getSemesters } from "./academic-structure-api";
 
 const establishmentId = "00000000-0000-4000-8000-000000000001";
 const departmentId = "00000000-0000-4000-8000-000000000002";
@@ -60,5 +60,88 @@ describe("academic structure API", () => {
     expect(fetchMock.mock.calls[0][0].url).toContain(`/api/v1/departments/${departmentId}/program-filieres`);
     const submittedRequest = fetchMock.mock.calls[0][0] as Request;
     await expect(submittedRequest.clone().json()).resolves.toEqual(programRequest);
+  });
+
+  it("loads academic levels through their program", async () => {
+    const programId = "00000000-0000-4000-8000-000000000007";
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify([{
+      id: "00000000-0000-4000-8000-000000000008",
+      programFiliereId: programId,
+      establishmentId,
+      name: "M1",
+      levelOrder: 1,
+    }]), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getAcademicLevels(programId);
+
+    expect((fetchMock.mock.calls[0][0] as Request).url).toContain(`/api/v1/program-filieres/${programId}/academic-levels`);
+  });
+
+  it("loads semesters in the selected academic year", async () => {
+    const levelId = "00000000-0000-4000-8000-000000000009";
+    const academicYearId = "00000000-0000-4000-8000-000000000010";
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify([{
+      id: "00000000-0000-4000-8000-000000000011",
+      academicLevelId: levelId,
+      academicYearId,
+      establishmentId,
+      name: "S1",
+      semesterOrder: 1,
+    }]), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getSemesters(levelId, academicYearId);
+
+    const requestUrl = new URL((fetchMock.mock.calls[0][0] as Request).url);
+    expect(requestUrl.pathname).toContain(`/api/v1/academic-levels/${levelId}/semesters`);
+    expect(requestUrl.searchParams.get("academicYearId")).toBe(academicYearId);
+  });
+
+  it("creates an active academic rule profile in establishment scope", async () => {
+    const request = {
+      name: "Master standard rules",
+      moduleValidationThreshold: 10,
+      compensationMinimumThreshold: 7,
+      semesterValidationAverage: 10,
+      annualValidationAverage: 10,
+      maximumModuleInscriptions: 2,
+      sessionGradePolicy: "RATTRAPAGE_CAPPED_AT_VALIDATION_THRESHOLD" as const,
+      allowProgressionWithDebt: true,
+      maximumCarriedModules: 2,
+      maximumUnjustifiedAbsences: 3,
+      absenceExclusionPolicy: "NORMAL_AND_RATTRAPAGE" as const,
+      status: "ACTIVE" as const,
+    };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      id: "00000000-0000-4000-8000-000000000012",
+      establishmentId,
+      name: request.name,
+      version: 1,
+      status: "ACTIVE",
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createAcademicRuleProfile(establishmentId, request);
+
+    const submittedRequest = fetchMock.mock.calls[0][0] as Request;
+    expect(submittedRequest.url).toContain(`/api/v1/establishments/${establishmentId}/academic-rule-profiles`);
+    await expect(submittedRequest.clone().json()).resolves.toEqual(request);
+  });
+
+  it("creates an academic domain in establishment scope", async () => {
+    const request = { code: "CS", name: "Computer Science" };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      id: "00000000-0000-4000-8000-000000000013",
+      establishmentId,
+      ...request,
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createAcademicDomain(establishmentId, request);
+
+    const submittedRequest = fetchMock.mock.calls[0][0] as Request;
+    expect(submittedRequest.url).toContain(`/api/v1/establishments/${establishmentId}/academic-domains`);
+    await expect(submittedRequest.clone().json()).resolves.toEqual(request);
   });
 });
