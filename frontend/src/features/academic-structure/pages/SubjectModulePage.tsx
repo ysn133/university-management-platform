@@ -26,7 +26,6 @@ interface TeachingComponentForm {
   sessionsPerWeek: string;
   sessionDurationMinutes: string;
   audienceMode: AudienceMode;
-  maximumGroupSize: string;
   requiredRoomType: RoomType;
 }
 
@@ -49,12 +48,12 @@ const roomLabels: Record<RoomType, string> = {
 
 function defaultComponent(componentType: ComponentType): TeachingComponentForm {
   if (componentType === "COURSE") {
-    return { enabled: false, componentType, sessionsPerWeek: "1", sessionDurationMinutes: "120", audienceMode: "WHOLE_COHORT", maximumGroupSize: "", requiredRoomType: "LECTURE_HALL" };
+    return { enabled: false, componentType, sessionsPerWeek: "1", sessionDurationMinutes: "120", audienceMode: "WHOLE_COHORT", requiredRoomType: "LECTURE_HALL" };
   }
   if (componentType === "TD") {
-    return { enabled: false, componentType, sessionsPerWeek: "1", sessionDurationMinutes: "120", audienceMode: "CLASS_GROUP", maximumGroupSize: "", requiredRoomType: "CLASSROOM" };
+    return { enabled: false, componentType, sessionsPerWeek: "1", sessionDurationMinutes: "120", audienceMode: "CLASS_GROUP", requiredRoomType: "CLASSROOM" };
   }
-  return { enabled: false, componentType, sessionsPerWeek: "1", sessionDurationMinutes: "120", audienceMode: "SUBGROUP", maximumGroupSize: "25", requiredRoomType: "COMPUTER_LAB" };
+  return { enabled: false, componentType, sessionsPerWeek: "1", sessionDurationMinutes: "120", audienceMode: "SUBGROUP", requiredRoomType: "COMPUTER_LAB" };
 }
 
 function componentForm(componentType: ComponentType, components: ModuleTeachingComponent[]): TeachingComponentForm {
@@ -66,7 +65,6 @@ function componentForm(componentType: ComponentType, components: ModuleTeachingC
     sessionsPerWeek: String(component.sessionsPerWeek),
     sessionDurationMinutes: String(component.sessionDurationMinutes),
     audienceMode: component.audienceMode,
-    maximumGroupSize: component.maximumGroupSize ? String(component.maximumGroupSize) : "",
     requiredRoomType: component.requiredRoomType,
   };
 }
@@ -104,7 +102,6 @@ export function SubjectModulePage() {
         sessionsPerWeek: Number(component.sessionsPerWeek),
         sessionDurationMinutes: Number(component.sessionDurationMinutes),
         audienceMode: component.audienceMode,
-        maximumGroupSize: component.maximumGroupSize ? Number(component.maximumGroupSize) : undefined,
         requiredRoomType: component.requiredRoomType,
       })),
     }),
@@ -122,13 +119,8 @@ export function SubjectModulePage() {
   function submitComponents() {
     const enabledComponents = components.filter((component) => component.enabled);
     const invalidDuration = enabledComponents.some((component) => Number(component.sessionsPerWeek) <= 0 || Number(component.sessionDurationMinutes) <= 0);
-    const invalidSubgroup = enabledComponents.some((component) => component.audienceMode === "SUBGROUP" && Number(component.maximumGroupSize) <= 0);
     if (invalidDuration) {
       setFormError("Sessions per week and session duration must be greater than zero.");
-      return;
-    }
-    if (invalidSubgroup) {
-      setFormError("A subgroup component requires a maximum group size.");
       return;
     }
     saveMutation.mutate();
@@ -198,7 +190,6 @@ export function SubjectModulePage() {
                 <label><span>Duration</span><div className="component-input-unit"><input min="1" onChange={(event) => updateComponent(component.componentType, { sessionDurationMinutes: event.target.value })} type="number" value={component.sessionDurationMinutes} /><small>minutes</small></div></label>
                 <label><span>Audience</span><select onChange={(event) => updateComponent(component.componentType, { audienceMode: event.target.value as AudienceMode })} value={component.audienceMode}>{Object.entries(audienceLabels).map(([value, text]) => <option key={value} value={value}>{text}</option>)}</select></label>
                 <label><span>Room type</span><select onChange={(event) => updateComponent(component.componentType, { requiredRoomType: event.target.value as RoomType })} value={component.requiredRoomType}>{Object.entries(roomLabels).map(([value, text]) => <option key={value} value={value}>{text}</option>)}</select></label>
-                <label className="component-group-size"><span>Maximum group size <small>{component.audienceMode === "SUBGROUP" ? "Required" : "Optional"}</small></span><input min="1" onChange={(event) => updateComponent(component.componentType, { maximumGroupSize: event.target.value })} placeholder="No limit" type="number" value={component.maximumGroupSize} /></label>
               </fieldset>
             </article>;
           })}

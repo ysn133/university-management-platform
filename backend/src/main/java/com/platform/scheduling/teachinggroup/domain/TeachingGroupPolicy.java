@@ -1,8 +1,7 @@
 package com.platform.scheduling.teachinggroup.domain;
 
-import com.platform.universitygovernance.classgroup.domain.ClassGroup;
-import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingAudienceMode;
-import com.platform.universitygovernance.semester.domain.Semester;
+import com.platform.universitygovernance.academiclevel.domain.AcademicLevel;
+import com.platform.universitygovernance.academicyear.domain.AcademicYear;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -17,39 +16,32 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "teaching_group")
-public class TeachingGroup {
+@Table(name = "teaching_group_policy")
+public class TeachingGroupPolicy {
 
     @Id
     private UUID id;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "semester_id", nullable = false)
-    private Semester semester;
+    @JoinColumn(name = "academic_level_id", nullable = false)
+    private AcademicLevel academicLevel;
 
-    @ManyToOne
-    @JoinColumn(name = "source_class_group_id")
-    private ClassGroup sourceClassGroup;
-
-    @Column(name = "name", nullable = false)
-    private String name;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "academic_year_id", nullable = false)
+    private AcademicYear academicYear;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "audience_type", nullable = false)
-    private TeachingAudienceMode audienceType;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "group_type")
+    @Column(name = "group_type", nullable = false)
     private TeachingGroupType groupType;
+
+    @Column(name = "maximum_group_size", nullable = false)
+    private int maximumGroupSize;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
-
-    public TeachingGroup() {
-    }
 
     @PrePersist
     void onCreate() {
@@ -70,36 +62,20 @@ public class TeachingGroup {
         return id;
     }
 
-    public Semester getSemester() {
-        return semester;
+    public AcademicLevel getAcademicLevel() {
+        return academicLevel;
     }
 
-    public void setSemester(Semester semester) {
-        this.semester = semester;
+    public void setAcademicLevel(AcademicLevel academicLevel) {
+        this.academicLevel = academicLevel;
     }
 
-    public ClassGroup getSourceClassGroup() {
-        return sourceClassGroup;
+    public AcademicYear getAcademicYear() {
+        return academicYear;
     }
 
-    public void setSourceClassGroup(ClassGroup sourceClassGroup) {
-        this.sourceClassGroup = sourceClassGroup;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public TeachingAudienceMode getAudienceType() {
-        return audienceType;
-    }
-
-    public void setAudienceType(TeachingAudienceMode audienceType) {
-        this.audienceType = audienceType;
+    public void setAcademicYear(AcademicYear academicYear) {
+        this.academicYear = academicYear;
     }
 
     public TeachingGroupType getGroupType() {
@@ -108,6 +84,14 @@ public class TeachingGroup {
 
     public void setGroupType(TeachingGroupType groupType) {
         this.groupType = groupType;
+    }
+
+    public int getMaximumGroupSize() {
+        return maximumGroupSize;
+    }
+
+    public void setMaximumGroupSize(int maximumGroupSize) {
+        this.maximumGroupSize = maximumGroupSize;
     }
 
     public Instant getCreatedAt() {

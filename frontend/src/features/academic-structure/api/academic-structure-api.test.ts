@@ -154,7 +154,6 @@ describe("academic structure API", () => {
       sessionsPerWeek: 1,
       sessionDurationMinutes: 120,
       audienceMode: "WHOLE_COHORT",
-      maximumGroupSize: null,
       requiredRoomType: "LECTURE_HALL",
     }]), { status: 200, headers: { "Content-Type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
@@ -172,7 +171,6 @@ describe("academic structure API", () => {
         sessionsPerWeek: 1,
         sessionDurationMinutes: 120,
         audienceMode: "SUBGROUP" as const,
-        maximumGroupSize: 25,
         requiredRoomType: "COMPUTER_LAB" as const,
       }],
     };

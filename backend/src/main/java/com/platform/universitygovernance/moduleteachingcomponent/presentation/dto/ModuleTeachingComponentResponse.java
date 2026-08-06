@@ -13,7 +13,6 @@ public record ModuleTeachingComponentResponse(
     int sessionsPerWeek,
     int sessionDurationMinutes,
     TeachingAudienceMode audienceMode,
-    Integer maximumGroupSize,
     RoomType requiredRoomType,
     Instant createdAt,
     Instant updatedAt

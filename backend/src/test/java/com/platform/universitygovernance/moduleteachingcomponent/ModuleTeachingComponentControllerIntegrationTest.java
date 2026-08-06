@@ -175,7 +175,6 @@ class ModuleTeachingComponentControllerIntegrationTest {
         assertThat(initial).hasSize(2);
         assertThat(initial.get(0).get("componentType").asText()).isEqualTo("COURSE");
         assertThat(initial.get(1).get("componentType").asText()).isEqualTo("TP");
-        assertThat(initial.get(1).get("maximumGroupSize").asInt()).isEqualTo(20);
         String courseId = initial.get(0).get("id").asText();
 
         HttpResponse<String> getResponse = get(componentPath(firstModule), rootToken);
@@ -205,7 +204,7 @@ class ModuleTeachingComponentControllerIntegrationTest {
         assertThat(putJson(
             componentPath(firstModule),
             rootToken,
-            subgroupWithoutSizeConfiguration()
+            courseSubgroupConfiguration()
         ).statusCode()).isEqualTo(400);
     }
 
@@ -252,10 +251,10 @@ class ModuleTeachingComponentControllerIntegrationTest {
         return """
             {"components":[
               {"componentType":"COURSE","sessionsPerWeek":1,"sessionDurationMinutes":90,
-               "audienceMode":"WHOLE_COHORT","maximumGroupSize":null,
+               "audienceMode":"WHOLE_COHORT",
                "requiredRoomType":"LECTURE_HALL"},
               {"componentType":"TP","sessionsPerWeek":1,"sessionDurationMinutes":120,
-               "audienceMode":"SUBGROUP","maximumGroupSize":20,
+               "audienceMode":"SUBGROUP",
                "requiredRoomType":"COMPUTER_LAB"}
             ]}
             """;
@@ -265,10 +264,10 @@ class ModuleTeachingComponentControllerIntegrationTest {
         return """
             {"components":[
               {"componentType":"COURSE","sessionsPerWeek":1,"sessionDurationMinutes":120,
-               "audienceMode":"WHOLE_COHORT","maximumGroupSize":null,
+               "audienceMode":"WHOLE_COHORT",
                "requiredRoomType":"LECTURE_HALL"},
               {"componentType":"TD","sessionsPerWeek":1,"sessionDurationMinutes":90,
-               "audienceMode":"CLASS_GROUP","maximumGroupSize":null,
+               "audienceMode":"CLASS_GROUP",
                "requiredRoomType":"CLASSROOM"}
             ]}
             """;
@@ -278,21 +277,21 @@ class ModuleTeachingComponentControllerIntegrationTest {
         return """
             {"components":[
               {"componentType":"TD","sessionsPerWeek":1,"sessionDurationMinutes":90,
-               "audienceMode":"CLASS_GROUP","maximumGroupSize":null,
+               "audienceMode":"CLASS_GROUP",
                "requiredRoomType":"CLASSROOM"},
               {"componentType":"TD","sessionsPerWeek":2,"sessionDurationMinutes":60,
-               "audienceMode":"CLASS_GROUP","maximumGroupSize":null,
+               "audienceMode":"CLASS_GROUP",
                "requiredRoomType":"CLASSROOM"}
             ]}
             """;
     }
 
-    private String subgroupWithoutSizeConfiguration() {
+    private String courseSubgroupConfiguration() {
         return """
             {"components":[
-              {"componentType":"TP","sessionsPerWeek":1,"sessionDurationMinutes":120,
-               "audienceMode":"SUBGROUP","maximumGroupSize":null,
-               "requiredRoomType":"COMPUTER_LAB"}
+              {"componentType":"COURSE","sessionsPerWeek":1,"sessionDurationMinutes":120,
+               "audienceMode":"SUBGROUP",
+               "requiredRoomType":"LECTURE_HALL"}
             ]}
             """;
     }

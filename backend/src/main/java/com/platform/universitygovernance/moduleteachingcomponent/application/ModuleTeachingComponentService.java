@@ -91,7 +91,6 @@ public class ModuleTeachingComponentService {
             component.setSessionsPerWeek(item.sessionsPerWeek());
             component.setSessionDurationMinutes(item.sessionDurationMinutes());
             component.setAudienceMode(item.audienceMode());
-            component.setMaximumGroupSize(item.maximumGroupSize());
             component.setRequiredRoomType(item.requiredRoomType());
             configuredComponents.add(component);
         }
@@ -124,11 +123,11 @@ public class ModuleTeachingComponentService {
                     "Each teaching component type may appear only once"
                 );
             }
-            if (component.audienceMode() == TeachingAudienceMode.SUBGROUP
-                && component.maximumGroupSize() == null) {
+            if (component.componentType() == TeachingComponentType.COURSE
+                && component.audienceMode() == TeachingAudienceMode.SUBGROUP) {
                 throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Subgroup teaching components require a maximum group size"
+                    "Course components cannot use TD or TP subgroups"
                 );
             }
         }
@@ -149,7 +148,6 @@ public class ModuleTeachingComponentService {
                     component.getSessionsPerWeek(),
                     component.getSessionDurationMinutes(),
                     component.getAudienceMode(),
-                    component.getMaximumGroupSize(),
                     component.getRequiredRoomType(),
                     component.getCreatedAt(),
                     component.getUpdatedAt()

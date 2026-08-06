@@ -20,9 +20,14 @@ import com.platform.platform.PlatformApplication;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.scheduling.domain.RoomType;
 import com.platform.scheduling.teachinggroup.application.TeachingGroupGenerationService;
+import com.platform.scheduling.teachinggroup.application.TeachingGroupPolicyService;
 import com.platform.scheduling.teachinggroup.domain.TeachingGroup;
 import com.platform.scheduling.teachinggroup.domain.TeachingGroupMembership;
 import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupMembershipRepository;
+import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupPolicyRepository;
+import com.platform.scheduling.teachinggroup.domain.TeachingGroupType;
+import com.platform.scheduling.teachinggroup.presentation.dto.ReplaceTeachingGroupPoliciesRequest;
+import com.platform.scheduling.teachinggroup.presentation.dto.TeachingGroupPolicyItemRequest;
 import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupRepository;
 import com.platform.teachingrequirement.application.TeachingRequirementService;
 import com.platform.teachingrequirement.infrastructure.TeachingRequirementRepository;
@@ -80,6 +85,9 @@ class TeachingGroupGenerationServiceIntegrationTest {
     private TeachingRequirementService teachingRequirementService;
 
     @Autowired
+    private TeachingGroupPolicyService policyService;
+
+    @Autowired
     private TeachingRequirementRepository teachingRequirementRepository;
 
     @Autowired
@@ -87,6 +95,9 @@ class TeachingGroupGenerationServiceIntegrationTest {
 
     @Autowired
     private TeachingGroupRepository teachingGroupRepository;
+
+    @Autowired
+    private TeachingGroupPolicyRepository policyRepository;
 
     @Autowired
     private ModuleTeachingComponentRepository componentRepository;
@@ -173,10 +184,13 @@ class TeachingGroupGenerationServiceIntegrationTest {
         Map<String, TeachingGroup> groupsByName = generated.stream()
             .collect(Collectors.toMap(TeachingGroup::getName, Function.identity()));
         assertThat(groupsByName.keySet())
-            .containsExactlyInAnyOrder("Whole Cohort", "A", "B", "A1", "A2", "B1", "B2");
+            .containsExactlyInAnyOrder(
+                "Whole Cohort", "A", "B", "A TP1", "A TP2", "B TP1", "B TP2"
+            );
         assertThat(groupsByName.get("Whole Cohort").getSourceClassGroup()).isNull();
-        assertThat(groupsByName.get("A1").getSourceClassGroup().getId()).isEqualTo(groupA.getId());
-        assertThat(groupsByName.get("B2").getSourceClassGroup().getId()).isEqualTo(groupB.getId());
+        assertThat(groupsByName.get("A TP1").getSourceClassGroup().getId()).isEqualTo(groupA.getId());
+        assertThat(groupsByName.get("B TP2").getSourceClassGroup().getId()).isEqualTo(groupB.getId());
+        assertThat(groupsByName.get("A TP1").getGroupType()).isEqualTo(TeachingGroupType.TP);
 
         Map<String, Long> membershipCounts = membershipRepository
             .findByTeachingGroupIdIn(generated.stream().map(TeachingGroup::getId).toList())
@@ -187,8 +201,8 @@ class TeachingGroupGenerationServiceIntegrationTest {
             ));
         assertThat(membershipCounts).containsEntry("Whole Cohort", 10L);
         assertThat(membershipCounts).containsEntry("A", 5L).containsEntry("B", 5L);
-        assertThat(membershipCounts).containsEntry("A1", 3L).containsEntry("A2", 2L);
-        assertThat(membershipCounts).containsEntry("B1", 3L).containsEntry("B2", 2L);
+        assertThat(membershipCounts).containsEntry("A TP1", 3L).containsEntry("A TP2", 2L);
+        assertThat(membershipCounts).containsEntry("B TP1", 3L).containsEntry("B TP2", 2L);
 
         for (TeachingGroupMembership membership : membershipRepository.findAll()) {
             if (membership.getTeachingGroup().getAudienceType() == TeachingAudienceMode.SUBGROUP) {
@@ -212,6 +226,16 @@ class TeachingGroupGenerationServiceIntegrationTest {
             .hasMessageContaining("409 CONFLICT");
         assertThat(teachingGroupRepository.findAll()).isEmpty();
         assertThat(membershipRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void rejectsGenerationWhenARequiredSubgroupPolicyIsMissing() {
+        saveActiveRegistration(1, groupA);
+        policyRepository.deleteAll();
+
+        assertThatThrownBy(() -> generationService.generateForSemester(semester.getId()))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("A teaching group policy is required for TP");
     }
 
     @Test
@@ -322,9 +346,18 @@ class TeachingGroupGenerationServiceIntegrationTest {
         component.setSessionsPerWeek(1);
         component.setSessionDurationMinutes(120);
         component.setAudienceMode(TeachingAudienceMode.SUBGROUP);
-        component.setMaximumGroupSize(3);
         component.setRequiredRoomType(RoomType.COMPUTER_LAB);
         componentRepository.save(component);
+
+        policyService.replacePolicies(
+            rootPrincipal(),
+            academicLevel.getId(),
+            academicYear.getId(),
+            new ReplaceTeachingGroupPoliciesRequest(List.of(
+                new TeachingGroupPolicyItemRequest(TeachingGroupType.TD, 2),
+                new TeachingGroupPolicyItemRequest(TeachingGroupType.TP, 3)
+            ))
+        );
     }
 
     private ClassGroup saveClassGroup(String name) {
@@ -375,6 +408,7 @@ class TeachingGroupGenerationServiceIntegrationTest {
         teachingRequirementRepository.deleteAll();
         membershipRepository.deleteAll();
         teachingGroupRepository.deleteAll();
+        policyRepository.deleteAll();
         componentRepository.deleteAll();
         classAssignmentRepository.deleteAll();
         semesterRegistrationRepository.deleteAll();
@@ -392,5 +426,15 @@ class TeachingGroupGenerationServiceIntegrationTest {
         establishmentRepository.deleteAll();
         universityRepository.deleteAll();
         userAccountRepository.deleteAll();
+    }
+
+    private AuthenticatedUserPrincipal rootPrincipal() {
+        return new AuthenticatedUserPrincipal(
+            UUID.randomUUID(),
+            AccountRoleType.ROOT_SUPER_ADMIN,
+            UUID.randomUUID(),
+            null,
+            "root@uiz.ac.ma"
+        );
     }
 }

@@ -70,7 +70,6 @@ const moduleTeachingComponentSchema = z.object({
   sessionsPerWeek: z.number().int().positive(),
   sessionDurationMinutes: z.number().int().positive(),
   audienceMode: z.enum(["WHOLE_COHORT", "CLASS_GROUP", "SUBGROUP"]),
-  maximumGroupSize: z.number().int().positive().nullable().optional(),
   requiredRoomType: z.enum(["LECTURE_HALL", "CLASSROOM", "COMPUTER_LAB"]),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),

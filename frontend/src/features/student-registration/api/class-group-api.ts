@@ -57,16 +57,28 @@ const bulkAssignmentSchema = z.object({
   semesterAssignmentsCreated: z.number().int(),
 });
 
+const teachingGroupPolicySchema = z.object({
+  id: z.string().uuid(),
+  academicLevelId: z.string().uuid(),
+  academicYearId: z.string().uuid(),
+  groupType: z.enum(["TD", "TP"]),
+  maximumGroupSize: z.number().int().positive(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
 export type ClassGroup = z.infer<typeof classGroupSchema>;
 export type ClassGroupRoster = z.infer<typeof rosterSchema>;
 export type ClassGroupGeneration = z.infer<typeof generationSchema>;
 export type ClassGroupRebalance = z.infer<typeof rebalanceSchema>;
+export type TeachingGroupPolicy = z.infer<typeof teachingGroupPolicySchema>;
 export type GenerateClassGroupsRequest = components["schemas"]["GenerateClassGroupsRequest"];
 export type BulkAssignStudentClassesRequest = components["schemas"]["BulkAssignStudentClassesRequest"];
 
 export const classGroupKeys = {
   groups: (academicLevelId: string, academicYearId: string) => ["class-groups", academicLevelId, academicYearId] as const,
   roster: (academicLevelId: string, academicYearId: string, semesterId: string) => ["class-group-roster", academicLevelId, academicYearId, semesterId] as const,
+  teachingPolicies: (academicLevelId: string, academicYearId: string) => ["teaching-group-policies", academicLevelId, academicYearId] as const,
 };
 
 async function parseResponse<T>(result: { response: Response; data?: unknown; error?: unknown }, schema: z.ZodType<T>): Promise<T> {
@@ -112,4 +124,21 @@ export async function bulkAssignStudentClasses(academicLevelId: string, academic
     params: { path: { academicLevelId }, query: { academicYearId } },
     body: request,
   }), bulkAssignmentSchema);
+}
+
+export async function getTeachingGroupPolicies(academicLevelId: string, academicYearId: string): Promise<TeachingGroupPolicy[]> {
+  return parseResponse(await apiClient.GET("/api/v1/academic-levels/{academicLevelId}/teaching-group-policies", {
+    params: { path: { academicLevelId }, query: { academicYearId } },
+  }), z.array(teachingGroupPolicySchema));
+}
+
+export async function replaceTeachingGroupPolicies(
+  academicLevelId: string,
+  academicYearId: string,
+  policies: Array<{ groupType: "TD" | "TP"; maximumGroupSize: number }>,
+): Promise<TeachingGroupPolicy[]> {
+  return parseResponse(await apiClient.PUT("/api/v1/academic-levels/{academicLevelId}/teaching-group-policies", {
+    params: { path: { academicLevelId }, query: { academicYearId } },
+    body: { policies },
+  }), z.array(teachingGroupPolicySchema));
 }

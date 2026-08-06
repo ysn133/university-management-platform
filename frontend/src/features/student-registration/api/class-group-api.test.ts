@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { bulkAssignStudentClasses, generateClassGroups, getClassGroupRoster, rebalanceClassGroups } from "./class-group-api";
+import { bulkAssignStudentClasses, generateClassGroups, getClassGroupRoster, rebalanceClassGroups, replaceTeachingGroupPolicies } from "./class-group-api";
 
 const academicLevelId = "00000000-0000-4000-8000-000000000201";
 const academicYearId = "00000000-0000-4000-8000-000000000202";
@@ -83,5 +83,28 @@ describe("class group API", () => {
     const sent = fetchMock.mock.calls[0][0] as Request;
     expect(sent.method).toBe("PUT");
     expect(sent.url).toContain("/class-groups/rebalance");
+  });
+
+  it("replaces the annual TD and TP group policy", async () => {
+    const policies = [
+      { groupType: "TD" as const, maximumGroupSize: 40 },
+      { groupType: "TP" as const, maximumGroupSize: 24 },
+    ];
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(policies.map((policy, index) => ({
+      id: `00000000-0000-4000-8000-00000000021${index}`,
+      academicLevelId,
+      academicYearId,
+      ...policy,
+      createdAt: "2026-08-05T12:00:00Z",
+      updatedAt: "2026-08-05T12:00:00Z",
+    }))), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await replaceTeachingGroupPolicies(academicLevelId, academicYearId, policies);
+
+    const sent = fetchMock.mock.calls[0][0] as Request;
+    expect(sent.method).toBe("PUT");
+    expect(sent.url).toContain("/teaching-group-policies");
+    await expect(sent.clone().json()).resolves.toEqual({ policies });
   });
 });

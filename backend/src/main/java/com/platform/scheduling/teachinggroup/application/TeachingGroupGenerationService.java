@@ -7,22 +7,28 @@ import com.platform.academicregistration.semesterregistration.domain.SemesterReg
 import com.platform.academicregistration.semesterregistration.infrastructure.SemesterRegistrationRepository;
 import com.platform.scheduling.teachinggroup.domain.TeachingGroup;
 import com.platform.scheduling.teachinggroup.domain.TeachingGroupMembership;
+import com.platform.scheduling.teachinggroup.domain.TeachingGroupPolicy;
+import com.platform.scheduling.teachinggroup.domain.TeachingGroupType;
 import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupMembershipRepository;
+import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupPolicyRepository;
 import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupRepository;
 import com.platform.teachingrequirement.infrastructure.TeachingRequirementRepository;
 import com.platform.universitygovernance.classgroup.domain.ClassGroup;
-import com.platform.universitygovernance.moduleteachingcomponent.domain.ModuleTeachingComponent;
 import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingAudienceMode;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingComponentType;
 import com.platform.universitygovernance.moduleteachingcomponent.infrastructure.ModuleTeachingComponentRepository;
 import com.platform.universitygovernance.semester.domain.Semester;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +41,7 @@ public class TeachingGroupGenerationService {
     private final SemesterRegistrationRepository semesterRegistrationRepository;
     private final StudentClassAssignmentRepository classAssignmentRepository;
     private final ModuleTeachingComponentRepository componentRepository;
+    private final TeachingGroupPolicyRepository policyRepository;
     private final TeachingGroupRepository teachingGroupRepository;
     private final TeachingGroupMembershipRepository membershipRepository;
     private final TeachingRequirementRepository requirementRepository;
@@ -44,6 +51,7 @@ public class TeachingGroupGenerationService {
         SemesterRegistrationRepository semesterRegistrationRepository,
         StudentClassAssignmentRepository classAssignmentRepository,
         ModuleTeachingComponentRepository componentRepository,
+        TeachingGroupPolicyRepository policyRepository,
         TeachingGroupRepository teachingGroupRepository,
         TeachingGroupMembershipRepository membershipRepository,
         TeachingRequirementRepository requirementRepository
@@ -52,6 +60,7 @@ public class TeachingGroupGenerationService {
         this.semesterRegistrationRepository = semesterRegistrationRepository;
         this.classAssignmentRepository = classAssignmentRepository;
         this.componentRepository = componentRepository;
+        this.policyRepository = policyRepository;
         this.teachingGroupRepository = teachingGroupRepository;
         this.membershipRepository = membershipRepository;
         this.requirementRepository = requirementRepository;
@@ -115,7 +124,35 @@ public class TeachingGroupGenerationService {
             registrationsByClass.get(classGroup).add(registration);
         }
 
-        Integer subgroupCapacity = findSubgroupCapacity(semesterId);
+        Set<TeachingComponentType> requiredSubgroupTypes = componentRepository
+            .findBySubjectModuleSemesterIdAndAudienceMode(
+                semesterId,
+                TeachingAudienceMode.SUBGROUP
+            )
+            .stream()
+            .map(component -> component.getComponentType())
+            .collect(Collectors.toSet());
+        Map<TeachingGroupType, TeachingGroupPolicy> policiesByType =
+            new EnumMap<>(TeachingGroupType.class);
+        policyRepository
+            .findByAcademicLevelIdAndAcademicYearIdOrderByGroupTypeAsc(
+                semester.getAcademicLevel().getId(),
+                semester.getAcademicYear().getId()
+            )
+            .forEach(policy -> policiesByType.put(policy.getGroupType(), policy));
+        for (TeachingComponentType requiredType : requiredSubgroupTypes) {
+            TeachingGroupType groupType = TeachingGroupType.valueOf(requiredType.name());
+            if (!policiesByType.containsKey(groupType)) {
+                throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "A teaching group policy is required for " + requiredType
+                );
+            }
+        }
+        List<TeachingGroupPolicy> subgroupPolicies = requiredSubgroupTypes.stream()
+            .map(type -> policiesByType.get(TeachingGroupType.valueOf(type.name())))
+            .sorted(Comparator.comparing(TeachingGroupPolicy::getGroupType))
+            .toList();
         List<TeachingGroup> generatedGroups = new ArrayList<>();
         List<TeachingGroupMembership> generatedMemberships = new ArrayList<>();
 
@@ -123,7 +160,8 @@ public class TeachingGroupGenerationService {
             semester,
             null,
             "Whole Cohort",
-            TeachingAudienceMode.WHOLE_COHORT
+            TeachingAudienceMode.WHOLE_COHORT,
+            null
         );
         generatedGroups.add(cohort);
         addMemberships(cohort, activeRegistrations, generatedMemberships);
@@ -137,22 +175,24 @@ public class TeachingGroupGenerationService {
                 semester,
                 classGroup,
                 classGroup.getName(),
-                TeachingAudienceMode.CLASS_GROUP
+                TeachingAudienceMode.CLASS_GROUP,
+                null
             );
             generatedGroups.add(classAudience);
             addMemberships(classAudience, classRegistrations, generatedMemberships);
 
-            if (subgroupCapacity != null) {
+            for (TeachingGroupPolicy policy : subgroupPolicies) {
                 List<List<SemesterRegistration>> subgroups = splitBalanced(
                     classRegistrations,
-                    subgroupCapacity
+                    policy.getMaximumGroupSize()
                 );
                 for (int index = 0; index < subgroups.size(); index++) {
                     TeachingGroup subgroup = createGroup(
                         semester,
                         classGroup,
-                        classGroup.getName() + (index + 1),
-                        TeachingAudienceMode.SUBGROUP
+                        classGroup.getName() + " " + policy.getGroupType() + (index + 1),
+                        TeachingAudienceMode.SUBGROUP,
+                        policy.getGroupType()
                     );
                     generatedGroups.add(subgroup);
                     addMemberships(subgroup, subgroups.get(index), generatedMemberships);
@@ -167,29 +207,19 @@ public class TeachingGroupGenerationService {
         return generatedGroups;
     }
 
-    private Integer findSubgroupCapacity(UUID semesterId) {
-        return componentRepository.findBySubjectModuleSemesterIdAndAudienceMode(
-                semesterId,
-                TeachingAudienceMode.SUBGROUP
-            )
-            .stream()
-            .map(ModuleTeachingComponent::getMaximumGroupSize)
-            .filter(size -> size != null)
-            .min(Integer::compareTo)
-            .orElse(null);
-    }
-
     private TeachingGroup createGroup(
         Semester semester,
         ClassGroup sourceClassGroup,
         String name,
-        TeachingAudienceMode audienceType
+        TeachingAudienceMode audienceType,
+        TeachingGroupType groupType
     ) {
         TeachingGroup teachingGroup = new TeachingGroup();
         teachingGroup.setSemester(semester);
         teachingGroup.setSourceClassGroup(sourceClassGroup);
         teachingGroup.setName(name);
         teachingGroup.setAudienceType(audienceType);
+        teachingGroup.setGroupType(groupType);
         return teachingGroup;
     }
 
