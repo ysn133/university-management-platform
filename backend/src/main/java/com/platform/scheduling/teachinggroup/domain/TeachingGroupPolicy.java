@@ -34,6 +34,9 @@ public class TeachingGroupPolicy {
     @Column(name = "group_type", nullable = false)
     private TeachingGroupType groupType;
 
+    @Column(name = "minimum_group_size", nullable = false)
+    private int minimumGroupSize;
+
     @Column(name = "maximum_group_size", nullable = false)
     private int maximumGroupSize;
 
@@ -84,6 +87,14 @@ public class TeachingGroupPolicy {
 
     public void setGroupType(TeachingGroupType groupType) {
         this.groupType = groupType;
+    }
+
+    public int getMinimumGroupSize() {
+        return minimumGroupSize;
+    }
+
+    public void setMinimumGroupSize(int minimumGroupSize) {
+        this.minimumGroupSize = minimumGroupSize;
     }
 
     public int getMaximumGroupSize() {

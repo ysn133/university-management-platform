@@ -104,6 +104,7 @@ public class TeachingGroupPolicyService {
                 policy.setAcademicYear(academicYear);
                 policy.setGroupType(item.groupType());
             }
+            policy.setMinimumGroupSize(item.minimumGroupSize());
             policy.setMaximumGroupSize(item.maximumGroupSize());
             policyRepository.save(policy);
         }
@@ -115,6 +116,12 @@ public class TeachingGroupPolicyService {
     private void validatePolicies(List<TeachingGroupPolicyItemRequest> policies) {
         Set<TeachingGroupType> types = new HashSet<>();
         for (TeachingGroupPolicyItemRequest policy : policies) {
+            if (policy.minimumGroupSize() > policy.maximumGroupSize()) {
+                throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Minimum group size cannot exceed maximum group size"
+                );
+            }
             if (!types.add(policy.groupType())) {
                 throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -186,6 +193,7 @@ public class TeachingGroupPolicyService {
                 policy.getAcademicLevel().getId(),
                 policy.getAcademicYear().getId(),
                 policy.getGroupType(),
+                policy.getMinimumGroupSize(),
                 policy.getMaximumGroupSize(),
                 policy.getCreatedAt(),
                 policy.getUpdatedAt()

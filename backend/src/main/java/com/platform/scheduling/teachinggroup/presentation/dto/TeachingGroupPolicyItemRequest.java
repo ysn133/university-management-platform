@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Positive;
 
 public record TeachingGroupPolicyItemRequest(
     @NotNull TeachingGroupType groupType,
+    @Positive int minimumGroupSize,
     @Positive int maximumGroupSize
 ) {
 }

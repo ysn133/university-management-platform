@@ -9,9 +9,7 @@ import {
   generateClassGroups,
   getClassGroupRoster,
   getClassGroups,
-  getTeachingGroupPolicies,
   rebalanceClassGroups,
-  replaceTeachingGroupPolicies,
 } from "../api/class-group-api";
 import type { AcademicRegistration, Student } from "../api/student-registration-api";
 
@@ -53,17 +51,12 @@ export function ClassGroupWorkspace({ academicLevelId, academicYearId, semesterI
   const [setupOpen, setSetupOpen] = useState(false);
   const [setupAction, setSetupAction] = useState<"create" | "rebalance">("create");
   const [assignmentOpen, setAssignmentOpen] = useState(false);
-  const [policyOpen, setPolicyOpen] = useState(false);
   const [setupMode, setSetupMode] = useState<"automatic" | "manual">("automatic");
   const [minimumSize, setMinimumSize] = useState("30");
   const [maximumSize, setMaximumSize] = useState("100");
   const [manualNames, setManualNames] = useState("Group A\nGroup B");
   const [assignmentSearch, setAssignmentSearch] = useState("");
   const [assignmentSelections, setAssignmentSelections] = useState<Record<string, string>>({});
-  const [tdEnabled, setTdEnabled] = useState(false);
-  const [tdMaximumSize, setTdMaximumSize] = useState("40");
-  const [tpEnabled, setTpEnabled] = useState(false);
-  const [tpMaximumSize, setTpMaximumSize] = useState("25");
   const deferredAssignmentSearch = useDeferredValue(assignmentSearch.trim().toLowerCase());
 
   const groupsQuery = useQuery({
@@ -74,10 +67,6 @@ export function ClassGroupWorkspace({ academicLevelId, academicYearId, semesterI
     queryKey: classGroupKeys.roster(academicLevelId, academicYearId, semesterId),
     queryFn: () => getClassGroupRoster(academicLevelId, academicYearId, semesterId),
     enabled: Boolean(semesterId),
-  });
-  const policiesQuery = useQuery({
-    queryKey: classGroupKeys.teachingPolicies(academicLevelId, academicYearId),
-    queryFn: () => getTeachingGroupPolicies(academicLevelId, academicYearId),
   });
 
   useEffect(() => {
@@ -121,16 +110,6 @@ export function ClassGroupWorkspace({ academicLevelId, academicYearId, semesterI
     }),
     onSuccess: async () => { await refreshGroups(); },
   });
-  const policyMutation = useMutation({
-    mutationFn: () => replaceTeachingGroupPolicies(academicLevelId, academicYearId, [
-      ...(tdEnabled ? [{ groupType: "TD" as const, maximumGroupSize: Number(tdMaximumSize) }] : []),
-      ...(tpEnabled ? [{ groupType: "TP" as const, maximumGroupSize: Number(tpMaximumSize) }] : []),
-    ]),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: classGroupKeys.teachingPolicies(academicLevelId, academicYearId) });
-      setPolicyOpen(false);
-    },
-  });
 
   const groups = groupsQuery.data ?? [];
   const activeGroups = groups.filter((group) => group.status === "ACTIVE");
@@ -155,17 +134,6 @@ export function ClassGroupWorkspace({ academicLevelId, academicYearId, semesterI
     setAssignmentOpen(true);
   }
 
-  function openPolicies() {
-    const td = policiesQuery.data?.find((policy) => policy.groupType === "TD");
-    const tp = policiesQuery.data?.find((policy) => policy.groupType === "TP");
-    setTdEnabled(Boolean(td));
-    setTpEnabled(Boolean(tp));
-    setTdMaximumSize(td ? String(td.maximumGroupSize) : "40");
-    setTpMaximumSize(tp ? String(tp.maximumGroupSize) : "25");
-    policyMutation.reset();
-    setPolicyOpen(true);
-  }
-
   const previewSizes = balancedSizes(registrations.length, Number(maximumSize));
   const setupError = generationMutation.error ?? rebalanceMutation.error ?? manualCreationMutation.error;
   const assignmentResults = deferredAssignmentSearch.length < 2 ? [] : registrations
@@ -181,7 +149,6 @@ export function ClassGroupWorkspace({ academicLevelId, academicYearId, semesterI
     <div className="class-group-bar">
       <div className="class-group-bar__heading"><strong>Class groups</strong><span>{activeGroups.length === 1 ? "The cohort currently studies as one class" : activeGroups.length > 1 ? `${activeGroups.length} groups configured for this level` : groups.length ? "No active groups configured" : "Organize this cohort into teaching classes"}</span></div>
       <div className="class-group-bar__actions">
-        <button className="secondary-button" disabled={policiesQuery.isPending} onClick={openPolicies} type="button">TD / TP group sizes</button>
         {groups.length > 0 && <>{(hasMultipleGroups || hasUnassignedStudents) && <button className="secondary-button" disabled={!semesterId || rosterQuery.isPending} onClick={openAssignments} type="button">{hasMultipleGroups ? "Move or assign Student" : "Assign Student"}</button>}<button className="secondary-button" disabled={!registrations.length} onClick={() => { setSetupAction("rebalance"); setSetupMode("automatic"); setSetupOpen(true); }} type="button">Rebalance groups</button></>}
         {groups.length === 0 && <button className="secondary-button" disabled={!registrations.length} onClick={() => { setSetupAction("create"); setSetupOpen(true); setSetupMode("automatic"); }} type="button">Set up class groups</button>}
       </div>
@@ -209,13 +176,5 @@ export function ClassGroupWorkspace({ academicLevelId, academicYearId, semesterI
       <footer className="form-actions"><button className="secondary-button" onClick={() => setAssignmentOpen(false)} type="button">Close</button></footer>
     </div></ManagementModal>}
 
-    {policyOpen && <ManagementModal title="Teaching group sizes" description="Set the TD and TP subgroup capacities for this level and academic year. The same policy applies to both semesters." onClose={() => setPolicyOpen(false)}><div className="management-form teaching-policy-form">
-      <div className="teaching-policy-grid">
-        <section className={tdEnabled ? "teaching-policy-card is-enabled" : "teaching-policy-card"}><label className="teaching-policy-toggle"><span><strong>TD groups</strong><small>Guided exercise sessions</small></span><input checked={tdEnabled} onChange={(event) => setTdEnabled(event.target.checked)} type="checkbox" /></label><div className="form-field"><label htmlFor="td-maximum-size">Maximum Students per group</label><input disabled={!tdEnabled} id="td-maximum-size" min="1" onChange={(event) => setTdMaximumSize(event.target.value)} type="number" value={tdMaximumSize} /></div></section>
-        <section className={tpEnabled ? "teaching-policy-card is-enabled" : "teaching-policy-card"}><label className="teaching-policy-toggle"><span><strong>TP groups</strong><small>Practical and laboratory sessions</small></span><input checked={tpEnabled} onChange={(event) => setTpEnabled(event.target.checked)} type="checkbox" /></label><div className="form-field"><label htmlFor="tp-maximum-size">Maximum Students per group</label><input disabled={!tpEnabled} id="tp-maximum-size" min="1" onChange={(event) => setTpMaximumSize(event.target.value)} type="number" value={tpMaximumSize} /></div></section>
-      </div>
-      {policyMutation.isError && <div className="management-alert management-alert--error">{errorMessage(policyMutation.error)}</div>}
-      <footer className="form-actions"><button className="secondary-button" onClick={() => setPolicyOpen(false)} type="button">Cancel</button><button className="management-primary-button" disabled={policyMutation.isPending || (tdEnabled && Number(tdMaximumSize) < 1) || (tpEnabled && Number(tpMaximumSize) < 1)} onClick={() => policyMutation.mutate()} type="button">{policyMutation.isPending ? "Saving..." : "Save policy"}</button></footer>
-    </div></ManagementModal>}
   </>;
 }

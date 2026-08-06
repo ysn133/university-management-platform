@@ -3,6 +3,8 @@ package com.platform.scheduling.teachinggroup.application;
 import com.platform.academicregistration.classassignment.domain.StudentClassAssignment;
 import com.platform.academicregistration.classassignment.infrastructure.StudentClassAssignmentRepository;
 import com.platform.academicregistration.registration.domain.AcademicRegistrationStatus;
+import com.platform.academicregistration.moduleregistration.domain.ModuleRegistrationStatus;
+import com.platform.academicregistration.moduleregistration.infrastructure.ModuleRegistrationRepository;
 import com.platform.academicregistration.semesterregistration.domain.SemesterRegistration;
 import com.platform.academicregistration.semesterregistration.infrastructure.SemesterRegistrationRepository;
 import com.platform.scheduling.teachinggroup.domain.TeachingGroup;
@@ -14,6 +16,8 @@ import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupPolicyR
 import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupRepository;
 import com.platform.teachingrequirement.infrastructure.TeachingRequirementRepository;
 import com.platform.universitygovernance.classgroup.domain.ClassGroup;
+import com.platform.universitygovernance.classgroup.domain.ClassGroupStatus;
+import com.platform.universitygovernance.classgroup.infrastructure.ClassGroupRepository;
 import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingAudienceMode;
 import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingComponentType;
 import com.platform.universitygovernance.moduleteachingcomponent.infrastructure.ModuleTeachingComponentRepository;
@@ -40,6 +44,8 @@ public class TeachingGroupGenerationService {
     private final SemesterRepository semesterRepository;
     private final SemesterRegistrationRepository semesterRegistrationRepository;
     private final StudentClassAssignmentRepository classAssignmentRepository;
+    private final ModuleRegistrationRepository moduleRegistrationRepository;
+    private final ClassGroupRepository classGroupRepository;
     private final ModuleTeachingComponentRepository componentRepository;
     private final TeachingGroupPolicyRepository policyRepository;
     private final TeachingGroupRepository teachingGroupRepository;
@@ -50,6 +56,8 @@ public class TeachingGroupGenerationService {
         SemesterRepository semesterRepository,
         SemesterRegistrationRepository semesterRegistrationRepository,
         StudentClassAssignmentRepository classAssignmentRepository,
+        ModuleRegistrationRepository moduleRegistrationRepository,
+        ClassGroupRepository classGroupRepository,
         ModuleTeachingComponentRepository componentRepository,
         TeachingGroupPolicyRepository policyRepository,
         TeachingGroupRepository teachingGroupRepository,
@@ -59,6 +67,8 @@ public class TeachingGroupGenerationService {
         this.semesterRepository = semesterRepository;
         this.semesterRegistrationRepository = semesterRegistrationRepository;
         this.classAssignmentRepository = classAssignmentRepository;
+        this.moduleRegistrationRepository = moduleRegistrationRepository;
+        this.classGroupRepository = classGroupRepository;
         this.componentRepository = componentRepository;
         this.policyRepository = policyRepository;
         this.teachingGroupRepository = teachingGroupRepository;
@@ -97,6 +107,11 @@ public class TeachingGroupGenerationService {
                 assignment
             );
         }
+        assignCarriedRegistrations(
+            semester,
+            activeRegistrations,
+            assignmentsByRegistration
+        );
         for (SemesterRegistration registration : activeRegistrations) {
             if (!assignmentsByRegistration.containsKey(registration.getId())) {
                 throw new ResponseStatusException(
@@ -184,6 +199,7 @@ public class TeachingGroupGenerationService {
             for (TeachingGroupPolicy policy : subgroupPolicies) {
                 List<List<SemesterRegistration>> subgroups = splitBalanced(
                     classRegistrations,
+                    policy.getMinimumGroupSize(),
                     policy.getMaximumGroupSize()
                 );
                 for (int index = 0; index < subgroups.size(); index++) {
@@ -205,6 +221,59 @@ public class TeachingGroupGenerationService {
         membershipRepository.saveAll(generatedMemberships);
         membershipRepository.flush();
         return generatedGroups;
+    }
+
+    private void assignCarriedRegistrations(
+        Semester semester,
+        List<SemesterRegistration> registrations,
+        Map<UUID, StudentClassAssignment> assignmentsByRegistration
+    ) {
+        List<ClassGroup> classGroups = classGroupRepository
+            .findByAcademicLevelIdAndAcademicYearIdOrderByNameAsc(
+                semester.getAcademicLevel().getId(),
+                semester.getAcademicYear().getId()
+            )
+            .stream()
+            .filter(group -> group.getStatus() == ClassGroupStatus.ACTIVE)
+            .toList();
+        Map<UUID, Integer> studentCounts = new HashMap<>();
+        classGroups.forEach(group -> studentCounts.put(group.getId(), 0));
+        assignmentsByRegistration.values().forEach(assignment ->
+            studentCounts.computeIfPresent(
+                assignment.getClassGroup().getId(),
+                (id, count) -> count + 1
+            ));
+
+        for (SemesterRegistration registration : registrations) {
+            if (assignmentsByRegistration.containsKey(registration.getId())) {
+                continue;
+            }
+            var moduleRegistrations = moduleRegistrationRepository
+                .findBySemesterRegistrationIdAndStatus(
+                    registration.getId(),
+                    ModuleRegistrationStatus.ACTIVE
+                );
+            boolean carriedOnly = !moduleRegistrations.isEmpty()
+                && moduleRegistrations.stream()
+                    .allMatch(moduleRegistration ->
+                        moduleRegistration.getInscriptionNumber() > 1);
+            if (!carriedOnly || classGroups.isEmpty()) {
+                continue;
+            }
+
+            ClassGroup target = classGroups.stream()
+                .min(Comparator
+                    .comparingInt((ClassGroup group) -> studentCounts.get(group.getId()))
+                    .thenComparing(ClassGroup::getName)
+                    .thenComparing(ClassGroup::getId))
+                .orElseThrow();
+            StudentClassAssignment assignment = new StudentClassAssignment();
+            assignment.setSemesterRegistration(registration);
+            assignment.setClassGroup(target);
+            assignment = classAssignmentRepository.save(assignment);
+            assignmentsByRegistration.put(registration.getId(), assignment);
+            studentCounts.compute(target.getId(), (id, count) -> count + 1);
+        }
     }
 
     private TeachingGroup createGroup(
@@ -238,10 +307,17 @@ public class TeachingGroupGenerationService {
 
     private List<List<SemesterRegistration>> splitBalanced(
         List<SemesterRegistration> registrations,
+        int minimumSize,
         int maximumSize
     ) {
         int groupCount = (registrations.size() + maximumSize - 1) / maximumSize;
         int baseSize = registrations.size() / groupCount;
+        if (groupCount > 1 && baseSize < minimumSize) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "The class cannot satisfy both the minimum and maximum subgroup sizes"
+            );
+        }
         int largerGroups = registrations.size() % groupCount;
         List<List<SemesterRegistration>> groups = new ArrayList<>();
         int offset = 0;

@@ -44,6 +44,17 @@ const academicLevelSchema = z.object({
   updatedAt: z.string().optional(),
 });
 
+const teachingGroupPolicySchema = z.object({
+  id: z.string().uuid(),
+  academicLevelId: z.string().uuid(),
+  academicYearId: z.string().uuid(),
+  groupType: z.enum(["TD", "TP"]),
+  minimumGroupSize: z.number().int().positive(),
+  maximumGroupSize: z.number().int().positive(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
 const semesterSchema = z.object({
   id: z.string().uuid(),
   academicLevelId: z.string().uuid(),
@@ -94,6 +105,7 @@ export type NamedResource = z.infer<typeof namedResourceSchema>;
 export type AcademicYear = z.infer<typeof academicYearSchema>;
 export type ProgramFiliere = z.infer<typeof programFiliereSchema>;
 export type AcademicLevel = z.infer<typeof academicLevelSchema>;
+export type TeachingGroupPolicy = z.infer<typeof teachingGroupPolicySchema>;
 export type Semester = z.infer<typeof semesterSchema>;
 export type SubjectModule = z.infer<typeof subjectModuleSchema>;
 export type ModuleTeachingComponent = z.infer<typeof moduleTeachingComponentSchema>;
@@ -123,6 +135,7 @@ export const academicStructureKeys = {
   programFilieres: (departmentId: string) => ["academic-structure", "program-filieres", departmentId] as const,
   programFiliere: (programFiliereId: string) => ["academic-structure", "program-filiere", programFiliereId] as const,
   academicLevels: (programFiliereId: string) => ["academic-structure", "academic-levels", programFiliereId] as const,
+  teachingGroupPolicies: (academicLevelId: string, academicYearId: string) => ["academic-structure", "teaching-group-policies", academicLevelId, academicYearId] as const,
   semesters: (academicLevelId: string, academicYearId: string) => ["academic-structure", "semesters", academicLevelId, academicYearId] as const,
   subjectModules: (semesterId: string) => ["academic-structure", "subject-modules", semesterId] as const,
   subjectModule: (subjectModuleId: string) => ["academic-structure", "subject-module", subjectModuleId] as const,
@@ -238,6 +251,23 @@ export async function updateAcademicLevel(id: string, request: UpdateAcademicLev
 
 export async function deleteAcademicLevel(id: string): Promise<void> {
   await ensureSuccess(await apiClient.DELETE("/api/v1/academic-levels/{academicLevelId}", { params: { path: { academicLevelId: id } } }));
+}
+
+export async function getTeachingGroupPolicies(academicLevelId: string, academicYearId: string): Promise<TeachingGroupPolicy[]> {
+  return parseResponse(await apiClient.GET("/api/v1/academic-levels/{academicLevelId}/teaching-group-policies", {
+    params: { path: { academicLevelId }, query: { academicYearId } },
+  }), z.array(teachingGroupPolicySchema));
+}
+
+export async function replaceTeachingGroupPolicies(
+  academicLevelId: string,
+  academicYearId: string,
+  policies: Array<{ groupType: "TD" | "TP"; minimumGroupSize: number; maximumGroupSize: number }>,
+): Promise<TeachingGroupPolicy[]> {
+  return parseResponse(await apiClient.PUT("/api/v1/academic-levels/{academicLevelId}/teaching-group-policies", {
+    params: { path: { academicLevelId }, query: { academicYearId } },
+    body: { policies },
+  }), z.array(teachingGroupPolicySchema));
 }
 
 export async function getSemesters(academicLevelId: string, academicYearId: string): Promise<Semester[]> {

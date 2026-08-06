@@ -8,6 +8,9 @@ import com.platform.academicregistration.classassignment.infrastructure.StudentC
 import com.platform.academicregistration.registration.domain.AcademicRegistration;
 import com.platform.academicregistration.registration.domain.AcademicRegistrationStatus;
 import com.platform.academicregistration.registration.infrastructure.AcademicRegistrationRepository;
+import com.platform.academicregistration.moduleregistration.domain.ModuleRegistration;
+import com.platform.academicregistration.moduleregistration.domain.ModuleRegistrationStatus;
+import com.platform.academicregistration.moduleregistration.infrastructure.ModuleRegistrationRepository;
 import com.platform.academicregistration.semesterregistration.domain.SemesterRegistration;
 import com.platform.academicregistration.semesterregistration.infrastructure.SemesterRegistrationRepository;
 import com.platform.identityaccess.domain.AccountRoleType;
@@ -20,6 +23,7 @@ import com.platform.platform.PlatformApplication;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.scheduling.domain.RoomType;
 import com.platform.scheduling.teachinggroup.application.TeachingGroupGenerationService;
+import com.platform.scheduling.teachinggroup.application.TeachingGroupManagementService;
 import com.platform.scheduling.teachinggroup.application.TeachingGroupPolicyService;
 import com.platform.scheduling.teachinggroup.domain.TeachingGroup;
 import com.platform.scheduling.teachinggroup.domain.TeachingGroupMembership;
@@ -82,6 +86,9 @@ class TeachingGroupGenerationServiceIntegrationTest {
     private TeachingGroupGenerationService generationService;
 
     @Autowired
+    private TeachingGroupManagementService managementService;
+
+    @Autowired
     private TeachingRequirementService teachingRequirementService;
 
     @Autowired
@@ -110,6 +117,9 @@ class TeachingGroupGenerationServiceIntegrationTest {
 
     @Autowired
     private AcademicRegistrationRepository academicRegistrationRepository;
+
+    @Autowired
+    private ModuleRegistrationRepository moduleRegistrationRepository;
 
     @Autowired
     private StudentRepository studentRepository;
@@ -157,6 +167,7 @@ class TeachingGroupGenerationServiceIntegrationTest {
     private Semester semester;
     private ClassGroup groupA;
     private ClassGroup groupB;
+    private SubjectModule subjectModule;
 
     @BeforeEach
     void setUp() {
@@ -229,6 +240,29 @@ class TeachingGroupGenerationServiceIntegrationTest {
     }
 
     @Test
+    void assignsASecondInscriptionStudentBeforeGeneratingTeachingGroups() {
+        saveActiveRegistration(1, groupA);
+        SemesterRegistration carriedRegistration = saveActiveRegistration(2, null);
+        ModuleRegistration carriedModule = new ModuleRegistration();
+        carriedModule.setSemesterRegistration(carriedRegistration);
+        carriedModule.setSubjectModule(subjectModule);
+        carriedModule.setOriginAcademicLevel(academicLevel);
+        carriedModule.setInscriptionNumber(2);
+        carriedModule.setStatus(ModuleRegistrationStatus.ACTIVE);
+        moduleRegistrationRepository.save(carriedModule);
+
+        var generated = managementService.generate(rootPrincipal(), semester.getId());
+
+        assertThat(classAssignmentRepository.findBySemesterRegistrationId(
+            carriedRegistration.getId()
+        )).isPresent();
+        assertThat(generated.groups())
+            .flatMap(group -> group.members())
+            .anyMatch(member -> member.semesterRegistrationId()
+                .equals(carriedRegistration.getId()));
+    }
+
+    @Test
     void rejectsGenerationWhenARequiredSubgroupPolicyIsMissing() {
         saveActiveRegistration(1, groupA);
         policyRepository.deleteAll();
@@ -236,6 +270,59 @@ class TeachingGroupGenerationServiceIntegrationTest {
         assertThatThrownBy(() -> generationService.generateForSemester(semester.getId()))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("A teaching group policy is required for TP");
+    }
+
+    @Test
+    void rejectsAGroupSplitThatCannotSatisfyTheConfiguredRange() {
+        for (int index = 1; index <= 4; index++) {
+            saveActiveRegistration(index, groupA);
+        }
+        policyService.replacePolicies(
+            rootPrincipal(),
+            academicLevel.getId(),
+            academicYear.getId(),
+            new ReplaceTeachingGroupPoliciesRequest(List.of(
+                new TeachingGroupPolicyItemRequest(TeachingGroupType.TP, 3, 3)
+            ))
+        );
+
+        assertThatThrownBy(() -> generationService.generateForSemester(semester.getId()))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("cannot satisfy both the minimum and maximum subgroup sizes");
+    }
+
+    @Test
+    void listsGeneratedGroupsAndMovesAStudentWithinTheSameClassAndType() {
+        for (int index = 1; index <= 5; index++) {
+            saveActiveRegistration(index, groupA);
+        }
+
+        var generated = managementService.generate(rootPrincipal(), semester.getId());
+        assertThat(generated.groups()).hasSize(2);
+        assertThat(generated.groups()).allMatch(group -> group.groupType() == TeachingGroupType.TP);
+
+        var source = generated.groups().stream()
+            .filter(group -> group.name().equals("A TP1"))
+            .findFirst()
+            .orElseThrow();
+        var target = generated.groups().stream()
+            .filter(group -> group.name().equals("A TP2"))
+            .findFirst()
+            .orElseThrow();
+        UUID semesterRegistrationId = source.members().get(0).semesterRegistrationId();
+
+        var updated = managementService.moveMember(
+            rootPrincipal(),
+            target.id(),
+            semesterRegistrationId
+        );
+
+        assertThat(updated.groups().stream()
+            .filter(group -> group.id().equals(source.id()))
+            .findFirst().orElseThrow().members()).hasSize(source.members().size() - 1);
+        assertThat(updated.groups().stream()
+            .filter(group -> group.id().equals(target.id()))
+            .findFirst().orElseThrow().members()).hasSize(target.members().size() + 1);
     }
 
     @Test
@@ -334,7 +421,7 @@ class TeachingGroupGenerationServiceIntegrationTest {
         groupA = saveClassGroup("A");
         groupB = saveClassGroup("B");
 
-        SubjectModule subjectModule = new SubjectModule();
+        subjectModule = new SubjectModule();
         subjectModule.setSemester(semester);
         subjectModule.setCode("ALG101");
         subjectModule.setTitle("Algorithms");
@@ -354,8 +441,8 @@ class TeachingGroupGenerationServiceIntegrationTest {
             academicLevel.getId(),
             academicYear.getId(),
             new ReplaceTeachingGroupPoliciesRequest(List.of(
-                new TeachingGroupPolicyItemRequest(TeachingGroupType.TD, 2),
-                new TeachingGroupPolicyItemRequest(TeachingGroupType.TP, 3)
+                new TeachingGroupPolicyItemRequest(TeachingGroupType.TD, 1, 2),
+                new TeachingGroupPolicyItemRequest(TeachingGroupType.TP, 2, 3)
             ))
         );
     }
@@ -369,7 +456,7 @@ class TeachingGroupGenerationServiceIntegrationTest {
         return classGroupRepository.save(classGroup);
     }
 
-    private void saveActiveRegistration(int index, ClassGroup classGroup) {
+    private SemesterRegistration saveActiveRegistration(int index, ClassGroup classGroup) {
         UserAccount account = new UserAccount();
         account.setUniversityEmail("student" + index + "@uiz.ac.ma");
         account.setPasswordHash("not-used-by-this-test");
@@ -402,6 +489,7 @@ class TeachingGroupGenerationServiceIntegrationTest {
             assignment.setClassGroup(classGroup);
             classAssignmentRepository.save(assignment);
         }
+        return semesterRegistration;
     }
 
     private void clearBusinessData() {
@@ -411,6 +499,7 @@ class TeachingGroupGenerationServiceIntegrationTest {
         policyRepository.deleteAll();
         componentRepository.deleteAll();
         classAssignmentRepository.deleteAll();
+        moduleRegistrationRepository.deleteAll();
         semesterRegistrationRepository.deleteAll();
         academicRegistrationRepository.deleteAll();
         studentRepository.deleteAll();

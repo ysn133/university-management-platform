@@ -9,6 +9,7 @@ public record TeachingGroupPolicyResponse(
     UUID academicLevelId,
     UUID academicYearId,
     TeachingGroupType groupType,
+    int minimumGroupSize,
     int maximumGroupSize,
     Instant createdAt,
     Instant updatedAt
