@@ -84,4 +84,5 @@ describe("class group API", () => {
     expect(sent.method).toBe("PUT");
     expect(sent.url).toContain("/class-groups/rebalance");
   });
+
 });

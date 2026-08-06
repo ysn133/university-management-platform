@@ -11,7 +11,6 @@ public record ModuleTeachingComponentItemRequest(
     @Positive int sessionsPerWeek,
     @Positive int sessionDurationMinutes,
     @NotNull TeachingAudienceMode audienceMode,
-    @Positive Integer maximumGroupSize,
     @NotNull RoomType requiredRoomType
 ) {
 }

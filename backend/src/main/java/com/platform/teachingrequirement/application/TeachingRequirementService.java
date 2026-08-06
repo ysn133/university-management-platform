@@ -10,6 +10,7 @@ import com.platform.teachingrequirement.domain.TeachingRequirementStatus;
 import com.platform.teachingrequirement.infrastructure.TeachingRequirementRepository;
 import com.platform.teachingrequirement.presentation.dto.TeachingRequirementResponse;
 import com.platform.universitygovernance.moduleteachingcomponent.domain.ModuleTeachingComponent;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingAudienceMode;
 import com.platform.universitygovernance.moduleteachingcomponent.infrastructure.ModuleTeachingComponentRepository;
 import com.platform.universitygovernance.semester.domain.Semester;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
@@ -78,6 +79,8 @@ public class TeachingRequirementService {
         for (ModuleTeachingComponent component : components) {
             List<TeachingGroup> matchingGroups = groups.stream()
                 .filter(group -> group.getAudienceType() == component.getAudienceMode())
+                .filter(group -> component.getAudienceMode() != TeachingAudienceMode.SUBGROUP
+                    || group.getGroupType().name().equals(component.getComponentType().name()))
                 .toList();
             if (matchingGroups.isEmpty()) {
                 throw new ResponseStatusException(

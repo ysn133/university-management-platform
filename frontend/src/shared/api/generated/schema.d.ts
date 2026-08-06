@@ -1,4 +1,20 @@
 export interface paths {
+    "/api/v1/teaching-groups/{teachingGroupId}/members/{semesterRegistrationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["moveMember"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/super-admins/{superAdminId}": {
         parameters: {
             query?: never;
@@ -351,6 +367,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/academic-levels/{academicLevelId}/teaching-group-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPolicies"];
+        put: operations["replacePolicies"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/academic-levels/{academicLevelId}/class-groups/rebalance": {
         parameters: {
             query?: never;
@@ -633,6 +665,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/semesters/{semesterId}/teaching-groups/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["generate_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1663,6 +1711,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/semesters/{semesterId}/teaching-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRoster"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/semester-schedules/{scheduleId}": {
         parameters: {
             query?: never;
@@ -1955,6 +2019,33 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        TeachingGroupMemberResponse: {
+            /** Format: uuid */
+            semesterRegistrationId?: string;
+            /** Format: uuid */
+            studentId?: string;
+            apogeeCode?: string;
+            firstName?: string;
+            lastName?: string;
+        };
+        TeachingGroupResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            semesterId?: string;
+            /** Format: uuid */
+            sourceClassGroupId?: string;
+            sourceClassGroupName?: string;
+            name?: string;
+            /** @enum {string} */
+            groupType?: "TD" | "TP";
+            members?: components["schemas"]["TeachingGroupMemberResponse"][];
+        };
+        TeachingGroupRosterResponse: {
+            /** Format: uuid */
+            semesterId?: string;
+            groups?: components["schemas"]["TeachingGroupResponse"][];
+        };
         UpdateSuperAdminRequest: {
             /** Format: email */
             universityEmail: string;
@@ -2011,8 +2102,6 @@ export interface components {
             sessionDurationMinutes?: number;
             /** @enum {string} */
             audienceMode: "WHOLE_COHORT" | "CLASS_GROUP" | "SUBGROUP";
-            /** Format: int32 */
-            maximumGroupSize?: number;
             /** @enum {string} */
             requiredRoomType: "LECTURE_HALL" | "CLASSROOM" | "COMPUTER_LAB";
         };
@@ -2032,8 +2121,6 @@ export interface components {
             sessionDurationMinutes?: number;
             /** @enum {string} */
             audienceMode?: "WHOLE_COHORT" | "CLASS_GROUP" | "SUBGROUP";
-            /** Format: int32 */
-            maximumGroupSize?: number;
             /** @enum {string} */
             requiredRoomType?: "LECTURE_HALL" | "CLASSROOM" | "COMPUTER_LAB";
             /** Format: date-time */
@@ -2439,14 +2526,14 @@ export interface components {
             phoneNumber?: string;
         };
         ReplaceAdminPermissionGrantsRequest: {
-            permissions: ("DEPARTMENT_VIEW" | "DEPARTMENT_CREATE" | "DEPARTMENT_UPDATE" | "DEPARTMENT_DELETE" | "PROGRAM_FILIERE_VIEW" | "PROGRAM_FILIERE_CREATE" | "PROGRAM_FILIERE_UPDATE" | "PROGRAM_FILIERE_DELETE" | "DEGREE_CYCLE_VIEW" | "DEGREE_CYCLE_CREATE" | "DEGREE_CYCLE_UPDATE" | "DEGREE_CYCLE_DELETE" | "PROGRAM_PATH_VIEW" | "PROGRAM_PATH_CREATE" | "PROGRAM_PATH_UPDATE" | "PROGRAM_PATH_DELETE" | "ACADEMIC_LEVEL_VIEW" | "ACADEMIC_LEVEL_CREATE" | "ACADEMIC_LEVEL_UPDATE" | "ACADEMIC_LEVEL_DELETE" | "ACADEMIC_RULE_PROFILE_VIEW" | "ACADEMIC_RULE_PROFILE_CREATE" | "ACADEMIC_RULE_PROFILE_UPDATE" | "ACADEMIC_RULE_ASSIGNMENT_VIEW" | "ACADEMIC_RULE_ASSIGNMENT_CREATE" | "ACADEMIC_YEAR_VIEW" | "ACADEMIC_YEAR_CREATE" | "ACADEMIC_YEAR_UPDATE" | "ACADEMIC_YEAR_DELETE" | "SEMESTER_VIEW" | "SEMESTER_CREATE" | "SEMESTER_UPDATE" | "SEMESTER_DELETE" | "SUBJECT_MODULE_VIEW" | "SUBJECT_MODULE_CREATE" | "SUBJECT_MODULE_UPDATE" | "SUBJECT_MODULE_DELETE" | "CLASS_GROUP_VIEW" | "CLASS_GROUP_CREATE" | "CLASS_GROUP_UPDATE" | "ADMIN_CREATE" | "STUDENT_VIEW" | "STUDENT_CREATE" | "STUDENT_UPDATE" | "STUDENT_ACCOUNT_MANAGE" | "PROFESSOR_VIEW" | "PROFESSOR_CREATE" | "PROFESSOR_UPDATE" | "PROFESSOR_ACCOUNT_MANAGE" | "ACADEMIC_DOMAIN_VIEW" | "ACADEMIC_DOMAIN_CREATE" | "ACADEMIC_DOMAIN_UPDATE" | "ACADEMIC_DOMAIN_DELETE" | "PROFESSOR_EXPERTISE_VIEW" | "PROFESSOR_EXPERTISE_UPDATE" | "MODULE_TEACHING_COMPONENT_VIEW" | "MODULE_TEACHING_COMPONENT_UPDATE" | "ACADEMIC_REGISTRATION_VIEW" | "ACADEMIC_REGISTRATION_CREATE" | "ACADEMIC_REGISTRATION_UPDATE" | "MODULE_CLASS_RESPONSIBILITY_VIEW" | "MODULE_CLASS_RESPONSIBILITY_CREATE" | "MODULE_CLASS_RESPONSIBILITY_DELETE" | "TEACHING_REQUIREMENT_VIEW" | "TEACHING_REQUIREMENT_GENERATE" | "TEACHING_ASSIGNMENT_VIEW" | "TEACHING_ASSIGNMENT_CREATE" | "TEACHING_ASSIGNMENT_DELETE" | "ABSENCE_VIEW" | "BLOCK_VIEW" | "BLOCK_CREATE" | "BLOCK_UPDATE" | "BLOCK_DELETE" | "ROOM_VIEW" | "ROOM_CREATE" | "ROOM_UPDATE" | "ROOM_DELETE" | "SEMESTER_SCHEDULE_VIEW" | "SEMESTER_SCHEDULE_CREATE" | "SEMESTER_SCHEDULE_UPDATE" | "SEMESTER_SCHEDULE_PUBLISH" | "EXAM_SCHEDULE_VIEW" | "EXAM_SCHEDULE_CREATE" | "EXAM_SCHEDULE_UPDATE" | "EXAM_SCHEDULE_DELETE" | "EXAM_SCHEDULE_PUBLISH" | "GRADE_VIEW" | "GRADE_REVIEW" | "GRADE_APPROVE" | "GRADE_PUBLISH")[];
+            permissions: ("DEPARTMENT_VIEW" | "DEPARTMENT_CREATE" | "DEPARTMENT_UPDATE" | "DEPARTMENT_DELETE" | "PROGRAM_FILIERE_VIEW" | "PROGRAM_FILIERE_CREATE" | "PROGRAM_FILIERE_UPDATE" | "PROGRAM_FILIERE_DELETE" | "DEGREE_CYCLE_VIEW" | "DEGREE_CYCLE_CREATE" | "DEGREE_CYCLE_UPDATE" | "DEGREE_CYCLE_DELETE" | "PROGRAM_PATH_VIEW" | "PROGRAM_PATH_CREATE" | "PROGRAM_PATH_UPDATE" | "PROGRAM_PATH_DELETE" | "ACADEMIC_LEVEL_VIEW" | "ACADEMIC_LEVEL_CREATE" | "ACADEMIC_LEVEL_UPDATE" | "ACADEMIC_LEVEL_DELETE" | "ACADEMIC_RULE_PROFILE_VIEW" | "ACADEMIC_RULE_PROFILE_CREATE" | "ACADEMIC_RULE_PROFILE_UPDATE" | "ACADEMIC_RULE_ASSIGNMENT_VIEW" | "ACADEMIC_RULE_ASSIGNMENT_CREATE" | "ACADEMIC_YEAR_VIEW" | "ACADEMIC_YEAR_CREATE" | "ACADEMIC_YEAR_UPDATE" | "ACADEMIC_YEAR_DELETE" | "SEMESTER_VIEW" | "SEMESTER_CREATE" | "SEMESTER_UPDATE" | "SEMESTER_DELETE" | "SUBJECT_MODULE_VIEW" | "SUBJECT_MODULE_CREATE" | "SUBJECT_MODULE_UPDATE" | "SUBJECT_MODULE_DELETE" | "CLASS_GROUP_VIEW" | "CLASS_GROUP_CREATE" | "CLASS_GROUP_UPDATE" | "ADMIN_CREATE" | "STUDENT_VIEW" | "STUDENT_CREATE" | "STUDENT_UPDATE" | "STUDENT_ACCOUNT_MANAGE" | "PROFESSOR_VIEW" | "PROFESSOR_CREATE" | "PROFESSOR_UPDATE" | "PROFESSOR_ACCOUNT_MANAGE" | "ACADEMIC_DOMAIN_VIEW" | "ACADEMIC_DOMAIN_CREATE" | "ACADEMIC_DOMAIN_UPDATE" | "ACADEMIC_DOMAIN_DELETE" | "PROFESSOR_EXPERTISE_VIEW" | "PROFESSOR_EXPERTISE_UPDATE" | "MODULE_TEACHING_COMPONENT_VIEW" | "MODULE_TEACHING_COMPONENT_UPDATE" | "TEACHING_GROUP_POLICY_VIEW" | "TEACHING_GROUP_POLICY_UPDATE" | "TEACHING_GROUP_VIEW" | "TEACHING_GROUP_GENERATE" | "TEACHING_GROUP_UPDATE" | "ACADEMIC_REGISTRATION_VIEW" | "ACADEMIC_REGISTRATION_CREATE" | "ACADEMIC_REGISTRATION_UPDATE" | "MODULE_CLASS_RESPONSIBILITY_VIEW" | "MODULE_CLASS_RESPONSIBILITY_CREATE" | "MODULE_CLASS_RESPONSIBILITY_DELETE" | "TEACHING_REQUIREMENT_VIEW" | "TEACHING_REQUIREMENT_GENERATE" | "TEACHING_ASSIGNMENT_VIEW" | "TEACHING_ASSIGNMENT_CREATE" | "TEACHING_ASSIGNMENT_DELETE" | "ABSENCE_VIEW" | "BLOCK_VIEW" | "BLOCK_CREATE" | "BLOCK_UPDATE" | "BLOCK_DELETE" | "ROOM_VIEW" | "ROOM_CREATE" | "ROOM_UPDATE" | "ROOM_DELETE" | "SEMESTER_SCHEDULE_VIEW" | "SEMESTER_SCHEDULE_CREATE" | "SEMESTER_SCHEDULE_UPDATE" | "SEMESTER_SCHEDULE_PUBLISH" | "EXAM_SCHEDULE_VIEW" | "EXAM_SCHEDULE_CREATE" | "EXAM_SCHEDULE_UPDATE" | "EXAM_SCHEDULE_DELETE" | "EXAM_SCHEDULE_PUBLISH" | "GRADE_VIEW" | "GRADE_REVIEW" | "GRADE_APPROVE" | "GRADE_PUBLISH")[];
         };
         AdminPermissionGrantsResponse: {
             /** Format: uuid */
             adminId?: string;
             /** Format: uuid */
             establishmentId?: string;
-            permissions?: ("DEPARTMENT_VIEW" | "DEPARTMENT_CREATE" | "DEPARTMENT_UPDATE" | "DEPARTMENT_DELETE" | "PROGRAM_FILIERE_VIEW" | "PROGRAM_FILIERE_CREATE" | "PROGRAM_FILIERE_UPDATE" | "PROGRAM_FILIERE_DELETE" | "DEGREE_CYCLE_VIEW" | "DEGREE_CYCLE_CREATE" | "DEGREE_CYCLE_UPDATE" | "DEGREE_CYCLE_DELETE" | "PROGRAM_PATH_VIEW" | "PROGRAM_PATH_CREATE" | "PROGRAM_PATH_UPDATE" | "PROGRAM_PATH_DELETE" | "ACADEMIC_LEVEL_VIEW" | "ACADEMIC_LEVEL_CREATE" | "ACADEMIC_LEVEL_UPDATE" | "ACADEMIC_LEVEL_DELETE" | "ACADEMIC_RULE_PROFILE_VIEW" | "ACADEMIC_RULE_PROFILE_CREATE" | "ACADEMIC_RULE_PROFILE_UPDATE" | "ACADEMIC_RULE_ASSIGNMENT_VIEW" | "ACADEMIC_RULE_ASSIGNMENT_CREATE" | "ACADEMIC_YEAR_VIEW" | "ACADEMIC_YEAR_CREATE" | "ACADEMIC_YEAR_UPDATE" | "ACADEMIC_YEAR_DELETE" | "SEMESTER_VIEW" | "SEMESTER_CREATE" | "SEMESTER_UPDATE" | "SEMESTER_DELETE" | "SUBJECT_MODULE_VIEW" | "SUBJECT_MODULE_CREATE" | "SUBJECT_MODULE_UPDATE" | "SUBJECT_MODULE_DELETE" | "CLASS_GROUP_VIEW" | "CLASS_GROUP_CREATE" | "CLASS_GROUP_UPDATE" | "ADMIN_CREATE" | "STUDENT_VIEW" | "STUDENT_CREATE" | "STUDENT_UPDATE" | "STUDENT_ACCOUNT_MANAGE" | "PROFESSOR_VIEW" | "PROFESSOR_CREATE" | "PROFESSOR_UPDATE" | "PROFESSOR_ACCOUNT_MANAGE" | "ACADEMIC_DOMAIN_VIEW" | "ACADEMIC_DOMAIN_CREATE" | "ACADEMIC_DOMAIN_UPDATE" | "ACADEMIC_DOMAIN_DELETE" | "PROFESSOR_EXPERTISE_VIEW" | "PROFESSOR_EXPERTISE_UPDATE" | "MODULE_TEACHING_COMPONENT_VIEW" | "MODULE_TEACHING_COMPONENT_UPDATE" | "ACADEMIC_REGISTRATION_VIEW" | "ACADEMIC_REGISTRATION_CREATE" | "ACADEMIC_REGISTRATION_UPDATE" | "MODULE_CLASS_RESPONSIBILITY_VIEW" | "MODULE_CLASS_RESPONSIBILITY_CREATE" | "MODULE_CLASS_RESPONSIBILITY_DELETE" | "TEACHING_REQUIREMENT_VIEW" | "TEACHING_REQUIREMENT_GENERATE" | "TEACHING_ASSIGNMENT_VIEW" | "TEACHING_ASSIGNMENT_CREATE" | "TEACHING_ASSIGNMENT_DELETE" | "ABSENCE_VIEW" | "BLOCK_VIEW" | "BLOCK_CREATE" | "BLOCK_UPDATE" | "BLOCK_DELETE" | "ROOM_VIEW" | "ROOM_CREATE" | "ROOM_UPDATE" | "ROOM_DELETE" | "SEMESTER_SCHEDULE_VIEW" | "SEMESTER_SCHEDULE_CREATE" | "SEMESTER_SCHEDULE_UPDATE" | "SEMESTER_SCHEDULE_PUBLISH" | "EXAM_SCHEDULE_VIEW" | "EXAM_SCHEDULE_CREATE" | "EXAM_SCHEDULE_UPDATE" | "EXAM_SCHEDULE_DELETE" | "EXAM_SCHEDULE_PUBLISH" | "GRADE_VIEW" | "GRADE_REVIEW" | "GRADE_APPROVE" | "GRADE_PUBLISH")[];
+            permissions?: ("DEPARTMENT_VIEW" | "DEPARTMENT_CREATE" | "DEPARTMENT_UPDATE" | "DEPARTMENT_DELETE" | "PROGRAM_FILIERE_VIEW" | "PROGRAM_FILIERE_CREATE" | "PROGRAM_FILIERE_UPDATE" | "PROGRAM_FILIERE_DELETE" | "DEGREE_CYCLE_VIEW" | "DEGREE_CYCLE_CREATE" | "DEGREE_CYCLE_UPDATE" | "DEGREE_CYCLE_DELETE" | "PROGRAM_PATH_VIEW" | "PROGRAM_PATH_CREATE" | "PROGRAM_PATH_UPDATE" | "PROGRAM_PATH_DELETE" | "ACADEMIC_LEVEL_VIEW" | "ACADEMIC_LEVEL_CREATE" | "ACADEMIC_LEVEL_UPDATE" | "ACADEMIC_LEVEL_DELETE" | "ACADEMIC_RULE_PROFILE_VIEW" | "ACADEMIC_RULE_PROFILE_CREATE" | "ACADEMIC_RULE_PROFILE_UPDATE" | "ACADEMIC_RULE_ASSIGNMENT_VIEW" | "ACADEMIC_RULE_ASSIGNMENT_CREATE" | "ACADEMIC_YEAR_VIEW" | "ACADEMIC_YEAR_CREATE" | "ACADEMIC_YEAR_UPDATE" | "ACADEMIC_YEAR_DELETE" | "SEMESTER_VIEW" | "SEMESTER_CREATE" | "SEMESTER_UPDATE" | "SEMESTER_DELETE" | "SUBJECT_MODULE_VIEW" | "SUBJECT_MODULE_CREATE" | "SUBJECT_MODULE_UPDATE" | "SUBJECT_MODULE_DELETE" | "CLASS_GROUP_VIEW" | "CLASS_GROUP_CREATE" | "CLASS_GROUP_UPDATE" | "ADMIN_CREATE" | "STUDENT_VIEW" | "STUDENT_CREATE" | "STUDENT_UPDATE" | "STUDENT_ACCOUNT_MANAGE" | "PROFESSOR_VIEW" | "PROFESSOR_CREATE" | "PROFESSOR_UPDATE" | "PROFESSOR_ACCOUNT_MANAGE" | "ACADEMIC_DOMAIN_VIEW" | "ACADEMIC_DOMAIN_CREATE" | "ACADEMIC_DOMAIN_UPDATE" | "ACADEMIC_DOMAIN_DELETE" | "PROFESSOR_EXPERTISE_VIEW" | "PROFESSOR_EXPERTISE_UPDATE" | "MODULE_TEACHING_COMPONENT_VIEW" | "MODULE_TEACHING_COMPONENT_UPDATE" | "TEACHING_GROUP_POLICY_VIEW" | "TEACHING_GROUP_POLICY_UPDATE" | "TEACHING_GROUP_VIEW" | "TEACHING_GROUP_GENERATE" | "TEACHING_GROUP_UPDATE" | "ACADEMIC_REGISTRATION_VIEW" | "ACADEMIC_REGISTRATION_CREATE" | "ACADEMIC_REGISTRATION_UPDATE" | "MODULE_CLASS_RESPONSIBILITY_VIEW" | "MODULE_CLASS_RESPONSIBILITY_CREATE" | "MODULE_CLASS_RESPONSIBILITY_DELETE" | "TEACHING_REQUIREMENT_VIEW" | "TEACHING_REQUIREMENT_GENERATE" | "TEACHING_ASSIGNMENT_VIEW" | "TEACHING_ASSIGNMENT_CREATE" | "TEACHING_ASSIGNMENT_DELETE" | "ABSENCE_VIEW" | "BLOCK_VIEW" | "BLOCK_CREATE" | "BLOCK_UPDATE" | "BLOCK_DELETE" | "ROOM_VIEW" | "ROOM_CREATE" | "ROOM_UPDATE" | "ROOM_DELETE" | "SEMESTER_SCHEDULE_VIEW" | "SEMESTER_SCHEDULE_CREATE" | "SEMESTER_SCHEDULE_UPDATE" | "SEMESTER_SCHEDULE_PUBLISH" | "EXAM_SCHEDULE_VIEW" | "EXAM_SCHEDULE_CREATE" | "EXAM_SCHEDULE_UPDATE" | "EXAM_SCHEDULE_DELETE" | "EXAM_SCHEDULE_PUBLISH" | "GRADE_VIEW" | "GRADE_REVIEW" | "GRADE_APPROVE" | "GRADE_PUBLISH")[];
         };
         UpdateAcademicYearRequest: {
             label: string;
@@ -2579,6 +2666,35 @@ export interface components {
             name?: string;
             /** Format: int32 */
             levelOrder?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        ReplaceTeachingGroupPoliciesRequest: {
+            policies: components["schemas"]["TeachingGroupPolicyItemRequest"][];
+        };
+        TeachingGroupPolicyItemRequest: {
+            /** @enum {string} */
+            groupType: "TD" | "TP";
+            /** Format: int32 */
+            minimumGroupSize?: number;
+            /** Format: int32 */
+            maximumGroupSize?: number;
+        };
+        TeachingGroupPolicyResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            academicLevelId?: string;
+            /** Format: uuid */
+            academicYearId?: string;
+            /** @enum {string} */
+            groupType?: "TD" | "TP";
+            /** Format: int32 */
+            minimumGroupSize?: number;
+            /** Format: int32 */
+            maximumGroupSize?: number;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -3260,7 +3376,7 @@ export interface components {
             /** Format: uuid */
             id?: string;
             /** @enum {string} */
-            code?: "DEPARTMENT_VIEW" | "DEPARTMENT_CREATE" | "DEPARTMENT_UPDATE" | "DEPARTMENT_DELETE" | "PROGRAM_FILIERE_VIEW" | "PROGRAM_FILIERE_CREATE" | "PROGRAM_FILIERE_UPDATE" | "PROGRAM_FILIERE_DELETE" | "DEGREE_CYCLE_VIEW" | "DEGREE_CYCLE_CREATE" | "DEGREE_CYCLE_UPDATE" | "DEGREE_CYCLE_DELETE" | "PROGRAM_PATH_VIEW" | "PROGRAM_PATH_CREATE" | "PROGRAM_PATH_UPDATE" | "PROGRAM_PATH_DELETE" | "ACADEMIC_LEVEL_VIEW" | "ACADEMIC_LEVEL_CREATE" | "ACADEMIC_LEVEL_UPDATE" | "ACADEMIC_LEVEL_DELETE" | "ACADEMIC_RULE_PROFILE_VIEW" | "ACADEMIC_RULE_PROFILE_CREATE" | "ACADEMIC_RULE_PROFILE_UPDATE" | "ACADEMIC_RULE_ASSIGNMENT_VIEW" | "ACADEMIC_RULE_ASSIGNMENT_CREATE" | "ACADEMIC_YEAR_VIEW" | "ACADEMIC_YEAR_CREATE" | "ACADEMIC_YEAR_UPDATE" | "ACADEMIC_YEAR_DELETE" | "SEMESTER_VIEW" | "SEMESTER_CREATE" | "SEMESTER_UPDATE" | "SEMESTER_DELETE" | "SUBJECT_MODULE_VIEW" | "SUBJECT_MODULE_CREATE" | "SUBJECT_MODULE_UPDATE" | "SUBJECT_MODULE_DELETE" | "CLASS_GROUP_VIEW" | "CLASS_GROUP_CREATE" | "CLASS_GROUP_UPDATE" | "ADMIN_CREATE" | "STUDENT_VIEW" | "STUDENT_CREATE" | "STUDENT_UPDATE" | "STUDENT_ACCOUNT_MANAGE" | "PROFESSOR_VIEW" | "PROFESSOR_CREATE" | "PROFESSOR_UPDATE" | "PROFESSOR_ACCOUNT_MANAGE" | "ACADEMIC_DOMAIN_VIEW" | "ACADEMIC_DOMAIN_CREATE" | "ACADEMIC_DOMAIN_UPDATE" | "ACADEMIC_DOMAIN_DELETE" | "PROFESSOR_EXPERTISE_VIEW" | "PROFESSOR_EXPERTISE_UPDATE" | "MODULE_TEACHING_COMPONENT_VIEW" | "MODULE_TEACHING_COMPONENT_UPDATE" | "ACADEMIC_REGISTRATION_VIEW" | "ACADEMIC_REGISTRATION_CREATE" | "ACADEMIC_REGISTRATION_UPDATE" | "MODULE_CLASS_RESPONSIBILITY_VIEW" | "MODULE_CLASS_RESPONSIBILITY_CREATE" | "MODULE_CLASS_RESPONSIBILITY_DELETE" | "TEACHING_REQUIREMENT_VIEW" | "TEACHING_REQUIREMENT_GENERATE" | "TEACHING_ASSIGNMENT_VIEW" | "TEACHING_ASSIGNMENT_CREATE" | "TEACHING_ASSIGNMENT_DELETE" | "ABSENCE_VIEW" | "BLOCK_VIEW" | "BLOCK_CREATE" | "BLOCK_UPDATE" | "BLOCK_DELETE" | "ROOM_VIEW" | "ROOM_CREATE" | "ROOM_UPDATE" | "ROOM_DELETE" | "SEMESTER_SCHEDULE_VIEW" | "SEMESTER_SCHEDULE_CREATE" | "SEMESTER_SCHEDULE_UPDATE" | "SEMESTER_SCHEDULE_PUBLISH" | "EXAM_SCHEDULE_VIEW" | "EXAM_SCHEDULE_CREATE" | "EXAM_SCHEDULE_UPDATE" | "EXAM_SCHEDULE_DELETE" | "EXAM_SCHEDULE_PUBLISH" | "GRADE_VIEW" | "GRADE_REVIEW" | "GRADE_APPROVE" | "GRADE_PUBLISH";
+            code?: "DEPARTMENT_VIEW" | "DEPARTMENT_CREATE" | "DEPARTMENT_UPDATE" | "DEPARTMENT_DELETE" | "PROGRAM_FILIERE_VIEW" | "PROGRAM_FILIERE_CREATE" | "PROGRAM_FILIERE_UPDATE" | "PROGRAM_FILIERE_DELETE" | "DEGREE_CYCLE_VIEW" | "DEGREE_CYCLE_CREATE" | "DEGREE_CYCLE_UPDATE" | "DEGREE_CYCLE_DELETE" | "PROGRAM_PATH_VIEW" | "PROGRAM_PATH_CREATE" | "PROGRAM_PATH_UPDATE" | "PROGRAM_PATH_DELETE" | "ACADEMIC_LEVEL_VIEW" | "ACADEMIC_LEVEL_CREATE" | "ACADEMIC_LEVEL_UPDATE" | "ACADEMIC_LEVEL_DELETE" | "ACADEMIC_RULE_PROFILE_VIEW" | "ACADEMIC_RULE_PROFILE_CREATE" | "ACADEMIC_RULE_PROFILE_UPDATE" | "ACADEMIC_RULE_ASSIGNMENT_VIEW" | "ACADEMIC_RULE_ASSIGNMENT_CREATE" | "ACADEMIC_YEAR_VIEW" | "ACADEMIC_YEAR_CREATE" | "ACADEMIC_YEAR_UPDATE" | "ACADEMIC_YEAR_DELETE" | "SEMESTER_VIEW" | "SEMESTER_CREATE" | "SEMESTER_UPDATE" | "SEMESTER_DELETE" | "SUBJECT_MODULE_VIEW" | "SUBJECT_MODULE_CREATE" | "SUBJECT_MODULE_UPDATE" | "SUBJECT_MODULE_DELETE" | "CLASS_GROUP_VIEW" | "CLASS_GROUP_CREATE" | "CLASS_GROUP_UPDATE" | "ADMIN_CREATE" | "STUDENT_VIEW" | "STUDENT_CREATE" | "STUDENT_UPDATE" | "STUDENT_ACCOUNT_MANAGE" | "PROFESSOR_VIEW" | "PROFESSOR_CREATE" | "PROFESSOR_UPDATE" | "PROFESSOR_ACCOUNT_MANAGE" | "ACADEMIC_DOMAIN_VIEW" | "ACADEMIC_DOMAIN_CREATE" | "ACADEMIC_DOMAIN_UPDATE" | "ACADEMIC_DOMAIN_DELETE" | "PROFESSOR_EXPERTISE_VIEW" | "PROFESSOR_EXPERTISE_UPDATE" | "MODULE_TEACHING_COMPONENT_VIEW" | "MODULE_TEACHING_COMPONENT_UPDATE" | "TEACHING_GROUP_POLICY_VIEW" | "TEACHING_GROUP_POLICY_UPDATE" | "TEACHING_GROUP_VIEW" | "TEACHING_GROUP_GENERATE" | "TEACHING_GROUP_UPDATE" | "ACADEMIC_REGISTRATION_VIEW" | "ACADEMIC_REGISTRATION_CREATE" | "ACADEMIC_REGISTRATION_UPDATE" | "MODULE_CLASS_RESPONSIBILITY_VIEW" | "MODULE_CLASS_RESPONSIBILITY_CREATE" | "MODULE_CLASS_RESPONSIBILITY_DELETE" | "TEACHING_REQUIREMENT_VIEW" | "TEACHING_REQUIREMENT_GENERATE" | "TEACHING_ASSIGNMENT_VIEW" | "TEACHING_ASSIGNMENT_CREATE" | "TEACHING_ASSIGNMENT_DELETE" | "ABSENCE_VIEW" | "BLOCK_VIEW" | "BLOCK_CREATE" | "BLOCK_UPDATE" | "BLOCK_DELETE" | "ROOM_VIEW" | "ROOM_CREATE" | "ROOM_UPDATE" | "ROOM_DELETE" | "SEMESTER_SCHEDULE_VIEW" | "SEMESTER_SCHEDULE_CREATE" | "SEMESTER_SCHEDULE_UPDATE" | "SEMESTER_SCHEDULE_PUBLISH" | "EXAM_SCHEDULE_VIEW" | "EXAM_SCHEDULE_CREATE" | "EXAM_SCHEDULE_UPDATE" | "EXAM_SCHEDULE_DELETE" | "EXAM_SCHEDULE_PUBLISH" | "GRADE_VIEW" | "GRADE_REVIEW" | "GRADE_APPROVE" | "GRADE_PUBLISH";
             name?: string;
         };
         CurrentUserResponse: {
@@ -3329,6 +3445,29 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    moveMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teachingGroupId: string;
+                semesterRegistrationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeachingGroupRosterResponse"];
+                };
+            };
+        };
+    };
     getSuperAdmin: {
         parameters: {
             query?: never;
@@ -4585,6 +4724,58 @@ export interface operations {
             };
         };
     };
+    getPolicies: {
+        parameters: {
+            query: {
+                academicYearId: string;
+            };
+            header?: never;
+            path: {
+                academicLevelId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeachingGroupPolicyResponse"][];
+                };
+            };
+        };
+    };
+    replacePolicies: {
+        parameters: {
+            query: {
+                academicYearId: string;
+            };
+            header?: never;
+            path: {
+                academicLevelId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceTeachingGroupPoliciesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeachingGroupPolicyResponse"][];
+                };
+            };
+        };
+    };
     rebalanceClassGroups: {
         parameters: {
             query: {
@@ -5075,6 +5266,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TeachingRequirementResponse"][];
+                };
+            };
+        };
+    };
+    generate_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                semesterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeachingGroupRosterResponse"];
                 };
             };
         };
@@ -7385,6 +7598,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TeachingRequirementResponse"][];
+                };
+            };
+        };
+    };
+    getRoster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                semesterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeachingGroupRosterResponse"];
                 };
             };
         };

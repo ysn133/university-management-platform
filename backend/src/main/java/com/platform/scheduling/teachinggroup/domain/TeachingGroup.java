@@ -38,6 +38,10 @@ public class TeachingGroup {
     @Column(name = "audience_type", nullable = false)
     private TeachingAudienceMode audienceType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "group_type")
+    private TeachingGroupType groupType;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -96,6 +100,14 @@ public class TeachingGroup {
 
     public void setAudienceType(TeachingAudienceMode audienceType) {
         this.audienceType = audienceType;
+    }
+
+    public TeachingGroupType getGroupType() {
+        return groupType;
+    }
+
+    public void setGroupType(TeachingGroupType groupType) {
+        this.groupType = groupType;
     }
 
     public Instant getCreatedAt() {

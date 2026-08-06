@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createAcademicDomain, createAcademicRuleProfile, createAcademicYear, createProgramFiliere, getAcademicLevels, getDepartments, getModuleTeachingComponents, getSemesters, replaceModuleTeachingComponents } from "./academic-structure-api";
+import { createAcademicDomain, createAcademicRuleProfile, createAcademicYear, createProgramFiliere, getAcademicLevels, getDepartments, getModuleTeachingComponents, getSemesters, replaceModuleTeachingComponents, replaceTeachingGroupPolicies } from "./academic-structure-api";
 
 const establishmentId = "00000000-0000-4000-8000-000000000001";
 const departmentId = "00000000-0000-4000-8000-000000000002";
@@ -98,6 +98,31 @@ describe("academic structure API", () => {
     expect(requestUrl.searchParams.get("academicYearId")).toBe(academicYearId);
   });
 
+  it("replaces annual TD and TP group sizes for an academic level", async () => {
+    const levelId = "00000000-0000-4000-8000-000000000021";
+    const academicYearId = "00000000-0000-4000-8000-000000000022";
+    const policies = [
+      { groupType: "TD" as const, minimumGroupSize: 20, maximumGroupSize: 40 },
+      { groupType: "TP" as const, minimumGroupSize: 12, maximumGroupSize: 24 },
+    ];
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(policies.map((policy, index) => ({
+      id: `00000000-0000-4000-8000-00000000023${index}`,
+      academicLevelId: levelId,
+      academicYearId,
+      ...policy,
+      createdAt: "2026-08-05T12:00:00Z",
+      updatedAt: "2026-08-05T12:00:00Z",
+    }))), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await replaceTeachingGroupPolicies(levelId, academicYearId, policies);
+
+    const sent = fetchMock.mock.calls[0][0] as Request;
+    expect(sent.method).toBe("PUT");
+    expect(sent.url).toContain(`/api/v1/academic-levels/${levelId}/teaching-group-policies`);
+    await expect(sent.clone().json()).resolves.toEqual({ policies });
+  });
+
   it("creates an active academic rule profile in establishment scope", async () => {
     const request = {
       name: "Master standard rules",
@@ -154,7 +179,6 @@ describe("academic structure API", () => {
       sessionsPerWeek: 1,
       sessionDurationMinutes: 120,
       audienceMode: "WHOLE_COHORT",
-      maximumGroupSize: null,
       requiredRoomType: "LECTURE_HALL",
     }]), { status: 200, headers: { "Content-Type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
@@ -172,7 +196,6 @@ describe("academic structure API", () => {
         sessionsPerWeek: 1,
         sessionDurationMinutes: 120,
         audienceMode: "SUBGROUP" as const,
-        maximumGroupSize: 25,
         requiredRoomType: "COMPUTER_LAB" as const,
       }],
     };

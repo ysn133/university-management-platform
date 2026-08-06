@@ -40,9 +40,6 @@ public class ModuleTeachingComponent {
     @Column(name = "audience_mode", nullable = false)
     private TeachingAudienceMode audienceMode;
 
-    @Column(name = "maximum_group_size")
-    private Integer maximumGroupSize;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "required_room_type", nullable = false)
     private RoomType requiredRoomType;
@@ -113,14 +110,6 @@ public class ModuleTeachingComponent {
 
     public void setAudienceMode(TeachingAudienceMode audienceMode) {
         this.audienceMode = audienceMode;
-    }
-
-    public Integer getMaximumGroupSize() {
-        return maximumGroupSize;
-    }
-
-    public void setMaximumGroupSize(Integer maximumGroupSize) {
-        this.maximumGroupSize = maximumGroupSize;
     }
 
     public RoomType getRequiredRoomType() {

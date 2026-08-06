@@ -175,5 +175,6 @@ export function ClassGroupWorkspace({ academicLevelId, academicYearId, semesterI
       {assignmentMutation.isError && <div className="management-alert management-alert--error">{errorMessage(assignmentMutation.error)}</div>}
       <footer className="form-actions"><button className="secondary-button" onClick={() => setAssignmentOpen(false)} type="button">Close</button></footer>
     </div></ManagementModal>}
+
   </>;
 }

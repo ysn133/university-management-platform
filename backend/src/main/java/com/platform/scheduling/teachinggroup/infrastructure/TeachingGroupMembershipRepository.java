@@ -13,6 +13,11 @@ public interface TeachingGroupMembershipRepository
 
     List<TeachingGroupMembership> findByTeachingGroupId(UUID teachingGroupId);
 
+    List<TeachingGroupMembership> findByTeachingGroupSemesterIdAndSemesterRegistrationId(
+        UUID semesterId,
+        UUID semesterRegistrationId
+    );
+
     boolean existsByTeachingGroupIdAndSemesterRegistrationId(
         UUID teachingGroupId,
         UUID semesterRegistrationId
