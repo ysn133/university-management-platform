@@ -409,6 +409,73 @@ class ClassGroupDistributionIntegrationTest {
                 .toList());
     }
 
+    @Test
+    void includesCarriedRegistrationFromAnotherAcademicLevelInSemesterRoster() {
+        Semester semester = semesterRepository
+            .findByAcademicLevelIdAndAcademicYearIdOrderBySemesterOrderAsc(
+                academicLevel.getId(),
+                academicYear.getId()
+            )
+            .get(1);
+        ClassGroupResponse groupResponse = classGroupService.createClassGroup(
+            root,
+            academicLevel.getId(),
+            academicYear.getId(),
+            new CreateClassGroupRequest("Group A", ClassGroupStatus.ACTIVE)
+        );
+        ClassGroup group = classGroupRepository.findById(groupResponse.id()).orElseThrow();
+
+        AcademicLevel nextLevel = new AcademicLevel();
+        nextLevel.setProgramFiliere(academicLevel.getProgramFiliere());
+        nextLevel.setName("M2");
+        nextLevel.setLevelOrder(2);
+        nextLevel = academicLevelRepository.save(nextLevel);
+
+        UserAccount account = new UserAccount();
+        account.setUniversityEmail("carried-student-" + UUID.randomUUID() + "@test.local");
+        account.setPasswordHash("not-used");
+        account.setRole(AccountRoleType.STUDENT);
+        account.setAccountStatus(AccountStatus.ACTIVE);
+        account = userAccountRepository.save(account);
+
+        Student student = new Student();
+        student.setUserAccount(account);
+        student.setEstablishment(academicLevel.getProgramFiliere().getDepartment().getEstablishment());
+        student.setApogeeCode("CARRIED-" + UUID.randomUUID());
+        student = studentRepository.save(student);
+
+        AcademicRegistration registration = new AcademicRegistration();
+        registration.setStudent(student);
+        registration.setProgramFiliere(academicLevel.getProgramFiliere());
+        registration.setAcademicYear(academicYear);
+        registration.setAcademicLevel(nextLevel);
+        registration.setStatus(AcademicRegistrationStatus.ACTIVE);
+        registration = academicRegistrationRepository.save(registration);
+
+        SemesterRegistration semesterRegistration = new SemesterRegistration();
+        semesterRegistration.setAcademicRegistration(registration);
+        semesterRegistration.setSemester(semester);
+        semesterRegistration = semesterRegistrationRepository.save(semesterRegistration);
+
+        StudentClassAssignment assignment = new StudentClassAssignment();
+        assignment.setSemesterRegistration(semesterRegistration);
+        assignment.setClassGroup(group);
+        classAssignmentRepository.save(assignment);
+
+        ClassGroupRosterResponse roster = classAssignmentService.getClassGroupRoster(
+            root,
+            academicLevel.getId(),
+            academicYear.getId(),
+            semester.getId()
+        );
+
+        assertThat(roster.totalStudents()).isEqualTo(9);
+        assertThat(roster.groups().get(0).academicRegistrationIds())
+            .contains(registration.getId());
+        assertThat(roster.unassignedAcademicRegistrationIds())
+            .doesNotContain(registration.getId());
+    }
+
     private Semester saveSemester(String name, int order) {
         Semester semester = new Semester();
         semester.setAcademicLevel(academicLevel);
