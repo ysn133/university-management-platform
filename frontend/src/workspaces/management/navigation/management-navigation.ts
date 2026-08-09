@@ -34,6 +34,7 @@ export function getManagementNavigation(
       { label: "Degree Cycles", to: `${contextPath}/degree-cycles`, icon: "cycles", group: "Academic structure" },
       { label: "Programs", to: `${contextPath}/programs`, icon: "programs", group: "Academic structure" },
       { label: "Academic Years", to: `${contextPath}/academic-years`, icon: "years", group: "Academic structure" },
+      { label: "Academic Rules", to: `${contextPath}/academic-rule-profiles`, icon: "rules", group: "Academic structure" },
     ];
   }
 

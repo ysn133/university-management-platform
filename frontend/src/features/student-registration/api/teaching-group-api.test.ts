@@ -16,7 +16,7 @@ const roster = {
     sourceClassGroupName: "A",
     name: "A TP1",
     groupType: "TP",
-    members: [{ semesterRegistrationId, studentId, apogeeCode: "APO-1", firstName: "Lina", lastName: "Amrani" }],
+    members: [{ semesterRegistrationId, studentId, apogeeCode: "APO-1", firstName: "Lina", lastName: "Amrani", secondInscription: true }],
   }],
 };
 

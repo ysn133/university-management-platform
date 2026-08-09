@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createAcademicDomain, createAcademicRuleProfile, createAcademicYear, createProgramFiliere, getAcademicLevels, getDepartments, getModuleTeachingComponents, getSemesters, replaceModuleTeachingComponents, replaceTeachingGroupPolicies } from "./academic-structure-api";
+import { createAcademicDomain, createAcademicRuleProfile, createAcademicYear, createProgramFiliere, getAcademicLevels, getDepartments, getModuleTeachingComponents, getSemesters, replaceModuleTeachingComponents, replaceTeachingGroupPolicies, updateAcademicRuleProfile } from "./academic-structure-api";
 
 const establishmentId = "00000000-0000-4000-8000-000000000001";
 const departmentId = "00000000-0000-4000-8000-000000000002";
@@ -141,9 +141,8 @@ describe("academic structure API", () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       id: "00000000-0000-4000-8000-000000000012",
       establishmentId,
-      name: request.name,
       version: 1,
-      status: "ACTIVE",
+      ...request,
     }), { status: 200, headers: { "Content-Type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -151,6 +150,38 @@ describe("academic structure API", () => {
 
     const submittedRequest = fetchMock.mock.calls[0][0] as Request;
     expect(submittedRequest.url).toContain(`/api/v1/establishments/${establishmentId}/academic-rule-profiles`);
+    await expect(submittedRequest.clone().json()).resolves.toEqual(request);
+  });
+
+  it("updates an academic rule profile", async () => {
+    const academicRuleProfileId = "00000000-0000-4000-8000-000000000012";
+    const request = {
+      name: "Master standard rules",
+      moduleValidationThreshold: 10,
+      compensationMinimumThreshold: 7,
+      semesterValidationAverage: 10,
+      annualValidationAverage: 10,
+      maximumModuleInscriptions: 2,
+      sessionGradePolicy: "BEST_GRADE" as const,
+      allowProgressionWithDebt: true,
+      maximumCarriedModules: 2,
+      maximumUnjustifiedAbsences: 3,
+      absenceExclusionPolicy: "NORMAL_AND_RATTRAPAGE" as const,
+      status: "INACTIVE" as const,
+    };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      id: academicRuleProfileId,
+      establishmentId,
+      version: 1,
+      ...request,
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await updateAcademicRuleProfile(academicRuleProfileId, request);
+
+    const submittedRequest = fetchMock.mock.calls[0][0] as Request;
+    expect(submittedRequest.method).toBe("PUT");
+    expect(submittedRequest.url).toContain(`/api/v1/academic-rule-profiles/${academicRuleProfileId}`);
     await expect(submittedRequest.clone().json()).resolves.toEqual(request);
   });
 

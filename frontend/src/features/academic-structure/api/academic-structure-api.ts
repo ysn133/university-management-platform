@@ -91,8 +91,20 @@ const academicRuleProfileSchema = z.object({
   establishmentId: z.string().uuid(),
   name: z.string(),
   version: z.number().int(),
+  moduleValidationThreshold: z.number(),
+  compensationMinimumThreshold: z.number(),
+  semesterValidationAverage: z.number(),
+  annualValidationAverage: z.number().nullable().optional(),
+  maximumModuleInscriptions: z.number().int(),
+  sessionGradePolicy: z.enum(["BEST_GRADE", "RATTRAPAGE_REPLACES_NORMAL", "RATTRAPAGE_CAPPED_AT_VALIDATION_THRESHOLD"]),
+  allowProgressionWithDebt: z.boolean(),
+  maximumCarriedModules: z.number().int(),
+  maximumUnjustifiedAbsences: z.number().int(),
+  absenceExclusionPolicy: z.enum(["NORMAL_ONLY", "NORMAL_AND_RATTRAPAGE"]),
   status: z.enum(["ACTIVE", "INACTIVE"]),
-}).passthrough();
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
 
 const academicDomainSchema = z.object({
   id: z.string().uuid(),
@@ -120,6 +132,7 @@ export type UpdateProgramFiliereRequest = components["schemas"]["UpdateProgramFi
 export type CreateAcademicLevelRequest = components["schemas"]["CreateAcademicLevelRequest"];
 export type UpdateAcademicLevelRequest = components["schemas"]["UpdateAcademicLevelRequest"];
 export type CreateAcademicRuleProfileRequest = components["schemas"]["CreateAcademicRuleProfileRequest"];
+export type UpdateAcademicRuleProfileRequest = components["schemas"]["UpdateAcademicRuleProfileRequest"];
 export type CreateAcademicDomainRequest = components["schemas"]["CreateAcademicDomainRequest"];
 export type CreateSemesterRequest = components["schemas"]["CreateSemesterRequest"];
 export type UpdateSemesterRequest = components["schemas"]["UpdateSemesterRequest"];
@@ -323,6 +336,14 @@ export async function getAcademicRuleProfiles(establishmentId: string): Promise<
 
 export async function createAcademicRuleProfile(establishmentId: string, request: CreateAcademicRuleProfileRequest): Promise<AcademicRuleProfile> {
   return parseResponse(await apiClient.POST("/api/v1/establishments/{establishmentId}/academic-rule-profiles", { params: { path: { establishmentId } }, body: request }), academicRuleProfileSchema);
+}
+
+export async function getAcademicRuleProfile(academicRuleProfileId: string): Promise<AcademicRuleProfile> {
+  return parseResponse(await apiClient.GET("/api/v1/academic-rule-profiles/{academicRuleProfileId}", { params: { path: { academicRuleProfileId } } }), academicRuleProfileSchema);
+}
+
+export async function updateAcademicRuleProfile(academicRuleProfileId: string, request: UpdateAcademicRuleProfileRequest): Promise<AcademicRuleProfile> {
+  return parseResponse(await apiClient.PUT("/api/v1/academic-rule-profiles/{academicRuleProfileId}", { params: { path: { academicRuleProfileId } }, body: request }), academicRuleProfileSchema);
 }
 
 export async function getAcademicDomains(establishmentId: string): Promise<AcademicDomain[]> {

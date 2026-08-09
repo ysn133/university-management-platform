@@ -8,6 +8,7 @@ const teachingGroupMemberSchema = z.object({
   apogeeCode: z.string(),
   firstName: z.string(),
   lastName: z.string(),
+  secondInscription: z.boolean(),
 });
 
 const teachingGroupSchema = z.object({

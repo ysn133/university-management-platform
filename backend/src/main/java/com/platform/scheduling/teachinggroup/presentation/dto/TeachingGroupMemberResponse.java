@@ -7,6 +7,7 @@ public record TeachingGroupMemberResponse(
     UUID studentId,
     String apogeeCode,
     String firstName,
-    String lastName
+    String lastName,
+    boolean secondInscription
 ) {
 }

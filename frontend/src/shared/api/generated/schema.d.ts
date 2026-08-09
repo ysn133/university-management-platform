@@ -2027,6 +2027,7 @@ export interface components {
             apogeeCode?: string;
             firstName?: string;
             lastName?: string;
+            secondInscription?: boolean;
         };
         TeachingGroupResponse: {
             /** Format: uuid */
