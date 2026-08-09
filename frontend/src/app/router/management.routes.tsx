@@ -13,12 +13,15 @@ import { EstablishmentOperationRoute } from "@/features/academic-structure/compo
 import { AcademicYearsPage } from "@/features/academic-structure/pages/AcademicYearsPage";
 import { AcademicYearProgramPathsPage } from "@/features/academic-structure/pages/AcademicYearProgramPathsPage";
 import { AcademicRuleProfilesPage } from "@/features/academic-structure/pages/AcademicRuleProfilesPage";
+import { AcademicDomainsPage } from "@/features/academic-structure/pages/AcademicDomainsPage";
 import { ProgramFilieresPage } from "@/features/academic-structure/pages/ProgramFilieresPage";
 import { ProgramCurriculumPage } from "@/features/academic-structure/pages/ProgramCurriculumPage";
 import { SubjectModulePage } from "@/features/academic-structure/pages/SubjectModulePage";
 import { DegreeCyclesPage, DepartmentsPage, ProgramPathsPage } from "@/features/academic-structure/pages/ReferenceCatalogPages";
 import { StudentDirectoryPage } from "@/features/student-registration/pages/StudentDirectoryPage";
 import { StudentDetailsPage } from "@/features/student-registration/pages/StudentDetailsPage";
+import { ProfessorManagementPage } from "@/features/professor-management/pages/ProfessorManagementPage";
+import { ProfessorDetailsPage } from "@/features/professor-management/pages/ProfessorDetailsPage";
 
 export const managementRoutes: RouteObject = {
   path: "/management",
@@ -35,6 +38,8 @@ export const managementRoutes: RouteObject = {
         { path: "establishments/:establishmentId/admins/:adminId", element: <AdminDetailsPage /> },
         { path: "establishments/:establishmentId/students", element: <StudentDirectoryPage /> },
         { path: "establishments/:establishmentId/students/:studentId", element: <StudentDetailsPage /> },
+        { path: "establishments/:establishmentId/professors", element: <ProfessorManagementPage /> },
+        { path: "establishments/:establishmentId/professors/:professorId", element: <ProfessorDetailsPage /> },
         { path: "establishments/:establishmentId/departments", element: <DepartmentsPage /> },
         { path: "establishments/:establishmentId/program-paths", element: <ProgramPathsPage /> },
         { path: "establishments/:establishmentId/program-paths/:programPathId/programs", element: <ProgramFilieresPage /> },
@@ -46,6 +51,7 @@ export const managementRoutes: RouteObject = {
         { path: "establishments/:establishmentId/programs/:programFiliereId/modules/:subjectModuleId", element: <SubjectModulePage /> },
         { path: "establishments/:establishmentId/academic-years", element: <AcademicYearsPage /> },
         { path: "establishments/:establishmentId/academic-rule-profiles", element: <AcademicRuleProfilesPage /> },
+        { path: "establishments/:establishmentId/academic-domains", element: <AcademicDomainsPage /> },
         { path: "establishments/:establishmentId/academic-years/:academicYearId/program-paths", element: <AcademicYearProgramPathsPage /> },
         { path: "establishments/:establishmentId/academic-years/:academicYearId/program-paths/:programPathId/programs", element: <ProgramFilieresPage /> },
         { path: "establishments/:establishmentId/academic-years/:academicYearId/program-paths/:programPathId/programs/:programFiliereId", element: <ProgramCurriculumPage /> },
@@ -73,12 +79,15 @@ export const managementRoutes: RouteObject = {
         { path: "programs/:programFiliereId/modules/:subjectModuleId", element: <SubjectModulePage /> },
         { path: "academic-years", element: <AcademicYearsPage /> },
         { path: "academic-rule-profiles", element: <AcademicRuleProfilesPage /> },
+        { path: "academic-domains", element: <AcademicDomainsPage /> },
         { path: "academic-years/:academicYearId/program-paths", element: <AcademicYearProgramPathsPage /> },
         { path: "academic-years/:academicYearId/program-paths/:programPathId/programs", element: <ProgramFilieresPage /> },
         { path: "academic-years/:academicYearId/program-paths/:programPathId/programs/:programFiliereId", element: <ProgramCurriculumPage /> },
         { path: "academic-years/:academicYearId/program-paths/:programPathId/programs/:programFiliereId/modules/:subjectModuleId", element: <SubjectModulePage /> },
         { path: "students", element: <StudentDirectoryPage /> },
         { path: "students/:studentId", element: <StudentDetailsPage /> },
+        { path: "professors", element: <ProfessorManagementPage /> },
+        { path: "professors/:professorId", element: <ProfessorDetailsPage /> },
       ],
     },
     { path: "account/password", element: <ChangePasswordPage /> },

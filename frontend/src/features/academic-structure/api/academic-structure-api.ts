@@ -111,6 +111,8 @@ const academicDomainSchema = z.object({
   establishmentId: z.string().uuid(),
   code: z.string(),
   name: z.string(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
 });
 
 export type NamedResource = z.infer<typeof namedResourceSchema>;
@@ -134,6 +136,7 @@ export type UpdateAcademicLevelRequest = components["schemas"]["UpdateAcademicLe
 export type CreateAcademicRuleProfileRequest = components["schemas"]["CreateAcademicRuleProfileRequest"];
 export type UpdateAcademicRuleProfileRequest = components["schemas"]["UpdateAcademicRuleProfileRequest"];
 export type CreateAcademicDomainRequest = components["schemas"]["CreateAcademicDomainRequest"];
+export type UpdateAcademicDomainRequest = components["schemas"]["UpdateAcademicDomainRequest"];
 export type CreateSemesterRequest = components["schemas"]["CreateSemesterRequest"];
 export type UpdateSemesterRequest = components["schemas"]["UpdateSemesterRequest"];
 export type CreateSubjectModuleRequest = components["schemas"]["CreateSubjectModuleRequest"];
@@ -352,4 +355,12 @@ export async function getAcademicDomains(establishmentId: string): Promise<Acade
 
 export async function createAcademicDomain(establishmentId: string, request: CreateAcademicDomainRequest): Promise<AcademicDomain> {
   return parseResponse(await apiClient.POST("/api/v1/establishments/{establishmentId}/academic-domains", { params: { path: { establishmentId } }, body: request }), academicDomainSchema);
+}
+
+export async function updateAcademicDomain(academicDomainId: string, request: UpdateAcademicDomainRequest): Promise<AcademicDomain> {
+  return parseResponse(await apiClient.PUT("/api/v1/academic-domains/{academicDomainId}", { params: { path: { academicDomainId } }, body: request }), academicDomainSchema);
+}
+
+export async function deleteAcademicDomain(academicDomainId: string): Promise<void> {
+  await ensureSuccess(await apiClient.DELETE("/api/v1/academic-domains/{academicDomainId}", { params: { path: { academicDomainId } } }));
 }

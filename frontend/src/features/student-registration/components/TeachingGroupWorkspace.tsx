@@ -46,7 +46,9 @@ export function TeachingGroupWorkspace({ academicLevelName, semesters, studentDe
     enabled: Boolean(semesterId),
   });
   const allGroups = rosterQuery.data?.groups ?? [];
-  const typedGroups = allGroups.filter((group) => group.groupType === groupType);
+  const availableTypes = new Set(allGroups.map((group) => group.groupType));
+  const effectiveGroupType = availableTypes.has(groupType) ? groupType : allGroups[0]?.groupType ?? groupType;
+  const typedGroups = allGroups.filter((group) => group.groupType === effectiveGroupType);
   const classGroups = Array.from(new Map(typedGroups.map((group) => [group.sourceClassGroupId, {
     id: group.sourceClassGroupId,
     name: group.sourceClassGroupName,
@@ -60,8 +62,22 @@ export function TeachingGroupWorkspace({ academicLevelName, semesters, studentDe
     !deferredSearch
     || `${member.firstName} ${member.lastName} ${member.apogeeCode}`.toLowerCase().includes(deferredSearch),
   );
-  const availableTypes = new Set(allGroups.map((group) => group.groupType));
+  const allClassGroups = new Set(allGroups.map((group) => group.sourceClassGroupId));
+  const compactSingleClass = allClassGroups.size === 1
+    && [...availableTypes].every((type) => allGroups.filter((group) => group.groupType === type).length <= 1);
   const selectedSemester = semesters.find((semester) => semester.id === semesterId);
+
+  useEffect(() => {
+    if (!deferredSearch || visibleMembers.length > 0) return;
+
+    const matchingGroup = typedGroups.find((group) => group.members.some((member) =>
+      `${member.firstName} ${member.lastName} ${member.apogeeCode}`.toLowerCase().includes(deferredSearch),
+    ));
+    if (!matchingGroup) return;
+
+    setClassGroupId(matchingGroup.sourceClassGroupId);
+    setTeachingGroupId(matchingGroup.id);
+  }, [deferredSearch, typedGroups, visibleMembers.length]);
 
   const generationMutation = useMutation({
     mutationFn: () => generateTeachingGroups(semesterId),
@@ -120,26 +136,26 @@ export function TeachingGroupWorkspace({ academicLevelName, semesters, studentDe
 
     <div className="teaching-group-toolbar">
       <label><span>Semester</span><select onChange={(event) => { setSemesterId(event.target.value); setClassGroupId(""); setTeachingGroupId(""); setSearch(""); }} value={semesterId}>{semesters.map((semester) => <option key={semester.id} value={semester.id}>{semester.name}</option>)}</select></label>
-      <div aria-label="Teaching group type" className="teaching-group-type-tabs" role="tablist">
-        <button aria-selected={groupType === "TD"} onClick={() => selectType("TD")} role="tab" type="button">TD Groups</button>
-        <button aria-selected={groupType === "TP"} onClick={() => selectType("TP")} role="tab" type="button">TP Groups</button>
-      </div>
+      {availableTypes.size > 1 && <div aria-label="Teaching group type" className="teaching-group-type-tabs" role="tablist">
+        <button aria-selected={effectiveGroupType === "TD"} onClick={() => selectType("TD")} role="tab" type="button">TD Groups</button>
+        <button aria-selected={effectiveGroupType === "TP"} onClick={() => selectType("TP")} role="tab" type="button">TP Groups</button>
+      </div>}
     </div>
 
     {generationMutation.isError && <div className="management-alert management-alert--error">{errorMessage(generationMutation.error)}</div>}
     {rosterQuery.isPending ? <div className="panel-empty">Loading teaching groups...</div>
       : rosterQuery.isError ? <div className="panel-empty panel-empty--error">{errorMessage(rosterQuery.error)}</div>
-      : typedGroups.length === 0 ? <div className="panel-empty"><strong>{availableTypes.size ? `No ${groupType} groups are required.` : "No teaching groups generated."}</strong><p>{availableTypes.size ? `No module in ${selectedSemester?.name ?? "this semester"} uses ${groupType} subgroups.` : "Generate groups after class groups and teaching components are ready."}</p></div>
+      : typedGroups.length === 0 ? <div className="panel-empty"><strong>{availableTypes.size ? `No ${effectiveGroupType} groups are required.` : "No teaching groups generated."}</strong><p>{availableTypes.size ? `No module in ${selectedSemester?.name ?? "this semester"} uses ${effectiveGroupType} subgroups.` : "Generate groups after class groups and teaching components are ready."}</p></div>
       : <div className="teaching-group-browser">
-        <div className="teaching-class-navigation"><span>Class groups</span><nav aria-label="Class groups" className="teaching-class-tabs" role="tablist">{classGroups.map((group) => <button aria-selected={selectedClassGroupId === group.id} key={group.id} onClick={() => selectClass(group.id)} role="tab" type="button"><strong>{group.name}</strong><span>{typedGroups.filter((item) => item.sourceClassGroupId === group.id).reduce((total, item) => total + item.members.length, 0)} placements</span></button>)}</nav></div>
-        <div className="teaching-subgroup-bar">
-          <div className="teaching-subgroup-navigation"><span>{groupType} groups</span><div aria-label={`${groupType} subgroups`} className="teaching-subgroup-tabs" role="tablist">{subgroupGroups.map((group) => <button aria-selected={selectedGroup?.id === group.id} key={group.id} onClick={() => { setTeachingGroupId(group.id); setSearch(""); }} role="tab" type="button"><strong>{group.name}</strong><span>{group.members.length}</span></button>)}</div></div>
+        {!compactSingleClass && <div className="teaching-class-navigation"><span>Class groups</span><nav aria-label="Class groups" className="teaching-class-tabs" role="tablist">{classGroups.map((group) => <button aria-selected={selectedClassGroupId === group.id} key={group.id} onClick={() => selectClass(group.id)} role="tab" type="button"><strong>{group.name}</strong><span>{typedGroups.filter((item) => item.sourceClassGroupId === group.id).reduce((total, item) => total + item.members.length, 0)} placements</span></button>)}</nav></div>}
+        <div className={`teaching-subgroup-bar${compactSingleClass ? " teaching-subgroup-bar--compact" : ""}`}>
+          {!compactSingleClass && <div className="teaching-subgroup-navigation"><span>{effectiveGroupType} groups</span><div aria-label={`${effectiveGroupType} subgroups`} className="teaching-subgroup-tabs" role="tablist">{subgroupGroups.map((group) => <button aria-selected={selectedGroup?.id === group.id} key={group.id} onClick={() => { setTeachingGroupId(group.id); setSearch(""); }} role="tab" type="button"><strong>{group.name}</strong><span>{group.members.length}</span></button>)}</div></div>}
           <label className="teaching-group-search"><span>Search students</span><input onChange={(event) => setSearch(event.target.value)} placeholder="Name or Apogee code" value={search} /></label>
         </div>
 
         {selectedGroup && <div className="teaching-group-roster">
-          <header><div><p className="management-kicker">{selectedClassGroupId === selectedGroup.sourceClassGroupId ? selectedGroup.sourceClassGroupName : "Class group"}</p><h3>{selectedGroup.name}</h3></div><span>{visibleMembers.length === selectedGroup.members.length ? `${selectedGroup.members.length} students` : `${visibleMembers.length} of ${selectedGroup.members.length} students`}</span></header>
-          {visibleMembers.length === 0 ? <div className="panel-empty"><strong>No matching students.</strong><p>Try another name or Apogee code.</p></div> : <div className="resource-table-wrapper"><table className="resource-table teaching-group-table"><thead><tr><th>Student</th><th>Apogee code</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>{visibleMembers.map((member) => <tr key={member.semesterRegistrationId}><td><Link className="resource-name resource-name--link teaching-group-student-link" to={studentDetailsPath(member.studentId)}><span className="person-monogram">{member.firstName[0]}{member.lastName[0]}</span><div><span className="teaching-group-student-name"><strong>{member.firstName} {member.lastName}</strong>{member.secondInscription && <span className="second-inscription-badge">Second inscription</span>}</span><small>{groupType} · {selectedGroup.name}</small></div></Link></td><td><span className="teaching-group-apogee">{member.apogeeCode}</span></td><td><button aria-label={`Transfer ${member.firstName} ${member.lastName} to another ${groupType} group`} className="teaching-group-transfer" onClick={() => beginMove(selectedGroup, member)} type="button"><span>Transfer</span><svg aria-hidden="true" fill="none" height="16" viewBox="0 0 16 16" width="16"><path d="M3 5h8.5M9 2.5 11.5 5 9 7.5M13 11H4.5M7 8.5 4.5 11 7 13.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.4" /></svg></button></td></tr>)}</tbody></table></div>}
+          <header><div><p className="management-kicker">{compactSingleClass ? "Class roster" : selectedGroup.sourceClassGroupName}</p><h3>{compactSingleClass ? `${academicLevelName} Class` : selectedGroup.name}</h3></div><span>{deferredSearch ? `${visibleMembers.length} of ${selectedGroup.members.length} students` : `${selectedGroup.members.length} students`}</span></header>
+          {visibleMembers.length === 0 ? <div className="panel-empty"><strong>No matching students.</strong><p>Try another name or Apogee code.</p></div> : <div className="resource-table-wrapper"><table className="resource-table teaching-group-table"><thead><tr><th>Student</th><th>Apogee code</th>{!compactSingleClass && <th><span className="sr-only">Actions</span></th>}</tr></thead><tbody>{visibleMembers.map((member) => <tr key={member.semesterRegistrationId}><td><Link className="resource-name resource-name--link teaching-group-student-link" to={studentDetailsPath(member.studentId)}><span className="person-monogram">{member.firstName[0]}{member.lastName[0]}</span><div><span className="teaching-group-student-name"><strong>{member.firstName} {member.lastName}</strong>{member.secondInscription && <span className="second-inscription-badge">Second inscription</span>}</span>{!compactSingleClass && <small>{effectiveGroupType} · {selectedGroup.name}</small>}</div></Link></td><td><span className="teaching-group-apogee">{member.apogeeCode}</span></td>{!compactSingleClass && <td><button aria-label={`Transfer ${member.firstName} ${member.lastName} to another ${effectiveGroupType} group`} className="teaching-group-transfer" onClick={() => beginMove(selectedGroup, member)} type="button"><span>Transfer</span><svg aria-hidden="true" fill="none" height="16" viewBox="0 0 16 16" width="16"><path d="M3 5h8.5M9 2.5 11.5 5 9 7.5M13 11H4.5M7 8.5 4.5 11 7 13.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.4" /></svg></button></td>}</tr>)}</tbody></table></div>}
         </div>}
       </div>}
 
