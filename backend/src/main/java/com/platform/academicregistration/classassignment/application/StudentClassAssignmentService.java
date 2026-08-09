@@ -27,6 +27,7 @@ import com.platform.universitygovernance.academicyear.infrastructure.AcademicYea
 import com.platform.universitygovernance.semester.domain.Semester;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -110,12 +111,18 @@ public class StudentClassAssignmentService {
             PermissionCode.CLASS_GROUP_VIEW
         );
 
-        List<AcademicRegistration> registrations = academicRegistrationRepository
-            .findByAcademicLevelIdAndAcademicYearIdAndStatusOrderByStudentApogeeCodeAsc(
-                academicLevelId,
-                academicYearId,
-                AcademicRegistrationStatus.ACTIVE
-            );
+        List<AcademicRegistration> registrations = semesterRegistrationRepository
+            .findBySemesterId(semesterId)
+            .stream()
+            .map(SemesterRegistration::getAcademicRegistration)
+            .filter(registration ->
+                registration.getStatus() == AcademicRegistrationStatus.ACTIVE
+            )
+            .distinct()
+            .sorted(Comparator.comparing(registration ->
+                registration.getStudent().getApogeeCode()
+            ))
+            .toList();
         Set<UUID> registrationIds = registrations.stream()
             .map(AcademicRegistration::getId)
             .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
