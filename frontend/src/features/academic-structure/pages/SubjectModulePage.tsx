@@ -74,11 +74,16 @@ function errorMessage(error: unknown): string {
 }
 
 export function SubjectModulePage() {
-  const { programFiliereId, subjectModuleId } = useParams();
+  const {
+    programFiliereId,
+    subjectModuleId,
+    academicYearId: routeAcademicYearId,
+    programPathId: routeProgramPathId,
+  } = useParams<{ programFiliereId: string; subjectModuleId: string; academicYearId?: string; programPathId?: string }>();
   const [searchParams] = useSearchParams();
   const { establishmentId, workspacePath } = useEstablishmentScope();
   const queryClient = useQueryClient();
-  const academicYearId = searchParams.get("academicYearId") ?? "";
+  const academicYearId = routeAcademicYearId ?? searchParams.get("academicYearId") ?? "";
   const academicLevelId = searchParams.get("academicLevelId") ?? "";
   const [components, setComponents] = useState<TeachingComponentForm[]>(() => componentOrder.map(defaultComponent));
   const [formError, setFormError] = useState<string | null>(null);
@@ -141,7 +146,13 @@ export function SubjectModulePage() {
   if (academicYearId) backParams.set("academicYearId", academicYearId);
   if (academicLevelId) backParams.set("academicLevelId", academicLevelId);
   if (module.semesterId) backParams.set("semesterId", module.semesterId);
-  const backPath = `${workspacePath}/programs/${programFiliereId}${backParams.size ? `?${backParams}` : ""}`;
+  const programPathId = routeProgramPathId ?? searchParams.get("programPathId");
+  if (programPathId) backParams.set("programPathId", programPathId);
+  const backPath = routeAcademicYearId && programPathId
+    ? `${workspacePath}/academic-years/${routeAcademicYearId}/program-paths/${programPathId}/programs/${programFiliereId}?academicLevelId=${academicLevelId}&semesterId=${module.semesterId}`
+    : routeProgramPathId
+    ? `${workspacePath}/program-paths/${routeProgramPathId}/programs/${programFiliereId}?academicYearId=${academicYearId}&academicLevelId=${academicLevelId}&semesterId=${module.semesterId}`
+    : `${workspacePath}/programs/${programFiliereId}${backParams.size ? `?${backParams}` : ""}`;
 
   return <div className="management-page module-workspace-page">
     <Link className="context-back-link curriculum-back-link" to={backPath}>← Back to {program.name}</Link>

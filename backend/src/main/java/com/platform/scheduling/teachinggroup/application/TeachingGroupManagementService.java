@@ -1,6 +1,8 @@
 package com.platform.scheduling.teachinggroup.application;
 
 import com.platform.academicregistration.semesterregistration.domain.SemesterRegistration;
+import com.platform.academicregistration.moduleregistration.domain.ModuleRegistrationStatus;
+import com.platform.academicregistration.moduleregistration.infrastructure.ModuleRegistrationRepository;
 import com.platform.identityaccess.application.AdminPermissionAuthorizationService;
 import com.platform.identityaccess.domain.PermissionCode;
 import com.platform.identityaccess.domain.UserProfile;
@@ -36,6 +38,7 @@ public class TeachingGroupManagementService {
     private final TeachingGroupRepository groupRepository;
     private final TeachingGroupMembershipRepository membershipRepository;
     private final TeachingGroupPolicyRepository policyRepository;
+    private final ModuleRegistrationRepository moduleRegistrationRepository;
     private final UserProfileRepository userProfileRepository;
     private final TeachingRequirementRepository requirementRepository;
     private final TeachingGroupGenerationService generationService;
@@ -46,6 +49,7 @@ public class TeachingGroupManagementService {
         TeachingGroupRepository groupRepository,
         TeachingGroupMembershipRepository membershipRepository,
         TeachingGroupPolicyRepository policyRepository,
+        ModuleRegistrationRepository moduleRegistrationRepository,
         UserProfileRepository userProfileRepository,
         TeachingRequirementRepository requirementRepository,
         TeachingGroupGenerationService generationService,
@@ -55,6 +59,7 @@ public class TeachingGroupManagementService {
         this.groupRepository = groupRepository;
         this.membershipRepository = membershipRepository;
         this.policyRepository = policyRepository;
+        this.moduleRegistrationRepository = moduleRegistrationRepository;
         this.userProfileRepository = userProfileRepository;
         this.requirementRepository = requirementRepository;
         this.generationService = generationService;
@@ -221,7 +226,15 @@ public class TeachingGroupManagementService {
                     student.getId(),
                     student.getApogeeCode(),
                     profile == null ? "" : profile.getFirstName(),
-                    profile == null ? "" : profile.getLastName()
+                    profile == null ? "" : profile.getLastName(),
+                    moduleRegistrationRepository
+                        .findBySemesterRegistrationIdAndStatus(
+                            registration.getId(),
+                            ModuleRegistrationStatus.ACTIVE
+                        )
+                        .stream()
+                        .anyMatch(moduleRegistration ->
+                            moduleRegistration.getInscriptionNumber() > 1)
                 );
             })
             .sorted(Comparator.comparing(TeachingGroupMemberResponse::apogeeCode))

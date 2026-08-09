@@ -11,6 +11,8 @@ import { AdminManagementPage } from "@/features/establishment-management/pages/A
 import { AdminDetailsPage } from "@/features/establishment-management/pages/AdminDetailsPage";
 import { EstablishmentOperationRoute } from "@/features/academic-structure/components/EstablishmentOperationRoute";
 import { AcademicYearsPage } from "@/features/academic-structure/pages/AcademicYearsPage";
+import { AcademicYearProgramPathsPage } from "@/features/academic-structure/pages/AcademicYearProgramPathsPage";
+import { AcademicRuleProfilesPage } from "@/features/academic-structure/pages/AcademicRuleProfilesPage";
 import { ProgramFilieresPage } from "@/features/academic-structure/pages/ProgramFilieresPage";
 import { ProgramCurriculumPage } from "@/features/academic-structure/pages/ProgramCurriculumPage";
 import { SubjectModulePage } from "@/features/academic-structure/pages/SubjectModulePage";
@@ -35,11 +37,19 @@ export const managementRoutes: RouteObject = {
         { path: "establishments/:establishmentId/students/:studentId", element: <StudentDetailsPage /> },
         { path: "establishments/:establishmentId/departments", element: <DepartmentsPage /> },
         { path: "establishments/:establishmentId/program-paths", element: <ProgramPathsPage /> },
+        { path: "establishments/:establishmentId/program-paths/:programPathId/programs", element: <ProgramFilieresPage /> },
+        { path: "establishments/:establishmentId/program-paths/:programPathId/programs/:programFiliereId", element: <ProgramCurriculumPage /> },
+        { path: "establishments/:establishmentId/program-paths/:programPathId/programs/:programFiliereId/modules/:subjectModuleId", element: <SubjectModulePage /> },
         { path: "establishments/:establishmentId/degree-cycles", element: <DegreeCyclesPage /> },
         { path: "establishments/:establishmentId/programs", element: <ProgramFilieresPage /> },
         { path: "establishments/:establishmentId/programs/:programFiliereId", element: <ProgramCurriculumPage /> },
         { path: "establishments/:establishmentId/programs/:programFiliereId/modules/:subjectModuleId", element: <SubjectModulePage /> },
         { path: "establishments/:establishmentId/academic-years", element: <AcademicYearsPage /> },
+        { path: "establishments/:establishmentId/academic-rule-profiles", element: <AcademicRuleProfilesPage /> },
+        { path: "establishments/:establishmentId/academic-years/:academicYearId/program-paths", element: <AcademicYearProgramPathsPage /> },
+        { path: "establishments/:establishmentId/academic-years/:academicYearId/program-paths/:programPathId/programs", element: <ProgramFilieresPage /> },
+        { path: "establishments/:establishmentId/academic-years/:academicYearId/program-paths/:programPathId/programs/:programFiliereId", element: <ProgramCurriculumPage /> },
+        { path: "establishments/:establishmentId/academic-years/:academicYearId/program-paths/:programPathId/programs/:programFiliereId/modules/:subjectModuleId", element: <SubjectModulePage /> },
       ],
     },
     {
@@ -54,11 +64,19 @@ export const managementRoutes: RouteObject = {
       children: [
         { path: "departments", element: <DepartmentsPage /> },
         { path: "program-paths", element: <ProgramPathsPage /> },
+        { path: "program-paths/:programPathId/programs", element: <ProgramFilieresPage /> },
+        { path: "program-paths/:programPathId/programs/:programFiliereId", element: <ProgramCurriculumPage /> },
+        { path: "program-paths/:programPathId/programs/:programFiliereId/modules/:subjectModuleId", element: <SubjectModulePage /> },
         { path: "degree-cycles", element: <DegreeCyclesPage /> },
         { path: "programs", element: <ProgramFilieresPage /> },
         { path: "programs/:programFiliereId", element: <ProgramCurriculumPage /> },
         { path: "programs/:programFiliereId/modules/:subjectModuleId", element: <SubjectModulePage /> },
         { path: "academic-years", element: <AcademicYearsPage /> },
+        { path: "academic-rule-profiles", element: <AcademicRuleProfilesPage /> },
+        { path: "academic-years/:academicYearId/program-paths", element: <AcademicYearProgramPathsPage /> },
+        { path: "academic-years/:academicYearId/program-paths/:programPathId/programs", element: <ProgramFilieresPage /> },
+        { path: "academic-years/:academicYearId/program-paths/:programPathId/programs/:programFiliereId", element: <ProgramCurriculumPage /> },
+        { path: "academic-years/:academicYearId/program-paths/:programPathId/programs/:programFiliereId/modules/:subjectModuleId", element: <SubjectModulePage /> },
         { path: "students", element: <StudentDirectoryPage /> },
         { path: "students/:studentId", element: <StudentDetailsPage /> },
       ],

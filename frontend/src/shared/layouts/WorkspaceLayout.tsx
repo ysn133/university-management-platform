@@ -6,7 +6,7 @@ export interface WorkspaceNavigationItem {
   label: string;
   to: string;
   end?: boolean;
-  icon?: "overview" | "establishments" | "information" | "leadership" | "admins" | "students" | "departments" | "paths" | "cycles" | "programs" | "years";
+  icon?: "overview" | "establishments" | "information" | "leadership" | "admins" | "students" | "departments" | "paths" | "cycles" | "programs" | "years" | "rules";
   group?: string;
 }
 
@@ -45,6 +45,7 @@ function NavigationIcon({ icon }: { icon?: WorkspaceNavigationItem["icon"] }) {
     cycles: <><path d="M20 7h-5V2M4 17h5v5M19 12a7 7 0 0 0-12-5l-2 2M5 12a7 7 0 0 0 12 5l2-2" /></>,
     programs: <><path d="M4 5h16v14H4zM8 9h8M8 13h5" /></>,
     years: <><rect height="16" rx="2" width="18" x="3" y="5" /><path d="M7 3v4M17 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></>,
+    rules: <><path d="M5 3h14v18H5zM8 7h8M8 11h8M8 15h4" /><path d="m14 16 1.5 1.5L19 14" /></>,
   };
 
   return (

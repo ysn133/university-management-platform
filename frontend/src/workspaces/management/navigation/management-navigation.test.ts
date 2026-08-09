@@ -9,7 +9,7 @@ describe("management navigation", () => {
 
   it("exposes academic structure to an establishment Admin", () => {
     const labels = getManagementNavigation("ADMIN", "establishment-1").map((item) => item.label);
-    expect(labels).toEqual(expect.arrayContaining(["Departments", "Program Paths", "Degree Cycles", "Programs", "Academic Years"]));
+    expect(labels).toEqual(expect.arrayContaining(["Departments", "Program Paths", "Degree Cycles", "Programs", "Academic Years", "Academic Rules"]));
     expect(labels).not.toContain("Admins");
   });
 });

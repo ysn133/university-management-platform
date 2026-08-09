@@ -1,4 +1,5 @@
 import { NamedResourceDirectory } from "../components/NamedResourceDirectory";
+import { useEstablishmentScope } from "@/features/establishment-management/context/useEstablishmentScope";
 import {
   academicStructureKeys,
   createDegreeCycle,
@@ -20,7 +21,8 @@ export function DepartmentsPage() {
 }
 
 export function ProgramPathsPage() {
-  return <NamedResourceDirectory title="Program Paths" singular="Program Path" description="Define the regular, excellence, and other study paths available in this establishment." emptyDescription="Create the first path before classifying programs." queryKey={academicStructureKeys.programPaths} load={getProgramPaths} create={createProgramPath} update={updateProgramPath} remove={deleteProgramPath} />;
+  const { workspacePath } = useEstablishmentScope();
+  return <NamedResourceDirectory title="Program Paths" singular="Program Path" description="Define the regular, excellence, and other study paths available in this establishment." emptyDescription="Create the first path before classifying programs." queryKey={academicStructureKeys.programPaths} load={getProgramPaths} create={createProgramPath} update={updateProgramPath} remove={deleteProgramPath} resourcePath={workspacePath ? (path) => `${workspacePath}/program-paths/${path.id}/programs` : undefined} />;
 }
 
 export function DegreeCyclesPage() {

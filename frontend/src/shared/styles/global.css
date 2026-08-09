@@ -3289,12 +3289,111 @@ a.workspace-module-card:hover {
 }
 
 /* Academic structure */
+.academic-year-workspace-header {
+  overflow: hidden;
+  border: 1px solid var(--management-line);
+  border-radius: 0.9rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f4f9fd 100%);
+  box-shadow: 0 12px 30px rgba(35, 75, 105, 0.05);
+}
+
+.academic-year-workspace-header > .context-back-link {
+  margin: 1rem 1.25rem 0;
+}
+
+.academic-year-workspace-header > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1.15rem 1.4rem 1.35rem;
+}
+
+.academic-year-workspace-header h1 {
+  margin: 0 0 0.35rem;
+  color: var(--management-ink);
+  font-family: "Manrope Variable", sans-serif;
+  font-size: clamp(1.9rem, 3vw, 2.7rem);
+  font-weight: 720;
+  letter-spacing: -0.04em;
+}
+
+.academic-year-workspace-header header p:last-child,
+.academic-year-section-header p:last-child {
+  margin: 0;
+  color: var(--management-muted);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.academic-year-workspace-header nav {
+  display: flex;
+  padding: 0 1.4rem;
+  border-top: 1px solid var(--management-line);
+}
+
+.academic-year-workspace-header nav a {
+  padding: 0.85rem 0.15rem 0.75rem;
+  border-bottom: 2px solid transparent;
+  color: var(--management-muted);
+  font-size: 0.7rem;
+  font-weight: 740;
+  text-decoration: none;
+}
+
+.academic-year-workspace-header nav a.is-active {
+  border-bottom-color: var(--management-blue);
+  color: var(--management-blue-dark);
+}
+
+.academic-year-section-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-top: 0.5rem;
+}
+
+.academic-year-section-header h1,
+.academic-year-section-header h2 {
+  margin: 0 0 0.35rem;
+  color: var(--management-ink);
+  font-family: "Newsreader Variable", serif;
+  font-size: clamp(1.65rem, 3vw, 2.2rem);
+  font-weight: 620;
+  letter-spacing: -0.025em;
+}
+
 .academic-directory-toolbar {
   grid-template-columns: minmax(18rem, 1fr) auto;
 }
 
 .program-directory-toolbar {
   grid-template-columns: minmax(11rem, 0.55fr) minmax(11rem, 0.55fr) minmax(11rem, 0.55fr) minmax(16rem, 1fr) auto;
+}
+
+.rule-profile-toolbar {
+  grid-template-columns: minmax(18rem, 1fr) minmax(10rem, 0.35fr) auto;
+}
+
+.rule-profile-table {
+  min-width: 66rem;
+}
+
+.rule-profile-table th:first-child,
+.rule-profile-table td:first-child {
+  width: 13rem;
+}
+
+.rule-profile-table .record-open-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.rule-profile-form .curriculum-policy-check {
+  margin-top: 0.35rem;
 }
 
 .directory-result-count {
@@ -4035,6 +4134,25 @@ a.workspace-module-card:hover {
 
 .teaching-group-student-link:hover strong {
   color: var(--management-blue-dark);
+}
+
+.teaching-group-student-name {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.second-inscription-badge {
+  background: #fff3d9;
+  border: 1px solid #efd49c;
+  border-radius: 999px;
+  color: #8a5a08;
+  font-size: 0.61rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  padding: 3px 7px;
+  text-transform: uppercase;
 }
 
 .teaching-group-transfer {
@@ -5311,8 +5429,16 @@ a.workspace-module-card:hover {
   }
 
   .management-page-header .management-primary-button,
-  .panel-header .management-primary-button {
+  .panel-header .management-primary-button,
+  .academic-year-section-header .management-primary-button {
     width: 100%;
+  }
+
+  .academic-year-workspace-header > header,
+  .academic-year-section-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 1rem;
   }
 
   .panel-header {
@@ -5327,7 +5453,8 @@ a.workspace-module-card:hover {
   }
 
   .academic-directory-toolbar,
-  .program-directory-toolbar {
+  .program-directory-toolbar,
+  .rule-profile-toolbar {
     grid-template-columns: 1fr;
   }
 

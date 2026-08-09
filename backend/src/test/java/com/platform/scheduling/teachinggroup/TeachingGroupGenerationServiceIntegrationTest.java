@@ -259,7 +259,32 @@ class TeachingGroupGenerationServiceIntegrationTest {
         assertThat(generated.groups())
             .flatMap(group -> group.members())
             .anyMatch(member -> member.semesterRegistrationId()
-                .equals(carriedRegistration.getId()));
+                .equals(carriedRegistration.getId()) && member.secondInscription());
+    }
+
+    @Test
+    void keepsSubgroupCountsConsistentAcrossClassesWhenSizesAllowIt() {
+        policyService.replacePolicies(
+            rootPrincipal(),
+            academicLevel.getId(),
+            academicYear.getId(),
+            new ReplaceTeachingGroupPoliciesRequest(List.of(
+                new TeachingGroupPolicyItemRequest(TeachingGroupType.TP, 15, 30)
+            ))
+        );
+        for (int index = 1; index <= 31; index++) {
+            saveActiveRegistration(index, groupA);
+        }
+        for (int index = 32; index <= 61; index++) {
+            saveActiveRegistration(index, groupB);
+        }
+
+        var generated = managementService.generate(rootPrincipal(), semester.getId());
+
+        assertThat(generated.groups()).extracting(group -> group.name())
+            .containsExactly("A TP1", "A TP2", "B TP1", "B TP2");
+        assertThat(generated.groups()).extracting(group -> group.members().size())
+            .containsExactly(16, 15, 15, 15);
     }
 
     @Test

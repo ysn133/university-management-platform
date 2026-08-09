@@ -168,6 +168,19 @@ public class TeachingGroupGenerationService {
             .map(type -> policiesByType.get(TeachingGroupType.valueOf(type.name())))
             .sorted(Comparator.comparing(TeachingGroupPolicy::getGroupType))
             .toList();
+        Map<TeachingGroupType, Integer> preferredGroupCounts = new EnumMap<>(
+            TeachingGroupType.class
+        );
+        for (TeachingGroupPolicy policy : subgroupPolicies) {
+            int preferredCount = registrationsByClass.values().stream()
+                .mapToInt(registrations -> divideRoundingUp(
+                    registrations.size(),
+                    policy.getMaximumGroupSize()
+                ))
+                .max()
+                .orElse(1);
+            preferredGroupCounts.put(policy.getGroupType(), preferredCount);
+        }
         List<TeachingGroup> generatedGroups = new ArrayList<>();
         List<TeachingGroupMembership> generatedMemberships = new ArrayList<>();
 
@@ -200,7 +213,8 @@ public class TeachingGroupGenerationService {
                 List<List<SemesterRegistration>> subgroups = splitBalanced(
                     classRegistrations,
                     policy.getMinimumGroupSize(),
-                    policy.getMaximumGroupSize()
+                    policy.getMaximumGroupSize(),
+                    preferredGroupCounts.get(policy.getGroupType())
                 );
                 for (int index = 0; index < subgroups.size(); index++) {
                     TeachingGroup subgroup = createGroup(
@@ -308,9 +322,15 @@ public class TeachingGroupGenerationService {
     private List<List<SemesterRegistration>> splitBalanced(
         List<SemesterRegistration> registrations,
         int minimumSize,
-        int maximumSize
+        int maximumSize,
+        int preferredGroupCount
     ) {
-        int groupCount = (registrations.size() + maximumSize - 1) / maximumSize;
+        int requiredGroupCount = divideRoundingUp(registrations.size(), maximumSize);
+        int maximumFeasibleCount = Math.max(1, registrations.size() / minimumSize);
+        int groupCount = Math.max(
+            requiredGroupCount,
+            Math.min(preferredGroupCount, maximumFeasibleCount)
+        );
         int baseSize = registrations.size() / groupCount;
         if (groupCount > 1 && baseSize < minimumSize) {
             throw new ResponseStatusException(
@@ -327,6 +347,10 @@ public class TeachingGroupGenerationService {
             offset += groupSize;
         }
         return groups;
+    }
+
+    private int divideRoundingUp(int value, int divisor) {
+        return (value + divisor - 1) / divisor;
     }
 
     private void clearExistingGroups(UUID semesterId) {
