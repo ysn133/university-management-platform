@@ -54,12 +54,14 @@ export function ManagementLayout() {
     "super-admins": "Super Admins",
     admins: "Admins",
     students: "Students",
+    professors: "Professors",
     departments: "Departments",
     "program-paths": "Program Paths",
     "degree-cycles": "Degree Cycles",
     programs: "Programs / Filières",
     "academic-years": "Academic Years",
     "academic-rule-profiles": "Academic Rule Profiles",
+    "academic-domains": "Academic Domains",
   };
   const lastPathSegment = location.pathname.split("/").filter(Boolean).at(-1) ?? "";
   const section = isAcademicYearContext || isDirectProgramPathContext ? null : sectionLabels[lastPathSegment] ?? null;

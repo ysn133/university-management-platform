@@ -147,9 +147,9 @@ export function ClassGroupWorkspace({ academicLevelId, academicYearId, semesterI
 
   return <>
     <div className="class-group-bar">
-      <div className="class-group-bar__heading"><strong>Class groups</strong><span>{activeGroups.length === 1 ? "The cohort currently studies as one class" : activeGroups.length > 1 ? `${activeGroups.length} groups configured for this level` : groups.length ? "No active groups configured" : "Organize this cohort into teaching classes"}</span></div>
+      <div className="class-group-bar__heading"><strong>{activeGroups.length === 1 ? "Class" : "Class groups"}</strong><span>{activeGroups.length === 1 ? "The cohort studies together as one class" : activeGroups.length > 1 ? `${activeGroups.length} groups configured for this level` : groups.length ? "No active groups configured" : "Organize this cohort into teaching classes"}</span></div>
       <div className="class-group-bar__actions">
-        {groups.length > 0 && <>{(hasMultipleGroups || hasUnassignedStudents) && <button className="secondary-button" disabled={!semesterId || rosterQuery.isPending} onClick={openAssignments} type="button">{hasMultipleGroups ? "Move or assign Student" : "Assign Student"}</button>}<button className="secondary-button" disabled={!registrations.length} onClick={() => { setSetupAction("rebalance"); setSetupMode("automatic"); setSetupOpen(true); }} type="button">Rebalance groups</button></>}
+        {groups.length > 0 && <>{(hasMultipleGroups || hasUnassignedStudents) && <button className="secondary-button" disabled={!semesterId || rosterQuery.isPending} onClick={openAssignments} type="button">{hasMultipleGroups ? "Move or assign Student" : "Assign Student"}</button>}<button className="secondary-button" disabled={!registrations.length} onClick={() => { setSetupAction("rebalance"); setSetupMode("automatic"); setSetupOpen(true); }} type="button">{hasMultipleGroups ? "Rebalance groups" : "Review class setup"}</button></>}
         {groups.length === 0 && <button className="secondary-button" disabled={!registrations.length} onClick={() => { setSetupAction("create"); setSetupOpen(true); setSetupMode("automatic"); }} type="button">Set up class groups</button>}
       </div>
     </div>

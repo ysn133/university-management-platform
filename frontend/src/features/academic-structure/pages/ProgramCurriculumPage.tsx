@@ -7,6 +7,7 @@ import { ConfirmActionModal } from "@/features/root-governance/components/Confir
 import { ManagementModal } from "@/features/root-governance/components/ManagementModal";
 import { ProgramStudentCohort } from "@/features/student-registration/components/ProgramStudentCohort";
 import { TeachingGroupWorkspace } from "@/features/student-registration/components/TeachingGroupWorkspace";
+import { TeachingPlanWorkspace } from "@/features/teaching-planning/components/TeachingPlanWorkspace";
 import { TeachingGroupPolicyModal } from "../components/TeachingGroupPolicyModal";
 import {
   academicStructureKeys,
@@ -81,7 +82,7 @@ export function ProgramCurriculumPage() {
   const [searchParams] = useSearchParams();
   const { establishmentId, workspacePath } = useEstablishmentScope();
   const queryClient = useQueryClient();
-  const [activeSection, setActiveSection] = useState<"curriculum" | "students" | "teaching-groups">("curriculum");
+  const [activeSection, setActiveSection] = useState<"curriculum" | "students" | "teaching-groups" | "teaching-plan">("curriculum");
   const [academicYearId, setAcademicYearId] = useState(() => routeAcademicYearId ?? searchParams.get("academicYearId") ?? "");
   const [academicLevelId, setAcademicLevelId] = useState(() => searchParams.get("academicLevelId") ?? "");
   const [semesterId, setSemesterId] = useState(() => searchParams.get("semesterId") ?? "");
@@ -274,6 +275,7 @@ export function ProgramCurriculumPage() {
       <button aria-selected={activeSection === "curriculum"} onClick={() => setActiveSection("curriculum")} role="tab" type="button">Curriculum</button>
       <button aria-selected={activeSection === "students"} onClick={() => setActiveSection("students")} role="tab" type="button">Students</button>
       <button aria-selected={activeSection === "teaching-groups"} onClick={() => setActiveSection("teaching-groups")} role="tab" type="button">Teaching Groups</button>
+      <button aria-selected={activeSection === "teaching-plan"} onClick={() => setActiveSection("teaching-plan")} role="tab" type="button">Teaching Plan</button>
     </nav>
 
     <div className="curriculum-layout">
@@ -291,7 +293,7 @@ export function ProgramCurriculumPage() {
           return <article className={isSelected ? "is-active" : ""} key={level.id}>
             <button className="curriculum-level-select" onClick={() => { setAcademicLevelId(level.id); setSemesterId(""); }} type="button">
               <strong>{level.name}</strong>
-              <small>{isSelected ? "Currently viewing" : activeSection === "students" ? "View student cohort" : activeSection === "teaching-groups" ? "View TD and TP groups" : "View semesters and modules"}</small>
+              <small>{isSelected ? "Currently viewing" : activeSection === "students" ? "View student cohort" : activeSection === "teaching-groups" ? "View TD and TP groups" : activeSection === "teaching-plan" ? "View required teaching delivery" : "View semesters and modules"}</small>
             </button>
             {activeSection === "curriculum" && <div className="row-actions">
               <button disabled={!academicYearId} onClick={() => { setAcademicLevelId(level.id); setConfiguringGroupPolicy(level); }} type="button">Group sizes</button>
@@ -308,7 +310,8 @@ export function ProgramCurriculumPage() {
 
           <section className="management-panel curriculum-modules"><header className="panel-header panel-header--bordered"><div><p className="management-kicker">{selectedSemester?.name ?? "Semester modules"}</p><h2>Subject Modules</h2><p>{selectedSemester ? `Modules delivered in ${selectedSemester.name} for ${selectedYear?.label}.` : "Select a semester to manage its modules."}</p></div><button className="management-primary-button" disabled={!semesterId} onClick={() => { setModuleForm(emptyModuleForm); setCreatingModule(true); }} type="button">New Module</button></header>{!semesterId ? <div className="panel-empty"><strong>Select a semester.</strong></div> : modulesQuery.isPending ? <div className="panel-empty">Loading modules...</div> : modulesQuery.isError ? <div className="panel-empty panel-empty--error">{errorMessage(modulesQuery.error)}</div> : modules.length === 0 ? <div className="panel-empty"><strong>No modules configured.</strong><p>Create the first subject module for this semester.</p></div> : <div className="resource-table-wrapper"><table className="resource-table"><thead><tr><th>Module</th><th>Academic domains</th><th>Actions</th></tr></thead><tbody>{modules.map((module) => <tr key={module.id}><td><Link className="resource-name resource-name--link module-record-link" to={modulePathFor(module.id)}><span className="resource-monogram">{module.code.slice(0, 2)}</span><div><strong>{module.title}</strong><small>{module.code}</small></div></Link></td><td>{module.academicDomainIds.length ? module.academicDomainIds.map((id) => domainNames.get(id) ?? "Unknown domain").join(", ") : "No domain assigned"}</td><td><div className="row-actions"><button onClick={() => { setEditingModule(module); setModuleForm({ code: module.code, title: module.title, academicDomainIds: module.academicDomainIds }); }} type="button">Edit</button><button className="danger-text" onClick={() => setDeletingModule(module)} type="button">Delete</button></div></td></tr>)}</tbody></table></div>}</section>
         </> : activeSection === "students" ? <ProgramStudentCohort academicLevel={selectedLevel} academicLevels={levels} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} onSelectAcademicLevel={(levelId) => { setAcademicLevelId(levelId); setSemesterId(""); }} programFiliereId={programFiliereId} semesters={semesters} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />
-          : <TeachingGroupWorkspace academicLevelName={selectedLevel?.name} semesters={semesters} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />}
+          : activeSection === "teaching-groups" ? <TeachingGroupWorkspace academicLevelName={selectedLevel?.name} semesters={semesters} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />
+          : <TeachingPlanWorkspace academicLevelName={selectedLevel?.name} academicYearLabel={selectedYear?.label} modules={modules} onSelectSemester={setSemesterId} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />}
       </main>
     </div>
 

@@ -29,12 +29,14 @@ export function getManagementNavigation(
           } as const]
         : []),
       { label: "Students", to: `${contextPath}/students`, icon: "students", group: "People and access" },
+      { label: "Professors", to: `${contextPath}/professors`, icon: "professors", group: "People and access" },
       { label: "Departments", to: `${contextPath}/departments`, icon: "departments", group: "Academic structure" },
       { label: "Program Paths", to: `${contextPath}/program-paths`, icon: "paths", group: "Academic structure" },
       { label: "Degree Cycles", to: `${contextPath}/degree-cycles`, icon: "cycles", group: "Academic structure" },
       { label: "Programs", to: `${contextPath}/programs`, icon: "programs", group: "Academic structure" },
       { label: "Academic Years", to: `${contextPath}/academic-years`, icon: "years", group: "Academic structure" },
       { label: "Academic Rules", to: `${contextPath}/academic-rule-profiles`, icon: "rules", group: "Academic structure" },
+      { label: "Academic Domains", to: `${contextPath}/academic-domains`, icon: "domains", group: "Academic structure" },
     ];
   }
 

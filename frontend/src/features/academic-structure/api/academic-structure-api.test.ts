@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createAcademicDomain, createAcademicRuleProfile, createAcademicYear, createProgramFiliere, getAcademicLevels, getDepartments, getModuleTeachingComponents, getSemesters, replaceModuleTeachingComponents, replaceTeachingGroupPolicies, updateAcademicRuleProfile } from "./academic-structure-api";
+import { createAcademicDomain, createAcademicRuleProfile, createAcademicYear, createProgramFiliere, deleteAcademicDomain, getAcademicLevels, getDepartments, getModuleTeachingComponents, getSemesters, replaceModuleTeachingComponents, replaceTeachingGroupPolicies, updateAcademicDomain, updateAcademicRuleProfile } from "./academic-structure-api";
 
 const establishmentId = "00000000-0000-4000-8000-000000000001";
 const departmentId = "00000000-0000-4000-8000-000000000002";
@@ -199,6 +199,36 @@ describe("academic structure API", () => {
     const submittedRequest = fetchMock.mock.calls[0][0] as Request;
     expect(submittedRequest.url).toContain(`/api/v1/establishments/${establishmentId}/academic-domains`);
     await expect(submittedRequest.clone().json()).resolves.toEqual(request);
+  });
+
+  it("updates an academic domain", async () => {
+    const academicDomainId = "00000000-0000-4000-8000-000000000013";
+    const request = { code: "SE", name: "Software Engineering" };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      id: academicDomainId,
+      establishmentId,
+      ...request,
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await updateAcademicDomain(academicDomainId, request);
+
+    const submittedRequest = fetchMock.mock.calls[0][0] as Request;
+    expect(submittedRequest.method).toBe("PUT");
+    expect(submittedRequest.url).toContain(`/api/v1/academic-domains/${academicDomainId}`);
+    await expect(submittedRequest.clone().json()).resolves.toEqual(request);
+  });
+
+  it("deletes an academic domain", async () => {
+    const academicDomainId = "00000000-0000-4000-8000-000000000013";
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await deleteAcademicDomain(academicDomainId);
+
+    const submittedRequest = fetchMock.mock.calls[0][0] as Request;
+    expect(submittedRequest.method).toBe("DELETE");
+    expect(submittedRequest.url).toContain(`/api/v1/academic-domains/${academicDomainId}`);
   });
 
   it("loads a subject module teaching configuration", async () => {
