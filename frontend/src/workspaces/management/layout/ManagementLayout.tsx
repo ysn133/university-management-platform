@@ -60,7 +60,7 @@ export function ManagementLayout() {
     "degree-cycles": "Degree Cycles",
     programs: "Programs / Filières",
     "academic-years": "Academic Years",
-    "academic-rule-profiles": "Academic Rule Profiles",
+    "academic-rule-profiles": "Academic Settings",
     "academic-domains": "Academic Domains",
   };
   const lastPathSegment = location.pathname.split("/").filter(Boolean).at(-1) ?? "";

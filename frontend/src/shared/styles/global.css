@@ -3950,6 +3950,228 @@ a.workspace-module-card:hover {
   margin-top: 0.35rem;
 }
 
+.academic-settings-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  padding: 0.45rem;
+  border: 1px solid var(--management-line);
+  border-radius: 0.9rem;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(34, 74, 104, 0.05);
+}
+
+.academic-settings-tabs button {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.9rem 1rem;
+  border: 0;
+  border-radius: 0.65rem;
+  background: transparent;
+  color: var(--management-muted);
+  cursor: pointer;
+  text-align: left;
+}
+
+.academic-settings-tabs button strong {
+  color: var(--management-ink);
+  font-size: 0.78rem;
+}
+
+.academic-settings-tabs button span {
+  font-size: 0.65rem;
+}
+
+.academic-settings-tabs button[aria-selected="true"] {
+  background: #eaf4fb;
+  box-shadow: inset 0 0 0 1px #bdd9eb;
+}
+
+.academic-settings-tabs button[aria-selected="true"] strong {
+  color: var(--management-blue-dark);
+}
+
+.settings-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.3rem;
+}
+
+.settings-section-heading h2 {
+  margin: 0;
+  color: var(--management-ink);
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+}
+
+.settings-section-heading p,
+.preference-editor-header p,
+.settings-note {
+  margin: 0.2rem 0 0;
+  color: var(--management-muted);
+  font-size: 0.72rem;
+}
+
+.academic-rank-table {
+  min-width: 52rem;
+}
+
+.settings-inline-alert {
+  margin: 1rem;
+}
+
+.settings-subtabs {
+  display: flex;
+  width: fit-content;
+  padding: 0.25rem;
+  border: 1px solid var(--management-line);
+  border-radius: 0.65rem;
+  background: #fff;
+}
+
+.settings-subtabs button {
+  min-width: 6rem;
+  padding: 0.58rem 1rem;
+  border: 0;
+  border-radius: 0.48rem;
+  background: transparent;
+  color: var(--management-muted);
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.settings-subtabs button[aria-selected="true"] {
+  background: var(--management-blue-dark);
+  color: #fff;
+}
+
+.preference-editor {
+  padding: 1.2rem;
+}
+
+.preference-editor-header,
+.settings-save-row,
+.preference-add-row,
+.preference-rank-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.preference-editor-header > span {
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: #edf5fa;
+  color: var(--management-blue-dark);
+  font-size: 0.65rem;
+  font-weight: 750;
+}
+
+.preference-rank-list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 1rem 0;
+}
+
+.preference-rank-row {
+  justify-content: start;
+  padding: 0.75rem;
+  border: 1px solid var(--management-line);
+  border-radius: 0.65rem;
+  background: #fbfdff;
+}
+
+.preference-rank-row > div:nth-child(2) {
+  display: grid;
+  flex: 1;
+  gap: 0.1rem;
+}
+
+.preference-rank-row small {
+  color: var(--management-muted);
+}
+
+.preference-position {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #e6f1f8;
+  color: var(--management-blue-dark);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.preference-row-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.preference-row-actions button {
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--management-line);
+  border-radius: 0.42rem;
+  background: #fff;
+  color: var(--management-blue-dark);
+  cursor: pointer;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.preference-row-actions button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.preference-empty {
+  padding: 1.2rem;
+  border: 1px dashed var(--management-line);
+  border-radius: 0.65rem;
+  color: var(--management-muted);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.preference-add-row {
+  align-items: end;
+  padding-top: 1rem;
+  border-top: 1px solid var(--management-line);
+}
+
+.preference-add-row label {
+  display: grid;
+  flex: 1;
+  gap: 0.35rem;
+  color: var(--management-ink);
+  font-size: 0.68rem;
+  font-weight: 720;
+}
+
+.preference-add-row select {
+  min-height: 2.7rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--management-line);
+  border-radius: 0.55rem;
+  background: #fff;
+  color: var(--management-ink);
+}
+
+.settings-note {
+  padding-top: 0.65rem;
+}
+
+.settings-save-row {
+  justify-content: flex-end;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--management-line);
+}
+
 .directory-result-count {
   align-self: center;
   padding: 0.55rem 0.75rem;
@@ -6124,6 +6346,27 @@ a.workspace-module-card:hover {
 
   .account-form {
     padding: 1.25rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .academic-settings-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-section-heading,
+  .preference-add-row,
+  .preference-rank-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .preference-row-actions {
+    width: 100%;
+  }
+
+  .preference-row-actions button {
+    flex: 1;
   }
 }
 

@@ -223,6 +223,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/establishments/{establishmentId}/teaching-assignment-rank-preferences/{componentType}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["replace"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/class-groups/{classGroupId}": {
         parameters: {
             query?: never;
@@ -346,6 +362,22 @@ export interface paths {
         put: operations["updateAcademicRegistration"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic-ranks/{rankId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["update_1"];
+        post?: never;
+        delete: operations["delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1247,6 +1279,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/establishments/{establishmentId}/academic-ranks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list"];
+        put?: never;
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/establishments/{establishmentId}/academic-domains": {
         parameters: {
             query?: never;
@@ -1903,6 +1951,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/establishments/{establishmentId}/teaching-assignment-rank-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/establishments/{establishmentId}/super-admins": {
         parameters: {
             query?: never;
@@ -2271,6 +2335,8 @@ export interface components {
         };
         UpdateProfessorRequest: {
             employeeNumber: string;
+            /** Format: uuid */
+            academicRankId?: string;
             academicRank?: string;
             /** Format: date */
             hireDate?: string;
@@ -2297,6 +2363,8 @@ export interface components {
             /** Format: uuid */
             establishmentId?: string;
             employeeNumber?: string;
+            /** Format: uuid */
+            academicRankId?: string;
             academicRank?: string;
             /** Format: date */
             hireDate?: string;
@@ -2448,6 +2516,23 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        ReplaceRankPreferencesRequest: {
+            academicRankIds: string[];
+        };
+        TeachingAssignmentRankPreferenceResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            establishmentId?: string;
+            /** @enum {string} */
+            componentType?: "COURSE" | "TD" | "TP";
+            /** Format: uuid */
+            academicRankId?: string;
+            academicRankCode?: string;
+            academicRankName?: string;
+            /** Format: int32 */
+            priority?: number;
         };
         UpdateClassGroupRequest: {
             name: string;
@@ -2651,6 +2736,28 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        AcademicRankRequest: {
+            code: string;
+            name: string;
+            /** Format: int32 */
+            seniorityOrder: number;
+            canHoldModuleResponsibility?: boolean;
+            /** @enum {string} */
+            status: "ACTIVE" | "INACTIVE";
+        };
+        AcademicRankResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            establishmentId?: string;
+            code?: string;
+            name?: string;
+            /** Format: int32 */
+            seniorityOrder?: number;
+            canHoldModuleResponsibility?: boolean;
+            /** @enum {string} */
+            status?: "ACTIVE" | "INACTIVE";
         };
         UpdateAcademicLevelRequest: {
             name: string;
@@ -3033,6 +3140,8 @@ export interface components {
         };
         CreateProfessorRequest: {
             employeeNumber: string;
+            /** Format: uuid */
+            academicRankId?: string;
             academicRank?: string;
             /** Format: date */
             hireDate?: string;
@@ -4225,6 +4334,33 @@ export interface operations {
             };
         };
     };
+    replace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                establishmentId: string;
+                componentType: "COURSE" | "TD" | "TP";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceRankPreferencesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeachingAssignmentRankPreferenceResponse"][];
+                };
+            };
+        };
+    };
     getClassGroup: {
         parameters: {
             query?: never;
@@ -4651,6 +4787,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AcademicRegistrationResponse"];
+                };
+            };
+        };
+    };
+    update_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rankId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicRankRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AcademicRankResponse"];
+                };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rankId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ActionResponse"];
                 };
             };
         };
@@ -6591,6 +6775,54 @@ export interface operations {
             };
         };
     };
+    list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                establishmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AcademicRankResponse"][];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                establishmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicRankRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AcademicRankResponse"];
+                };
+            };
+        };
+    };
     getAcademicDomains: {
         parameters: {
             query?: never;
@@ -7877,6 +8109,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AbsenceRecordResponse"][];
+                };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                establishmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeachingAssignmentRankPreferenceResponse"][];
                 };
             };
         };
