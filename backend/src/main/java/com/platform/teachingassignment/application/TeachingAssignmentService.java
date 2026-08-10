@@ -13,6 +13,7 @@ import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.shared.presentation.ActionResponse;
 import com.platform.teachingassignment.domain.TeachingAssignment;
 import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
+import com.platform.teachingassignment.domain.TeachingAssignmentSource;
 import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
 import com.platform.teachingassignment.presentation.dto.CreateTeachingAssignmentRequest;
 import com.platform.teachingassignment.presentation.dto.TeachingAssignmentResponse;
@@ -101,6 +102,7 @@ public class TeachingAssignmentService {
         assignment.setProfessor(professor);
         assignment.setTeachingRequirement(requirement);
         assignment.setStatus(TeachingAssignmentStatus.ACTIVE);
+        assignment.setAssignmentSource(TeachingAssignmentSource.MANUAL);
         ensureWeeklyWorkload(professor, assignment);
         return toResponse(assignmentRepository.save(assignment));
     }
@@ -246,9 +248,17 @@ public class TeachingAssignmentService {
         Professor professor,
         TeachingAssignment candidate
     ) {
+        var semester = candidate.getTeachingRequirement().getTeachingGroup().getSemester();
+        UUID establishmentId = establishmentId(candidate);
         int assignedMinutes = assignmentRepository
-            .findByProfessorIdAndStatus(professor.getId(), TeachingAssignmentStatus.ACTIVE)
+            .findInTeachingPeriod(
+                establishmentId,
+                semester.getAcademicYear().getId(),
+                semester.getTermType(),
+                TeachingAssignmentStatus.ACTIVE
+            )
             .stream()
+            .filter(existing -> existing.getProfessor().getId().equals(professor.getId()))
             .filter(existing -> candidate.getId() == null
                 || !candidate.getId().equals(existing.getId()))
             .map(TeachingAssignment::getTeachingRequirement)
@@ -329,6 +339,7 @@ public class TeachingAssignmentService {
             requirement.getTeachingGroup().getId(),
             requirement.getTeachingGroup().getName(),
             assignment.getStatus(),
+            assignment.getAssignmentSource(),
             assignment.getCreatedAt(),
             assignment.getUpdatedAt()
         );

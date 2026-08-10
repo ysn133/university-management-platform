@@ -88,6 +88,7 @@ describe("academic structure API", () => {
       establishmentId,
       name: "S1",
       semesterOrder: 1,
+      termType: "AUTUMN",
     }]), { status: 200, headers: { "Content-Type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
 

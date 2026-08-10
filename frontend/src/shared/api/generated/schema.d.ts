@@ -719,6 +719,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/semesters/{semesterId}/teaching-assignments/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["generateTeachingAssignments"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/semesters/{semesterId}/subject-modules": {
         parameters: {
             query?: never;
@@ -2079,6 +2095,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/semesters/{semesterId}/teaching-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["clearTeachingAssignments"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2243,6 +2275,8 @@ export interface components {
             name: string;
             /** Format: int32 */
             semesterOrder?: number;
+            /** @enum {string} */
+            termType: "AUTUMN" | "SPRING";
         };
         SemesterResponse: {
             /** Format: uuid */
@@ -2256,6 +2290,8 @@ export interface components {
             name?: string;
             /** Format: int32 */
             semesterOrder?: number;
+            /** @enum {string} */
+            termType?: "AUTUMN" | "SPRING";
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -2926,6 +2962,63 @@ export interface components {
             /** @enum {string} */
             status?: "ACTIVE" | "INACTIVE";
         };
+        ProfessorTeachingWorkloadResponse: {
+            /** Format: uuid */
+            professorId?: string;
+            employeeNumber?: string;
+            /** Format: int32 */
+            assignedWeeklyMinutes?: number;
+            /** Format: int32 */
+            maximumWeeklyTeachingMinutes?: number;
+        };
+        TeachingAssignmentGenerationResponse: {
+            /** Format: uuid */
+            semesterId?: string;
+            /** Format: int32 */
+            preservedAssignmentCount?: number;
+            createdAssignments?: components["schemas"]["TeachingAssignmentResponse"][];
+            unresolvedRequirements?: components["schemas"]["UnresolvedTeachingRequirementResponse"][];
+            professorWorkloads?: components["schemas"]["ProfessorTeachingWorkloadResponse"][];
+        };
+        TeachingAssignmentResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            establishmentId?: string;
+            /** Format: uuid */
+            professorId?: string;
+            /** Format: uuid */
+            teachingRequirementId?: string;
+            /** Format: uuid */
+            subjectModuleId?: string;
+            /** @enum {string} */
+            componentType?: "COURSE" | "TD" | "TP";
+            /** Format: uuid */
+            teachingGroupId?: string;
+            teachingGroupName?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "INACTIVE";
+            /** @enum {string} */
+            assignmentSource?: "MANUAL" | "AUTOMATIC";
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        UnresolvedTeachingRequirementResponse: {
+            /** Format: uuid */
+            teachingRequirementId?: string;
+            /** Format: uuid */
+            subjectModuleId?: string;
+            /** @enum {string} */
+            componentType?: "COURSE" | "TD" | "TP";
+            /** Format: uuid */
+            teachingGroupId?: string;
+            teachingGroupName?: string;
+            /** @enum {string} */
+            reason?: "NO_ACTIVE_PROFESSOR" | "MISSING_ACADEMIC_DOMAIN_CONFIGURATION" | "NO_MATCHING_EXPERTISE" | "NO_ELIGIBLE_ACADEMIC_RANK" | "WORKLOAD_CAPACITY_EXCEEDED";
+            message?: string;
+        };
         CreateSubjectModuleRequest: {
             code: string;
             title: string;
@@ -3054,29 +3147,6 @@ export interface components {
             professorId: string;
             /** Format: uuid */
             teachingRequirementId: string;
-        };
-        TeachingAssignmentResponse: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: uuid */
-            establishmentId?: string;
-            /** Format: uuid */
-            professorId?: string;
-            /** Format: uuid */
-            teachingRequirementId?: string;
-            /** Format: uuid */
-            subjectModuleId?: string;
-            /** @enum {string} */
-            componentType?: "COURSE" | "TD" | "TP";
-            /** Format: uuid */
-            teachingGroupId?: string;
-            teachingGroupName?: string;
-            /** @enum {string} */
-            status?: "ACTIVE" | "INACTIVE";
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
         };
         CreateStudentRequest: {
             apogeeCode: string;
@@ -3345,6 +3415,8 @@ export interface components {
             name: string;
             /** Format: int32 */
             semesterOrder?: number;
+            /** @enum {string} */
+            termType: "AUTUMN" | "SPRING";
         };
         CreateAcademicLevelRuleAssignmentRequest: {
             /** Format: uuid */
@@ -5473,6 +5545,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TeachingGroupRosterResponse"];
+                };
+            };
+        };
+    };
+    generateTeachingAssignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                semesterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeachingAssignmentGenerationResponse"];
                 };
             };
         };
@@ -8295,6 +8389,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AcademicLevelRuleAssignmentResponse"];
+                };
+            };
+        };
+    };
+    clearTeachingAssignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                semesterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ActionResponse"];
                 };
             };
         };

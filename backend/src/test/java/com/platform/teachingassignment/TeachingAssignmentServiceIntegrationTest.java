@@ -26,7 +26,9 @@ import com.platform.scheduling.teachinggroup.domain.TeachingGroup;
 import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupRepository;
 import com.platform.shared.presentation.ActionResponse;
 import com.platform.teachingassignment.application.TeachingAssignmentService;
+import com.platform.teachingassignment.application.TeachingAssignmentGenerationService;
 import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
+import com.platform.teachingassignment.domain.TeachingAssignmentSource;
 import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
 import com.platform.teachingassignment.presentation.dto.CreateTeachingAssignmentRequest;
 import com.platform.teachingassignment.presentation.dto.TeachingAssignmentResponse;
@@ -56,6 +58,7 @@ import com.platform.universitygovernance.programfiliere.infrastructure.ProgramFi
 import com.platform.universitygovernance.programpath.domain.ProgramPath;
 import com.platform.universitygovernance.programpath.infrastructure.ProgramPathRepository;
 import com.platform.universitygovernance.semester.domain.Semester;
+import com.platform.universitygovernance.semester.domain.SemesterTermType;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
 import com.platform.universitygovernance.subjectmodules.domain.SubjectModule;
 import com.platform.universitygovernance.subjectmodules.domain.SubjectModuleDomain;
@@ -69,6 +72,11 @@ import com.platform.universitygovernance.university.domain.University;
 import com.platform.universitygovernance.university.infrastructure.UniversityRepository;
 import com.platform.usermanagement.professor.expertise.domain.ProfessorExpertise;
 import com.platform.usermanagement.professor.expertise.infrastructure.ProfessorExpertiseRepository;
+import com.platform.usermanagement.professor.rank.domain.AcademicRank;
+import com.platform.usermanagement.professor.rank.domain.AcademicRankStatus;
+import com.platform.usermanagement.professor.rank.infrastructure.AcademicRankRepository;
+import com.platform.teachingassignment.rankpreference.domain.TeachingAssignmentRankPreference;
+import com.platform.teachingassignment.rankpreference.infrastructure.TeachingAssignmentRankPreferenceRepository;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -84,6 +92,9 @@ class TeachingAssignmentServiceIntegrationTest {
 
     @Autowired
     private TeachingAssignmentService teachingAssignmentService;
+
+    @Autowired
+    private TeachingAssignmentGenerationService teachingAssignmentGenerationService;
 
     @Autowired
     private ModuleClassResponsibilityService responsibilityService;
@@ -120,6 +131,12 @@ class TeachingAssignmentServiceIntegrationTest {
 
     @Autowired
     private ProfessorExpertiseRepository professorExpertiseRepository;
+
+    @Autowired
+    private AcademicRankRepository academicRankRepository;
+
+    @Autowired
+    private TeachingAssignmentRankPreferenceRepository rankPreferenceRepository;
 
     @Autowired
     private ClassGroupRepository classGroupRepository;
@@ -319,6 +336,69 @@ class TeachingAssignmentServiceIntegrationTest {
     }
 
     @Test
+    void workloadIncludesOtherSemestersInTheSameTeachingPeriod() {
+        AuthenticatedUserPrincipal root = principal(
+            AccountRoleType.ROOT_SUPER_ADMIN,
+            UUID.randomUUID(),
+            null
+        );
+        Professor professor = saveProfessor("period.workload@uiz.ac.ma");
+        professor.setMaximumWeeklyTeachingMinutes(60);
+        professorRepository.save(professor);
+
+        teachingAssignmentService.createTeachingAssignment(
+            root,
+            establishment.getId(),
+            request(professor)
+        );
+
+        Semester parallelSemester = new Semester();
+        parallelSemester.setAcademicLevel(semester.getAcademicLevel());
+        parallelSemester.setAcademicYear(academicYear);
+        parallelSemester.setName("S3");
+        parallelSemester.setSemesterOrder(3);
+        parallelSemester.setTermType(SemesterTermType.AUTUMN);
+        parallelSemester = semesterRepository.save(parallelSemester);
+
+        SubjectModule parallelModule = new SubjectModule();
+        parallelModule.setSemester(parallelSemester);
+        parallelModule.setCode("PAR");
+        parallelModule.setTitle("Parallel Module");
+        parallelModule = subjectModuleRepository.save(parallelModule);
+
+        ModuleTeachingComponent parallelComponent = new ModuleTeachingComponent();
+        parallelComponent.setSubjectModule(parallelModule);
+        parallelComponent.setComponentType(TeachingComponentType.COURSE);
+        parallelComponent.setSessionsPerWeek(1);
+        parallelComponent.setSessionDurationMinutes(60);
+        parallelComponent.setAudienceMode(TeachingAudienceMode.CLASS_GROUP);
+        parallelComponent.setRequiredRoomType(RoomType.CLASSROOM);
+        parallelComponent = teachingComponentRepository.save(parallelComponent);
+
+        TeachingGroup parallelGroup = new TeachingGroup();
+        parallelGroup.setSemester(parallelSemester);
+        parallelGroup.setSourceClassGroup(classGroup);
+        parallelGroup.setName("Parallel Group");
+        parallelGroup.setAudienceType(TeachingAudienceMode.CLASS_GROUP);
+        parallelGroup = teachingGroupRepository.save(parallelGroup);
+
+        TeachingRequirement parallelRequirement = new TeachingRequirement();
+        parallelRequirement.setModuleTeachingComponent(parallelComponent);
+        parallelRequirement.setTeachingGroup(parallelGroup);
+        parallelRequirement.setStatus(TeachingRequirementStatus.ACTIVE);
+        parallelRequirement = teachingRequirementRepository.save(parallelRequirement);
+
+        UUID parallelRequirementId = parallelRequirement.getId();
+        assertThatThrownBy(() -> teachingAssignmentService.createTeachingAssignment(
+            root,
+            establishment.getId(),
+            new CreateTeachingAssignmentRequest(professor.getId(), parallelRequirementId)
+        ))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("weekly workload");
+    }
+
+    @Test
     void moduleAndClassHaveOneActiveResponsibleProfessor() {
         AuthenticatedUserPrincipal root = principal(
             AccountRoleType.ROOT_SUPER_ADMIN,
@@ -390,6 +470,71 @@ class TeachingAssignmentServiceIntegrationTest {
         ).professorId()).isEqualTo(professor.getId());
     }
 
+    @Test
+    void automaticGenerationUsesRankPreferenceAndPreservesItsAssignment() {
+        AuthenticatedUserPrincipal root = principal(
+            AccountRoleType.ROOT_SUPER_ADMIN,
+            UUID.randomUUID(),
+            null
+        );
+        AcademicDomain algorithms = new AcademicDomain();
+        algorithms.setEstablishment(establishment);
+        algorithms.setCode("ALG");
+        algorithms.setName("Algorithms");
+        algorithms = academicDomainRepository.save(algorithms);
+
+        SubjectModuleDomain moduleDomain = new SubjectModuleDomain();
+        moduleDomain.setSubjectModule(subjectModule);
+        moduleDomain.setAcademicDomain(algorithms);
+        subjectModuleDomainRepository.save(moduleDomain);
+
+        AcademicRank professorRank = saveRank("PROFESSOR", "Professor", 1, true);
+        AcademicRank associateRank = saveRank(
+            "ASSOCIATE_PROFESSOR",
+            "Associate Professor",
+            2,
+            true
+        );
+        Professor professor = saveProfessor("professor@uiz.ac.ma");
+        professor.setAcademicRank(professorRank);
+        professorRepository.save(professor);
+        Professor associate = saveProfessor("associate@uiz.ac.ma");
+        associate.setAcademicRank(associateRank);
+        professorRepository.save(associate);
+        saveExpertise(professor, algorithms);
+        saveExpertise(associate, algorithms);
+
+        TeachingAssignmentRankPreference preference = new TeachingAssignmentRankPreference();
+        preference.setEstablishment(establishment);
+        preference.setComponentType(TeachingComponentType.COURSE);
+        preference.setAcademicRank(associateRank);
+        preference.setPriority(1);
+        preference.setStatus(AcademicRankStatus.ACTIVE);
+        rankPreferenceRepository.save(preference);
+
+        var firstRun = teachingAssignmentGenerationService.generate(root, semester.getId());
+
+        assertThat(firstRun.createdAssignments()).hasSize(1);
+        assertThat(firstRun.createdAssignments().get(0).professorId())
+            .isEqualTo(associate.getId());
+        assertThat(firstRun.createdAssignments().get(0).assignmentSource())
+            .isEqualTo(TeachingAssignmentSource.AUTOMATIC);
+        assertThat(firstRun.unresolvedRequirements()).isEmpty();
+
+        var secondRun = teachingAssignmentGenerationService.generate(root, semester.getId());
+        assertThat(secondRun.createdAssignments()).isEmpty();
+        assertThat(secondRun.preservedAssignmentCount()).isEqualTo(1);
+
+        ActionResponse cleared = teachingAssignmentGenerationService.clear(root, semester.getId());
+        assertThat(cleared.success()).isTrue();
+        assertThat(teachingAssignmentRepository.findById(firstRun.createdAssignments().get(0).id())
+            .orElseThrow().getStatus()).isEqualTo(TeachingAssignmentStatus.INACTIVE);
+
+        var regenerated = teachingAssignmentGenerationService.generate(root, semester.getId());
+        assertThat(regenerated.createdAssignments()).hasSize(1);
+        assertThat(regenerated.preservedAssignmentCount()).isZero();
+    }
+
     private CreateTeachingAssignmentRequest request(Professor professor) {
         return new CreateTeachingAssignmentRequest(
             professor.getId(),
@@ -423,6 +568,29 @@ class TeachingAssignmentServiceIntegrationTest {
         professor.setEmployeeNumber("EMP-" + UUID.randomUUID());
         professor.setMaximumWeeklyTeachingMinutes(480);
         return professorRepository.save(professor);
+    }
+
+    private AcademicRank saveRank(
+        String code,
+        String name,
+        int seniorityOrder,
+        boolean canHoldResponsibility
+    ) {
+        AcademicRank rank = new AcademicRank();
+        rank.setEstablishment(establishment);
+        rank.setCode(code);
+        rank.setName(name);
+        rank.setSeniorityOrder(seniorityOrder);
+        rank.setCanHoldModuleResponsibility(canHoldResponsibility);
+        rank.setStatus(AcademicRankStatus.ACTIVE);
+        return academicRankRepository.save(rank);
+    }
+
+    private void saveExpertise(Professor professor, AcademicDomain domain) {
+        ProfessorExpertise expertise = new ProfessorExpertise();
+        expertise.setProfessor(professor);
+        expertise.setAcademicDomain(domain);
+        professorExpertiseRepository.save(expertise);
     }
 
     private ProgramFiliere saveProgram() {
@@ -466,6 +634,7 @@ class TeachingAssignmentServiceIntegrationTest {
 
     private void clearBusinessData() {
         teachingAssignmentRepository.deleteAll();
+        rankPreferenceRepository.deleteAll();
         responsibilityRepository.deleteAll();
         teachingRequirementRepository.deleteAll();
         teachingGroupRepository.deleteAll();
@@ -477,6 +646,7 @@ class TeachingAssignmentServiceIntegrationTest {
         academicDomainRepository.deleteAll();
         classGroupRepository.deleteAll();
         professorRepository.deleteAll();
+        academicRankRepository.deleteAll();
         studentRepository.deleteAll();
         adminRepository.deleteAll();
         superAdminRepository.deleteAll();

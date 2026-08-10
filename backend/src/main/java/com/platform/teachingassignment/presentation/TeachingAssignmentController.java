@@ -3,8 +3,10 @@ package com.platform.teachingassignment.presentation;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.shared.presentation.ActionResponse;
 import com.platform.teachingassignment.application.TeachingAssignmentService;
+import com.platform.teachingassignment.application.TeachingAssignmentGenerationService;
 import com.platform.teachingassignment.presentation.dto.CreateTeachingAssignmentRequest;
 import com.platform.teachingassignment.presentation.dto.TeachingAssignmentResponse;
+import com.platform.teachingassignment.presentation.dto.TeachingAssignmentGenerationResponse;
 import com.platform.teachingassignment.presentation.dto.TeachingAssignmentStudentResponse;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -24,11 +26,32 @@ import org.springframework.web.bind.annotation.RestController;
 public class TeachingAssignmentController {
 
     private final TeachingAssignmentService teachingAssignmentService;
+    private final TeachingAssignmentGenerationService generationService;
 
     public TeachingAssignmentController(
-        TeachingAssignmentService teachingAssignmentService
+        TeachingAssignmentService teachingAssignmentService,
+        TeachingAssignmentGenerationService generationService
     ) {
         this.teachingAssignmentService = teachingAssignmentService;
+        this.generationService = generationService;
+    }
+
+    @PostMapping("/semesters/{semesterId}/teaching-assignments/generate")
+    @PreAuthorize("hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN', 'ADMIN')")
+    public TeachingAssignmentGenerationResponse generateTeachingAssignments(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+        @PathVariable UUID semesterId
+    ) {
+        return generationService.generate(principal, semesterId);
+    }
+
+    @DeleteMapping("/semesters/{semesterId}/teaching-assignments")
+    @PreAuthorize("hasAnyRole('ROOT_SUPER_ADMIN', 'SUPER_ADMIN', 'ADMIN')")
+    public ActionResponse clearTeachingAssignments(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+        @PathVariable UUID semesterId
+    ) {
+        return generationService.clear(principal, semesterId);
     }
 
     @PostMapping("/establishments/{establishmentId}/teaching-assignments")

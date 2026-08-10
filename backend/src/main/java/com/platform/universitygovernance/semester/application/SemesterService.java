@@ -67,6 +67,7 @@ public class SemesterService {
         semester.setAcademicYear(academicYear);
         semester.setName(name);
         semester.setSemesterOrder(request.semesterOrder());
+        semester.setTermType(request.termType());
         return toResponse(semesterRepository.save(semester));
     }
 
@@ -126,6 +127,7 @@ public class SemesterService {
         );
         semester.setName(name);
         semester.setSemesterOrder(request.semesterOrder());
+        semester.setTermType(request.termType());
         return toResponse(semesterRepository.save(semester));
     }
 
@@ -247,6 +249,7 @@ public class SemesterService {
             establishmentId(semester.getAcademicLevel()),
             semester.getName(),
             semester.getSemesterOrder(),
+            semester.getTermType(),
             semester.getCreatedAt(),
             semester.getUpdatedAt()
         );

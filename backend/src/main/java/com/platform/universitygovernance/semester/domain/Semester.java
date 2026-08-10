@@ -8,6 +8,8 @@ import com.platform.universitygovernance.academicyear.domain.AcademicYear;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -36,6 +38,10 @@ public class Semester {
     @Column(name = "semester_order", nullable = false)
     private int semesterOrder;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "term_type", nullable = false)
+    private SemesterTermType termType;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -50,6 +56,11 @@ public class Semester {
         Instant now = Instant.now();
         if (id == null) {
             id = UUID.randomUUID();
+        }
+        if (termType == null) {
+            termType = semesterOrder % 2 == 1
+                ? SemesterTermType.AUTUMN
+                : SemesterTermType.SPRING;
         }
         createdAt = now;
         updatedAt = now;
@@ -94,6 +105,14 @@ public class Semester {
 
     public void setSemesterOrder(int semesterOrder) {
         this.semesterOrder = semesterOrder;
+    }
+
+    public SemesterTermType getTermType() {
+        return termType;
+    }
+
+    public void setTermType(SemesterTermType termType) {
+        this.termType = termType;
     }
 
     public Instant getCreatedAt() {
