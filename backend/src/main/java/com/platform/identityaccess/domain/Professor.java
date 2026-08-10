@@ -1,6 +1,7 @@
 package com.platform.identityaccess.domain;
 
 import com.platform.universitygovernance.establishment.domain.Establishment;
+import com.platform.usermanagement.professor.rank.domain.AcademicRank;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -32,8 +33,9 @@ public class Professor {
     @Column(name = "employee_number", nullable = false, unique = true, length = 50)
     private String employeeNumber;
 
-    @Column(name = "academic_rank", length = 100)
-    private String academicRank;
+    @ManyToOne
+    @JoinColumn(name = "academic_rank_id")
+    private AcademicRank academicRank;
 
     @Column(name = "hire_date")
     private LocalDate hireDate;
@@ -93,11 +95,11 @@ public class Professor {
         this.employeeNumber = employeeNumber;
     }
 
-    public String getAcademicRank() {
+    public AcademicRank getAcademicRank() {
         return academicRank;
     }
 
-    public void setAcademicRank(String academicRank) {
+    public void setAcademicRank(AcademicRank academicRank) {
         this.academicRank = academicRank;
     }
 

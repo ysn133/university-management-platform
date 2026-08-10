@@ -11,6 +11,7 @@ public record ProfessorProfileResponse(
     UUID userAccountId,
     UUID establishmentId,
     String employeeNumber,
+    UUID academicRankId,
     String academicRank,
     LocalDate hireDate,
     Integer maximumWeeklyTeachingMinutes,

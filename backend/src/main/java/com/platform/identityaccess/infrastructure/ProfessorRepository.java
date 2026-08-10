@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ProfessorRepository extends JpaRepository<Professor, UUID> {
+    boolean existsByAcademicRankId(UUID academicRankId);
 
     Optional<Professor> findByUserAccountId(UUID userAccountId);
 

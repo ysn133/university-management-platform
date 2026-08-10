@@ -35,7 +35,18 @@ import com.platform.usermanagement.professor.application.ProfessorManagementServ
 import com.platform.usermanagement.professor.presentation.dto.CreateProfessorRequest;
 import com.platform.usermanagement.professor.presentation.dto.CreateProfessorResponse;
 import com.platform.usermanagement.professor.presentation.dto.ProfessorProfileResponse;
+import com.platform.usermanagement.professor.rank.domain.AcademicRank;
+import com.platform.usermanagement.professor.rank.domain.AcademicRankStatus;
+import com.platform.usermanagement.professor.rank.infrastructure.AcademicRankRepository;
+import com.platform.teachingassignment.rankpreference.infrastructure.TeachingAssignmentRankPreferenceRepository;
+import com.platform.teachingassignment.rankpreference.application.TeachingAssignmentRankPreferenceService;
+import com.platform.teachingassignment.rankpreference.presentation.dto.ReplaceRankPreferencesRequest;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingComponentType;
+import com.platform.usermanagement.professor.rank.application.AcademicRankService;
+import com.platform.usermanagement.professor.rank.presentation.dto.AcademicRankRequest;
+import com.platform.usermanagement.professor.rank.presentation.dto.AcademicRankResponse;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -93,6 +104,18 @@ class ProfessorManagementServiceIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private AcademicRankRepository academicRankRepository;
+
+    @Autowired
+    private TeachingAssignmentRankPreferenceRepository rankPreferenceRepository;
+
+    @Autowired
+    private AcademicRankService academicRankService;
+
+    @Autowired
+    private TeachingAssignmentRankPreferenceService rankPreferenceService;
+
     private Establishment firstEstablishment;
     private Establishment secondEstablishment;
 
@@ -114,6 +137,8 @@ class ProfessorManagementServiceIntegrationTest {
             "Faculty of Sciences",
             EstablishmentType.FACULTY
         );
+        saveRank(firstEstablishment, "ASSISTANT_PROFESSOR", "Assistant Professor");
+        saveRank(secondEstablishment, "ASSISTANT_PROFESSOR", "Assistant Professor");
     }
 
     @AfterEach
@@ -235,6 +260,58 @@ class ProfessorManagementServiceIntegrationTest {
             .hasMessageContaining("403 FORBIDDEN");
     }
 
+    @Test
+    void rootCanConfigureRanksAndOrderedComponentPreferences() {
+        AuthenticatedUserPrincipal root = principal(
+            AccountRoleType.ROOT_SUPER_ADMIN,
+            UUID.randomUUID(),
+            null
+        );
+        AcademicRankResponse professorRank = academicRankService.create(
+            root,
+            firstEstablishment.getId(),
+            new AcademicRankRequest(
+                "PROFESSOR",
+                "Professor",
+                1,
+                true,
+                AcademicRankStatus.ACTIVE
+            )
+        );
+        AcademicRank assistantRank = academicRankRepository
+            .findByEstablishmentIdAndNameIgnoreCase(
+                firstEstablishment.getId(),
+                "Assistant Professor"
+            )
+            .orElseThrow();
+
+        var coursePreferences = rankPreferenceService.replace(
+            root,
+            firstEstablishment.getId(),
+            TeachingComponentType.COURSE,
+            new ReplaceRankPreferencesRequest(List.of(professorRank.id()))
+        );
+        var tpPreferences = rankPreferenceService.replace(
+            root,
+            firstEstablishment.getId(),
+            TeachingComponentType.TP,
+            new ReplaceRankPreferencesRequest(List.of(
+                assistantRank.getId(),
+                professorRank.id()
+            ))
+        );
+
+        assertThat(coursePreferences)
+            .extracting(preference -> preference.academicRankName())
+            .containsExactly("Professor");
+        assertThat(tpPreferences)
+            .extracting(preference -> preference.academicRankName())
+            .containsExactly("Assistant Professor", "Professor");
+        assertThat(tpPreferences)
+            .extracting(preference -> preference.priority())
+            .containsExactly(1, 2);
+    }
+
     private CreateProfessorRequest request(
         String email,
         String firstName,
@@ -242,6 +319,7 @@ class ProfessorManagementServiceIntegrationTest {
     ) {
         return new CreateProfessorRequest(
             "emp-1001",
+            null,
             "Assistant Professor",
             LocalDate.of(2015, 9, 1),
             480,
@@ -285,9 +363,22 @@ class ProfessorManagementServiceIntegrationTest {
         return establishmentRepository.save(establishment);
     }
 
+    private AcademicRank saveRank(Establishment establishment, String code, String name) {
+        AcademicRank rank = new AcademicRank();
+        rank.setEstablishment(establishment);
+        rank.setCode(code);
+        rank.setName(name);
+        rank.setSeniorityOrder(3);
+        rank.setCanHoldModuleResponsibility(false);
+        rank.setStatus(AcademicRankStatus.ACTIVE);
+        return academicRankRepository.save(rank);
+    }
+
     private void clearBusinessData() {
         adminPermissionGrantRepository.deleteAll();
         professorRepository.deleteAll();
+        rankPreferenceRepository.deleteAll();
+        academicRankRepository.deleteAll();
         studentRepository.deleteAll();
         adminRepository.deleteAll();
         superAdminRepository.deleteAll();

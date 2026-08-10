@@ -10,9 +10,11 @@ import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
+import java.util.UUID;
 
 public record UpdateProfessorRequest(
     @NotBlank @Size(max = 50) String employeeNumber,
+    UUID academicRankId,
     @Size(max = 100) String academicRank,
     @PastOrPresent LocalDate hireDate,
     @NotNull @Positive Integer maximumWeeklyTeachingMinutes,
