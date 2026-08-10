@@ -37,6 +37,7 @@ import com.platform.universitygovernance.programfiliere.infrastructure.ProgramFi
 import com.platform.universitygovernance.programpath.domain.ProgramPath;
 import com.platform.universitygovernance.programpath.infrastructure.ProgramPathRepository;
 import com.platform.universitygovernance.semester.application.SemesterService;
+import com.platform.universitygovernance.semester.domain.SemesterTermType;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
 import com.platform.universitygovernance.semester.presentation.dto.CreateSemesterRequest;
 import com.platform.universitygovernance.semester.presentation.dto.SemesterResponse;
@@ -146,13 +147,13 @@ class SemesterServiceIntegrationTest {
             root,
             firstLevel.getId(),
             firstYear.getId(),
-            new CreateSemesterRequest(" s2 ", 2)
+            new CreateSemesterRequest(" s2 ", 2, SemesterTermType.SPRING)
         );
         SemesterResponse first = semesterService.createSemester(
             root,
             firstLevel.getId(),
             firstYear.getId(),
-            new CreateSemesterRequest("S1", 1)
+            new CreateSemesterRequest("S1", 1, SemesterTermType.AUTUMN)
         );
 
         assertThat(second.name()).isEqualTo("S2");
@@ -167,7 +168,7 @@ class SemesterServiceIntegrationTest {
             root,
             firstLevel.getId(),
             firstYear.getId(),
-            new CreateSemesterRequest("s1", 3)
+            new CreateSemesterRequest("s1", 3, SemesterTermType.AUTUMN)
         ))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("409 CONFLICT");
@@ -175,7 +176,7 @@ class SemesterServiceIntegrationTest {
             root,
             firstLevel.getId(),
             firstYear.getId(),
-            new CreateSemesterRequest("S3", 2)
+            new CreateSemesterRequest("S3", 2, SemesterTermType.SPRING)
         ))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("409 CONFLICT");
@@ -184,7 +185,7 @@ class SemesterServiceIntegrationTest {
             root,
             firstLevel.getId(),
             nextFirstYear.getId(),
-            new CreateSemesterRequest("S1", 1)
+            new CreateSemesterRequest("S1", 1, SemesterTermType.AUTUMN)
         );
         assertThat(nextYearSemester.academicYearId()).isEqualTo(nextFirstYear.getId());
 
@@ -192,7 +193,7 @@ class SemesterServiceIntegrationTest {
             root,
             firstLevel.getId(),
             secondYear.getId(),
-            new CreateSemesterRequest("S1", 1)
+            new CreateSemesterRequest("S1", 1, SemesterTermType.AUTUMN)
         ))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("400 BAD_REQUEST");
@@ -200,7 +201,7 @@ class SemesterServiceIntegrationTest {
         SemesterResponse updated = semesterService.updateSemester(
             root,
             second.id(),
-            new UpdateSemesterRequest("S3", 3)
+            new UpdateSemesterRequest("S3", 3, SemesterTermType.AUTUMN)
         );
         assertThat(updated.name()).isEqualTo("S3");
         assertThat(updated.semesterOrder()).isEqualTo(3);
@@ -216,13 +217,13 @@ class SemesterServiceIntegrationTest {
             root,
             firstLevel.getId(),
             firstYear.getId(),
-            new CreateSemesterRequest("S1", 1)
+            new CreateSemesterRequest("S1", 1, SemesterTermType.AUTUMN)
         );
         SemesterResponse secondSemester = semesterService.createSemester(
             root,
             secondLevel.getId(),
             secondYear.getId(),
-            new CreateSemesterRequest("S1", 1)
+            new CreateSemesterRequest("S1", 1, SemesterTermType.AUTUMN)
         );
 
         UserAccount account = new UserAccount();
@@ -254,7 +255,7 @@ class SemesterServiceIntegrationTest {
         assertThat(semesterService.updateSemester(
             adminPrincipal,
             firstSemester.id(),
-            new UpdateSemesterRequest("Semester 1", 1)
+            new UpdateSemesterRequest("Semester 1", 1, SemesterTermType.AUTUMN)
         ).name()).isEqualTo("SEMESTER 1");
         assertThatThrownBy(() -> semesterService.getSemester(adminPrincipal, firstSemester.id()))
             .isInstanceOf(ResponseStatusException.class)
@@ -262,7 +263,7 @@ class SemesterServiceIntegrationTest {
         assertThatThrownBy(() -> semesterService.updateSemester(
             adminPrincipal,
             secondSemester.id(),
-            new UpdateSemesterRequest("Denied", 2)
+            new UpdateSemesterRequest("Denied", 2, SemesterTermType.SPRING)
         ))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("403 FORBIDDEN");

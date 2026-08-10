@@ -34,6 +34,10 @@ public class TeachingAssignment {
     @Column(name = "status", nullable = false)
     private TeachingAssignmentStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "assignment_source", nullable = false)
+    private TeachingAssignmentSource assignmentSource;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -48,6 +52,9 @@ public class TeachingAssignment {
         Instant now = Instant.now();
         if (id == null) {
             id = UUID.randomUUID();
+        }
+        if (assignmentSource == null) {
+            assignmentSource = TeachingAssignmentSource.MANUAL;
         }
         createdAt = now;
         updatedAt = now;
@@ -84,6 +91,14 @@ public class TeachingAssignment {
 
     public void setStatus(TeachingAssignmentStatus status) {
         this.status = status;
+    }
+
+    public TeachingAssignmentSource getAssignmentSource() {
+        return assignmentSource;
+    }
+
+    public void setAssignmentSource(TeachingAssignmentSource assignmentSource) {
+        this.assignmentSource = assignmentSource;
     }
 
     public Instant getCreatedAt() {
