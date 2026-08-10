@@ -8,6 +8,7 @@ const professorSchema = z.object({
   userAccountId: z.string().uuid(),
   establishmentId: z.string().uuid(),
   employeeNumber: z.string(),
+  academicRankId: z.string().uuid().nullable().optional(),
   academicRank: z.string().nullable().optional(),
   hireDate: z.string().nullable().optional(),
   maximumWeeklyTeachingMinutes: z.number().int(),

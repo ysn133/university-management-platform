@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createAcademicDomain, createAcademicRuleProfile, createAcademicYear, createProgramFiliere, deleteAcademicDomain, getAcademicLevels, getDepartments, getModuleTeachingComponents, getSemesters, replaceModuleTeachingComponents, replaceTeachingGroupPolicies, updateAcademicDomain, updateAcademicRuleProfile } from "./academic-structure-api";
+import { createAcademicDomain, createAcademicRank, createAcademicRuleProfile, createAcademicYear, createProgramFiliere, deleteAcademicDomain, getAcademicLevels, getDepartments, getModuleTeachingComponents, getSemesters, replaceModuleTeachingComponents, replaceTeachingAssignmentRankPreferences, replaceTeachingGroupPolicies, updateAcademicDomain, updateAcademicRuleProfile } from "./academic-structure-api";
 
 const establishmentId = "00000000-0000-4000-8000-000000000001";
 const departmentId = "00000000-0000-4000-8000-000000000002";
@@ -183,6 +183,31 @@ describe("academic structure API", () => {
     expect(submittedRequest.method).toBe("PUT");
     expect(submittedRequest.url).toContain(`/api/v1/academic-rule-profiles/${academicRuleProfileId}`);
     await expect(submittedRequest.clone().json()).resolves.toEqual(request);
+  });
+
+  it("creates an academic rank in establishment scope", async () => {
+    const request = { code: "PROFESSOR", name: "Professor", seniorityOrder: 1, canHoldModuleResponsibility: true, status: "ACTIVE" as const };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "00000000-0000-4000-8000-000000000040", establishmentId, ...request }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createAcademicRank(establishmentId, request);
+
+    const submittedRequest = fetchMock.mock.calls[0][0] as Request;
+    expect(submittedRequest.url).toContain(`/api/v1/establishments/${establishmentId}/academic-ranks`);
+    await expect(submittedRequest.clone().json()).resolves.toEqual(request);
+  });
+
+  it("replaces an ordered teaching rank preference", async () => {
+    const rankIds = ["00000000-0000-4000-8000-000000000040", "00000000-0000-4000-8000-000000000041"];
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(rankIds.map((academicRankId, index) => ({ id: `00000000-0000-4000-8000-00000000005${index}`, establishmentId, componentType: "TP", academicRankId, academicRankCode: `RANK_${index}`, academicRankName: `Rank ${index}`, priority: index + 1 }))), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await replaceTeachingAssignmentRankPreferences(establishmentId, "TP", { academicRankIds: rankIds });
+
+    const submittedRequest = fetchMock.mock.calls[0][0] as Request;
+    expect(submittedRequest.method).toBe("PUT");
+    expect(submittedRequest.url).toContain(`/api/v1/establishments/${establishmentId}/teaching-assignment-rank-preferences/TP`);
+    await expect(submittedRequest.clone().json()).resolves.toEqual({ academicRankIds: rankIds });
   });
 
   it("creates an academic domain in establishment scope", async () => {

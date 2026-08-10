@@ -18,6 +18,9 @@ import com.platform.usermanagement.professor.presentation.dto.CreateProfessorRes
 import com.platform.usermanagement.professor.presentation.dto.ProfessorProfileResponse;
 import com.platform.usermanagement.professor.presentation.dto.UpdateProfessorRequest;
 import com.platform.usermanagement.professor.expertise.infrastructure.ProfessorExpertiseRepository;
+import com.platform.usermanagement.professor.rank.domain.AcademicRank;
+import com.platform.usermanagement.professor.rank.domain.AcademicRankStatus;
+import com.platform.usermanagement.professor.rank.infrastructure.AcademicRankRepository;
 import com.platform.usermanagement.shared.presentation.dto.ResetManagedPasswordRequest;
 import com.platform.shared.presentation.ActionResponse;
 import java.time.LocalDate;
@@ -41,6 +44,7 @@ public class ProfessorManagementService {
     private final PasswordEncoder passwordEncoder;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
     private final ProfessorExpertiseRepository professorExpertiseRepository;
+    private final AcademicRankRepository academicRankRepository;
 
     public ProfessorManagementService(
         EstablishmentRepository establishmentRepository,
@@ -49,7 +53,8 @@ public class ProfessorManagementService {
         UserProfileRepository userProfileRepository,
         PasswordEncoder passwordEncoder,
         AdminPermissionAuthorizationService permissionAuthorizationService,
-        ProfessorExpertiseRepository professorExpertiseRepository
+        ProfessorExpertiseRepository professorExpertiseRepository,
+        AcademicRankRepository academicRankRepository
     ) {
         this.establishmentRepository = establishmentRepository;
         this.professorRepository = professorRepository;
@@ -58,6 +63,7 @@ public class ProfessorManagementService {
         this.passwordEncoder = passwordEncoder;
         this.permissionAuthorizationService = permissionAuthorizationService;
         this.professorExpertiseRepository = professorExpertiseRepository;
+        this.academicRankRepository = academicRankRepository;
     }
 
     @Transactional
@@ -120,7 +126,11 @@ public class ProfessorManagementService {
         professor.setUserAccount(account);
         professor.setEstablishment(establishment);
         professor.setEmployeeNumber(employeeNumber);
-        professor.setAcademicRank(normalizeOptional(request.academicRank()));
+        professor.setAcademicRank(findActiveRank(
+            establishmentId,
+            request.academicRankId(),
+            request.academicRank()
+        ));
         professor.setHireDate(request.hireDate());
         professor.setMaximumWeeklyTeachingMinutes(request.maximumWeeklyTeachingMinutes());
         professor = professorRepository.save(professor);
@@ -212,7 +222,11 @@ public class ProfessorManagementService {
 
         account.setUniversityEmail(email);
         professor.setEmployeeNumber(employeeNumber);
-        professor.setAcademicRank(normalizeOptional(request.academicRank()));
+        professor.setAcademicRank(findActiveRank(
+            professor.getEstablishment().getId(),
+            request.academicRankId(),
+            request.academicRank()
+        ));
         professor.setHireDate(request.hireDate());
         professor.setMaximumWeeklyTeachingMinutes(request.maximumWeeklyTeachingMinutes());
         profile.setFirstName(request.firstName().trim());
@@ -321,7 +335,8 @@ public class ProfessorManagementService {
             account.getId(),
             professor.getEstablishment().getId(),
             professor.getEmployeeNumber(),
-            professor.getAcademicRank(),
+            professor.getAcademicRank() == null ? null : professor.getAcademicRank().getId(),
+            professor.getAcademicRank() == null ? null : professor.getAcademicRank().getName(),
             professor.getHireDate(),
             professor.getMaximumWeeklyTeachingMinutes(),
             account.getUniversityEmail(),
@@ -344,6 +359,49 @@ public class ProfessorManagementService {
             return null;
         }
         return value.trim();
+    }
+
+    private AcademicRank findActiveRank(UUID establishmentId, UUID rankId, String rankName) {
+        if (rankId != null) {
+            AcademicRank rank = academicRankRepository.findById(rankId)
+                .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Academic rank does not belong to the establishment"
+                ));
+            validateActiveRank(establishmentId, rank);
+            return rank;
+        }
+
+        String normalized = normalizeOptional(rankName);
+        if (normalized == null) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Academic rank is required"
+            );
+        }
+        AcademicRank rank = academicRankRepository
+            .findByEstablishmentIdAndNameIgnoreCase(establishmentId, normalized)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Academic rank does not belong to the establishment"
+            ));
+        validateActiveRank(establishmentId, rank);
+        return rank;
+    }
+
+    private void validateActiveRank(UUID establishmentId, AcademicRank rank) {
+        if (!rank.getEstablishment().getId().equals(establishmentId)) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Academic rank does not belong to the establishment"
+            );
+        }
+        if (rank.getStatus() != AcademicRankStatus.ACTIVE) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Academic rank is inactive"
+            );
+        }
     }
 
     private String normalizeOptionalUppercase(String value) {

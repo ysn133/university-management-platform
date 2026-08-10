@@ -61,7 +61,7 @@ export function ProfessorDetailsPage() {
   const updateMutation = useMutation({
     mutationFn: (values: ProfessorFormValues) => updateProfessor(professorId!, {
       employeeNumber: values.employeeNumber.trim(),
-      academicRank: values.academicRank.trim() || undefined,
+      academicRankId: values.academicRankId,
       hireDate: values.hireDate || undefined,
       maximumWeeklyTeachingMinutes: Number(values.maximumWeeklyTeachingMinutes),
       cin: values.cin.trim() || undefined,
@@ -131,7 +131,7 @@ export function ProfessorDetailsPage() {
         </section>
       </div>
     </section>
-    {isEditing && <ManagementModal size="wide" title="Edit Professor" description="Update professional, identity, and contact information." onClose={() => setEditing(false)}><ProfessorForm professor={professor} error={updateMutation.isError ? errorMessage(updateMutation.error) : null} isSubmitting={updateMutation.isPending} onCancel={() => setEditing(false)} onSubmit={(values) => updateMutation.mutate(values)} /></ManagementModal>}
+    {isEditing && <ManagementModal size="wide" title="Edit Professor" description="Update professional, identity, and contact information." onClose={() => setEditing(false)}><ProfessorForm establishmentId={establishmentId} professor={professor} error={updateMutation.isError ? errorMessage(updateMutation.error) : null} isSubmitting={updateMutation.isPending} onCancel={() => setEditing(false)} onSubmit={(values) => updateMutation.mutate(values)} /></ManagementModal>}
     {isResettingPassword && <ManagementModal title="Reset password" description={`Set a temporary password for ${professor.firstName} ${professor.lastName}.`} onClose={() => setResettingPassword(false)}><div className="management-form"><div className="form-field form-field--wide"><label htmlFor="reset-professor-password">New temporary password</label><input id="reset-professor-password" onChange={(event) => { setNewPassword(event.target.value); setPasswordError(null); }} type="password" value={newPassword} />{passwordError && <p className="field-error">{passwordError}</p>}</div>{resetMutation.isError && <div className="management-alert management-alert--error">{errorMessage(resetMutation.error)}</div>}<footer className="form-actions"><button className="secondary-button" onClick={() => setResettingPassword(false)} type="button">Cancel</button><button className="management-primary-button" disabled={resetMutation.isPending} onClick={submitPasswordReset} type="button">{resetMutation.isPending ? "Resetting..." : "Reset password"}</button></footer></div></ManagementModal>}
     {confirmation && <ConfirmActionModal actionLabel={actionLabel(confirmation)} destructive={confirmation === "deactivate" || confirmation === "archive"} description={`${actionLabel(confirmation)} the account for ${professor.firstName} ${professor.lastName}?`} error={lifecycleMutation.isError ? errorMessage(lifecycleMutation.error) : null} isSubmitting={lifecycleMutation.isPending} onCancel={() => setConfirmation(null)} onConfirm={() => lifecycleMutation.mutate(confirmation)} title={`${actionLabel(confirmation)} Professor`} />}
   </div>;

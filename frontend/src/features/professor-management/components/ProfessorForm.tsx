@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { academicStructureKeys, getAcademicRanks } from "@/features/academic-structure/api/academic-structure-api";
 import type { Professor } from "../api/professor-management-api";
 
 export interface ProfessorFormValues {
   employeeNumber: string;
-  academicRank: string;
+  academicRankId: string;
   hireDate: string;
   maximumWeeklyTeachingMinutes: string;
   cin: string;
@@ -20,7 +22,7 @@ export interface ProfessorFormValues {
 
 const initialValues: ProfessorFormValues = {
   employeeNumber: "",
-  academicRank: "",
+  academicRankId: "",
   hireDate: "",
   maximumWeeklyTeachingMinutes: "720",
   cin: "",
@@ -36,6 +38,7 @@ const initialValues: ProfessorFormValues = {
 };
 
 interface ProfessorFormProps {
+  establishmentId: string;
   professor?: Professor;
   error?: string | null;
   isSubmitting: boolean;
@@ -43,10 +46,14 @@ interface ProfessorFormProps {
   onSubmit: (values: ProfessorFormValues) => void;
 }
 
-export function ProfessorForm({ professor, error, isSubmitting, onCancel, onSubmit }: ProfessorFormProps) {
+export function ProfessorForm({ establishmentId, professor, error, isSubmitting, onCancel, onSubmit }: ProfessorFormProps) {
+  const ranksQuery = useQuery({
+    queryKey: academicStructureKeys.academicRanks(establishmentId),
+    queryFn: () => getAcademicRanks(establishmentId),
+  });
   const [values, setValues] = useState<ProfessorFormValues>(() => professor ? {
     employeeNumber: professor.employeeNumber,
-    academicRank: professor.academicRank ?? "",
+    academicRankId: professor.academicRankId ?? "",
     hireDate: professor.hireDate ?? "",
     maximumWeeklyTeachingMinutes: String(professor.maximumWeeklyTeachingMinutes),
     cin: professor.cin ?? "",
@@ -70,8 +77,8 @@ export function ProfessorForm({ professor, error, isSubmitting, onCancel, onSubm
 
   function submit() {
     const weeklyMinutes = Number(values.maximumWeeklyTeachingMinutes);
-    if (!values.employeeNumber.trim() || !values.universityEmail.trim() || (!professor && values.password.length < 8) || !values.firstName.trim() || !values.lastName.trim() || !values.birthDate || !values.placeOfBirth.trim() || !values.nationality.trim()) {
-      setValidationError(professor ? "Complete all required identity fields." : "Complete all required identity fields and use a password of at least 8 characters.");
+    if (!values.employeeNumber.trim() || !values.academicRankId || !values.universityEmail.trim() || (!professor && values.password.length < 8) || !values.firstName.trim() || !values.lastName.trim() || !values.birthDate || !values.placeOfBirth.trim() || !values.nationality.trim()) {
+      setValidationError(professor ? "Complete all required identity and employment fields." : "Complete all required fields and use a password of at least 8 characters.");
       return;
     }
     if (!Number.isInteger(weeklyMinutes) || weeklyMinutes < 1) {
@@ -91,7 +98,7 @@ export function ProfessorForm({ professor, error, isSubmitting, onCancel, onSubm
     <div className="form-field"><label htmlFor="professor-email">University email</label><input id="professor-email" onChange={(event) => update("universityEmail", event.target.value)} type="email" value={values.universityEmail} /></div>
     {!professor && <div className="form-field"><label htmlFor="professor-password">Temporary password</label><input id="professor-password" minLength={8} onChange={(event) => update("password", event.target.value)} type="password" value={values.password} /></div>}
     <div className="form-field"><label htmlFor="professor-employee-number">Employee number</label><input id="professor-employee-number" onChange={(event) => update("employeeNumber", event.target.value)} value={values.employeeNumber} /></div>
-    <div className="form-field"><label htmlFor="professor-rank">Academic rank</label><input id="professor-rank" onChange={(event) => update("academicRank", event.target.value)} placeholder="Professor, Assistant Professor..." value={values.academicRank} /></div>
+    <div className="form-field"><label htmlFor="professor-rank">Academic rank</label><select disabled={ranksQuery.isPending || ranksQuery.isError} id="professor-rank" onChange={(event) => update("academicRankId", event.target.value)} value={values.academicRankId}><option value="">{ranksQuery.isPending ? "Loading academic ranks..." : ranksQuery.isError ? "Academic ranks unavailable" : "Select an academic rank"}</option>{(ranksQuery.data ?? []).filter((rank) => rank.status === "ACTIVE" || rank.id === values.academicRankId).map((rank) => <option key={rank.id} value={rank.id}>{rank.name}</option>)}</select>{!ranksQuery.isPending && !ranksQuery.isError && ranksQuery.data?.length === 0 && <small>Create an academic rank in Academic Settings first.</small>}</div>
     <div className="form-field"><label htmlFor="professor-hire-date">Hire date</label><input id="professor-hire-date" max={today} min={values.birthDate || undefined} onChange={(event) => update("hireDate", event.target.value)} type="date" value={values.hireDate} /></div>
     <div className="form-field"><label htmlFor="professor-weekly-minutes">Maximum weekly teaching minutes</label><input id="professor-weekly-minutes" min="1" onChange={(event) => update("maximumWeeklyTeachingMinutes", event.target.value)} type="number" value={values.maximumWeeklyTeachingMinutes} /></div>
     <div className="form-field"><label htmlFor="professor-birth-date">Birth date</label><input id="professor-birth-date" max={today} onChange={(event) => update("birthDate", event.target.value)} type="date" value={values.birthDate} /></div>
@@ -100,7 +107,7 @@ export function ProfessorForm({ professor, error, isSubmitting, onCancel, onSubm
     <div className="form-field"><label htmlFor="professor-sex">Sex</label><select id="professor-sex" onChange={(event) => update("sex", event.target.value as ProfessorFormValues["sex"])} value={values.sex}><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
     <div className="form-field"><label htmlFor="professor-cin">CIN</label><input id="professor-cin" onChange={(event) => update("cin", event.target.value)} value={values.cin} /></div>
     <div className="form-field"><label htmlFor="professor-phone">Phone number</label><input id="professor-phone" onChange={(event) => update("phoneNumber", event.target.value)} type="tel" value={values.phoneNumber} /></div>
-    {(validationError || error) && <div className="management-alert management-alert--error">{validationError ?? error}</div>}
-    <footer className="form-actions"><button className="secondary-button" onClick={onCancel} type="button">Cancel</button><button className="management-primary-button" disabled={isSubmitting} onClick={submit} type="button">{isSubmitting ? "Saving..." : professor ? "Save changes" : "Create Professor"}</button></footer>
+    {(validationError || error || ranksQuery.isError) && <div className="management-alert management-alert--error">{validationError ?? error ?? "Academic ranks could not be loaded."}</div>}
+    <footer className="form-actions"><button className="secondary-button" onClick={onCancel} type="button">Cancel</button><button className="management-primary-button" disabled={isSubmitting || ranksQuery.isPending || ranksQuery.isError || !ranksQuery.data?.length} onClick={submit} type="button">{isSubmitting ? "Saving..." : professor ? "Save changes" : "Create Professor"}</button></footer>
   </div>;
 }

@@ -115,6 +115,26 @@ const academicDomainSchema = z.object({
   updatedAt: z.string().optional(),
 });
 
+const academicRankSchema = z.object({
+  id: z.string().uuid(),
+  establishmentId: z.string().uuid(),
+  code: z.string(),
+  name: z.string(),
+  seniorityOrder: z.number().int().positive(),
+  canHoldModuleResponsibility: z.boolean(),
+  status: z.enum(["ACTIVE", "INACTIVE"]),
+});
+
+const teachingAssignmentRankPreferenceSchema = z.object({
+  id: z.string().uuid(),
+  establishmentId: z.string().uuid(),
+  componentType: z.enum(["COURSE", "TD", "TP"]),
+  academicRankId: z.string().uuid(),
+  academicRankCode: z.string(),
+  academicRankName: z.string(),
+  priority: z.number().int().positive(),
+});
+
 export type NamedResource = z.infer<typeof namedResourceSchema>;
 export type AcademicYear = z.infer<typeof academicYearSchema>;
 export type ProgramFiliere = z.infer<typeof programFiliereSchema>;
@@ -125,6 +145,9 @@ export type SubjectModule = z.infer<typeof subjectModuleSchema>;
 export type ModuleTeachingComponent = z.infer<typeof moduleTeachingComponentSchema>;
 export type AcademicRuleProfile = z.infer<typeof academicRuleProfileSchema>;
 export type AcademicDomain = z.infer<typeof academicDomainSchema>;
+export type AcademicRank = z.infer<typeof academicRankSchema>;
+export type TeachingAssignmentRankPreference = z.infer<typeof teachingAssignmentRankPreferenceSchema>;
+export type TeachingComponentType = TeachingAssignmentRankPreference["componentType"];
 export type AcademicYearStatus = AcademicYear["status"];
 
 export type CreateAcademicYearRequest = components["schemas"]["CreateAcademicYearRequest"];
@@ -142,6 +165,8 @@ export type UpdateSemesterRequest = components["schemas"]["UpdateSemesterRequest
 export type CreateSubjectModuleRequest = components["schemas"]["CreateSubjectModuleRequest"];
 export type UpdateSubjectModuleRequest = components["schemas"]["UpdateSubjectModuleRequest"];
 export type ReplaceModuleTeachingComponentsRequest = components["schemas"]["ReplaceModuleTeachingComponentsRequest"];
+export type AcademicRankRequest = components["schemas"]["AcademicRankRequest"];
+export type ReplaceRankPreferencesRequest = components["schemas"]["ReplaceRankPreferencesRequest"];
 
 export const academicStructureKeys = {
   departments: (establishmentId: string) => ["academic-structure", "departments", establishmentId] as const,
@@ -158,6 +183,8 @@ export const academicStructureKeys = {
   moduleTeachingComponents: (subjectModuleId: string) => ["academic-structure", "module-teaching-components", subjectModuleId] as const,
   ruleProfiles: (establishmentId: string) => ["academic-structure", "rule-profiles", establishmentId] as const,
   academicDomains: (establishmentId: string) => ["academic-structure", "academic-domains", establishmentId] as const,
+  academicRanks: (establishmentId: string) => ["academic-structure", "academic-ranks", establishmentId] as const,
+  teachingAssignmentRankPreferences: (establishmentId: string) => ["teaching-planning", "rank-preferences", establishmentId] as const,
 };
 
 async function parseResponse<T>(result: { response: Response; data?: unknown; error?: unknown }, schema: z.ZodType<T>): Promise<T> {
@@ -347,6 +374,34 @@ export async function getAcademicRuleProfile(academicRuleProfileId: string): Pro
 
 export async function updateAcademicRuleProfile(academicRuleProfileId: string, request: UpdateAcademicRuleProfileRequest): Promise<AcademicRuleProfile> {
   return parseResponse(await apiClient.PUT("/api/v1/academic-rule-profiles/{academicRuleProfileId}", { params: { path: { academicRuleProfileId } }, body: request }), academicRuleProfileSchema);
+}
+
+export async function getAcademicRanks(establishmentId: string): Promise<AcademicRank[]> {
+  return parseResponse(await apiClient.GET("/api/v1/establishments/{establishmentId}/academic-ranks", { params: { path: { establishmentId } } }), z.array(academicRankSchema));
+}
+
+export async function createAcademicRank(establishmentId: string, request: AcademicRankRequest): Promise<AcademicRank> {
+  return parseResponse(await apiClient.POST("/api/v1/establishments/{establishmentId}/academic-ranks", { params: { path: { establishmentId } }, body: request }), academicRankSchema);
+}
+
+export async function updateAcademicRank(rankId: string, request: AcademicRankRequest): Promise<AcademicRank> {
+  return parseResponse(await apiClient.PUT("/api/v1/academic-ranks/{rankId}", { params: { path: { rankId } }, body: request }), academicRankSchema);
+}
+
+export async function deleteAcademicRank(rankId: string): Promise<void> {
+  await ensureSuccess(await apiClient.DELETE("/api/v1/academic-ranks/{rankId}", { params: { path: { rankId } } }));
+}
+
+export async function getTeachingAssignmentRankPreferences(establishmentId: string): Promise<TeachingAssignmentRankPreference[]> {
+  return parseResponse(await apiClient.GET("/api/v1/establishments/{establishmentId}/teaching-assignment-rank-preferences", { params: { path: { establishmentId } } }), z.array(teachingAssignmentRankPreferenceSchema));
+}
+
+export async function replaceTeachingAssignmentRankPreferences(
+  establishmentId: string,
+  componentType: TeachingComponentType,
+  request: ReplaceRankPreferencesRequest,
+): Promise<TeachingAssignmentRankPreference[]> {
+  return parseResponse(await apiClient.PUT("/api/v1/establishments/{establishmentId}/teaching-assignment-rank-preferences/{componentType}", { params: { path: { establishmentId, componentType } }, body: request }), z.array(teachingAssignmentRankPreferenceSchema));
 }
 
 export async function getAcademicDomains(establishmentId: string): Promise<AcademicDomain[]> {
