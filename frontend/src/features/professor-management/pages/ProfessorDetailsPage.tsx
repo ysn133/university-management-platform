@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { ApiRequestError } from "@/shared/api/client/ApiRequestError";
 import { useEstablishmentScope } from "@/features/establishment-management/context/useEstablishmentScope";
 import { ManagementModal } from "@/features/root-governance/components/ManagementModal";
@@ -32,6 +32,7 @@ function actionLabel(action: ProfessorLifecycleAction): string {
 
 export function ProfessorDetailsPage() {
   const { professorId } = useParams();
+  const location = useLocation();
   const { establishmentId, workspacePath } = useEstablishmentScope();
   const queryClient = useQueryClient();
   const [isEditing, setEditing] = useState(false);
@@ -91,6 +92,9 @@ export function ProfessorDetailsPage() {
 
   const professor = professorQuery.data;
   const expertise = expertiseQuery.data?.academicDomains ?? [];
+  const navigationState = location.state as { returnLabel?: string; returnTo?: string } | null;
+  const returnTo = navigationState?.returnTo ?? `${workspacePath}/professors`;
+  const returnLabel = navigationState?.returnLabel ?? "Back to Professors";
 
   function submitPasswordReset() {
     if (newPassword.length < 8) {
@@ -101,7 +105,7 @@ export function ProfessorDetailsPage() {
   }
 
   return <div className="management-page admin-details-page professor-details-page">
-    <div className="admin-page-toolbar"><Link className="record-back-link" to={`${workspacePath}/professors`}>Back to Professors</Link><span>Employee · {professor.employeeNumber}</span></div>
+    <div className="admin-page-toolbar"><Link className="record-back-link" to={returnTo}>{returnLabel}</Link><span>Employee · {professor.employeeNumber}</span></div>
     <section className="admin-profile-workspace">
       <header className="admin-profile-hero">
         <span className="admin-profile-avatar">{professor.firstName[0]}{professor.lastName[0]}</span>

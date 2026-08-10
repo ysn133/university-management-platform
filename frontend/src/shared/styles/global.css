@@ -1123,6 +1123,153 @@ h3 {
   opacity: 0.55;
 }
 
+.teaching-professor-picker {
+  display: grid;
+  gap: 1rem;
+}
+
+.teaching-professor-picker-list {
+  display: grid;
+  max-height: 24rem;
+  overflow-y: auto;
+  border: 1px solid var(--management-line);
+  border-radius: 0.75rem;
+}
+
+.teaching-professor-picker-list > button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.8rem;
+  border: 0;
+  border-bottom: 1px solid var(--management-line);
+  background: #fff;
+  color: var(--management-ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.teaching-professor-picker-list > button:last-child {
+  border-bottom: 0;
+}
+
+.teaching-professor-picker-list > button:hover:not(:disabled) {
+  background: #f5f9fd;
+}
+
+.teaching-professor-picker-list > button > span:nth-child(2) {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.teaching-professor-picker-list small,
+.teaching-professor-picker-list > button > span:last-child {
+  color: var(--management-muted);
+  font-size: 0.75rem;
+}
+
+.semester-professor-total {
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  background: #eaf4fb;
+  color: var(--management-blue-dark);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.semester-professor-list {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.25rem;
+}
+
+.semester-professor-list > article {
+  overflow: hidden;
+  border: 1px solid var(--management-line);
+  border-radius: 0.8rem;
+  background: #fff;
+}
+
+.semester-professor-list > article.is-expanded {
+  border-color: rgba(23, 105, 170, 0.35);
+  box-shadow: 0 10px 28px rgba(30, 75, 110, 0.08);
+}
+
+.semester-professor-list > article > header {
+  display: flex;
+  align-items: center;
+  padding: 0.85rem 1rem 0.55rem;
+}
+
+.semester-professor-expand {
+  display: grid;
+  flex: 1;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 0.85rem;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--management-ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.semester-professor-expand > span:nth-child(2),
+.semester-professor-workload {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.semester-professor-expand small,
+.semester-professor-workload small {
+  color: var(--management-muted);
+  font-size: 0.72rem;
+}
+
+.semester-professor-workload {
+  min-width: 4rem;
+  text-align: right;
+}
+
+.semester-professor-chevron {
+  color: var(--management-blue);
+  font-size: 1.2rem;
+  transform: rotate(0deg);
+  transition: transform 150ms ease;
+}
+
+.semester-professor-list > article.is-expanded .semester-professor-chevron {
+  transform: rotate(180deg);
+}
+
+.semester-professor-profile-link {
+  margin-left: 1rem;
+  color: var(--management-blue);
+  font-size: 0.75rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.semester-professor-counts {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1rem 0.85rem 4.8rem;
+}
+
+.semester-professor-counts span {
+  padding: 0.28rem 0.5rem;
+  border-radius: 999px;
+  background: #f2f6f9;
+  color: var(--management-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.semester-professor-delivery {
+  border-top: 1px solid var(--management-line);
+}
+
 .metric-grid {
   display: grid;
   gap: 1rem;
@@ -2816,6 +2963,94 @@ a.workspace-module-card:hover {
 
 .teaching-plan-alert {
   margin: 1rem 1.25rem 0;
+}
+
+.teaching-plan-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.management-secondary-button {
+  min-height: 2.65rem;
+  padding: 0 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  background: white;
+  color: var(--navy);
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.management-secondary-button:hover:not(:disabled) {
+  border-color: #7caed0;
+  color: var(--blue);
+}
+
+.management-secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.teaching-assignment-result {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 1.25rem 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid #b9ddca;
+  border-radius: 0.65rem;
+  background: #f0faf4;
+  color: #316449;
+  font-size: 0.82rem;
+}
+
+.teaching-assignment-result.has-unresolved {
+  border-color: #ead09d;
+  background: #fff8e9;
+  color: #76571c;
+}
+
+.teaching-assignment-result small {
+  margin-left: auto;
+  color: inherit;
+}
+
+.teaching-plan-row--unassigned {
+  background: #fffaf1;
+}
+
+.teaching-plan-professor {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.teaching-plan-professor strong {
+  color: var(--navy);
+  font-size: 0.82rem;
+}
+
+.teaching-plan-professor small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.teaching-plan-unassigned {
+  color: #9a6714;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+@media (max-width: 760px) {
+  .teaching-plan-header-actions,
+  .teaching-assignment-result {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .teaching-assignment-result small {
+    margin-left: 0;
+  }
 }
 
 .teaching-plan-summary {
