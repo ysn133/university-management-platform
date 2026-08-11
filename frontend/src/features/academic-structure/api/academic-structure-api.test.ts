@@ -89,6 +89,9 @@ describe("academic structure API", () => {
       name: "S1",
       semesterOrder: 1,
       termType: "AUTUMN",
+      startDate: "2025-09-01",
+      endDate: "2026-01-31",
+      lifecycleStatus: "FINISHED",
     }]), { status: 200, headers: { "Content-Type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
 

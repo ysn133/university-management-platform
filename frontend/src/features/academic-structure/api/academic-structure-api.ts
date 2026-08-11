@@ -63,6 +63,9 @@ const semesterSchema = z.object({
   name: z.string(),
   semesterOrder: z.number().int(),
   termType: z.enum(["AUTUMN", "SPRING"]),
+  startDate: z.string(),
+  endDate: z.string(),
+  lifecycleStatus: z.enum(["PLANNED", "ACTIVE", "FINISHED"]),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });
