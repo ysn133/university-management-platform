@@ -13,6 +13,8 @@ import com.platform.moduleclassresponsibility.domain.ModuleClassResponsibilitySt
 import com.platform.moduleclassresponsibility.infrastructure.ModuleClassResponsibilityRepository;
 import com.platform.moduleclassresponsibility.presentation.dto.CreateModuleClassResponsibilityRequest;
 import com.platform.moduleclassresponsibility.presentation.dto.ModuleClassResponsibilityResponse;
+import com.platform.teachingassignment.domain.TeachingAssignment;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingComponentType;
 import com.platform.universitygovernance.academicyear.domain.AcademicYear;
 import com.platform.universitygovernance.academicyear.domain.AcademicYearStatus;
 import com.platform.universitygovernance.academicyear.infrastructure.AcademicYearRepository;
@@ -194,6 +196,66 @@ public class ModuleClassResponsibilityService {
         responsibility.setStatus(ModuleClassResponsibilityStatus.INACTIVE);
         responsibilityRepository.save(responsibility);
         return new ActionResponse(true, "Module class responsibility removed");
+    }
+
+    @Transactional
+    public void synchronizeWithCourseAssignment(TeachingAssignment assignment) {
+        var requirement = assignment.getTeachingRequirement();
+        var component = requirement.getModuleTeachingComponent();
+        ClassGroup classGroup = requirement.getTeachingGroup().getSourceClassGroup();
+        if (component.getComponentType() != TeachingComponentType.COURSE
+            || classGroup == null) {
+            return;
+        }
+
+        Professor professor = assignment.getProfessor();
+        SubjectModule subjectModule = component.getSubjectModule();
+        Semester semester = requirement.getTeachingGroup().getSemester();
+        AcademicYear academicYear = semester.getAcademicYear();
+
+        ModuleClassResponsibility active = responsibilityRepository
+            .findBySubjectModuleIdAndClassGroupIdAndAcademicYearIdAndSemesterIdAndStatus(
+                subjectModule.getId(),
+                classGroup.getId(),
+                academicYear.getId(),
+                semester.getId(),
+                ModuleClassResponsibilityStatus.ACTIVE
+            )
+            .orElse(null);
+        if (active != null && active.getProfessor().getId().equals(professor.getId())) {
+            return;
+        }
+
+        ModuleClassResponsibility matching = responsibilityRepository
+            .findByProfessorIdAndSubjectModuleIdAndClassGroupIdAndAcademicYearIdAndSemesterId(
+                professor.getId(),
+                subjectModule.getId(),
+                classGroup.getId(),
+                academicYear.getId(),
+                semester.getId()
+            )
+            .orElse(null);
+
+        if (matching != null) {
+            if (active != null) {
+                active.setStatus(ModuleClassResponsibilityStatus.INACTIVE);
+                responsibilityRepository.save(active);
+            }
+            matching.setStatus(ModuleClassResponsibilityStatus.ACTIVE);
+            responsibilityRepository.save(matching);
+            return;
+        }
+
+        ModuleClassResponsibility responsibility = active == null
+            ? new ModuleClassResponsibility()
+            : active;
+        responsibility.setProfessor(professor);
+        responsibility.setSubjectModule(subjectModule);
+        responsibility.setClassGroup(classGroup);
+        responsibility.setAcademicYear(academicYear);
+        responsibility.setSemester(semester);
+        responsibility.setStatus(ModuleClassResponsibilityStatus.ACTIVE);
+        responsibilityRepository.save(responsibility);
     }
 
     private ModuleClassResponsibility findResponsibility(UUID responsibilityId) {

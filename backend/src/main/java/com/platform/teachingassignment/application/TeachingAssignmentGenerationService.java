@@ -7,6 +7,7 @@ import com.platform.identityaccess.domain.Professor;
 import com.platform.identityaccess.infrastructure.ProfessorRepository;
 import com.platform.moduleclassresponsibility.domain.ModuleClassResponsibilityStatus;
 import com.platform.moduleclassresponsibility.infrastructure.ModuleClassResponsibilityRepository;
+import com.platform.moduleclassresponsibility.application.ModuleClassResponsibilityService;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.shared.presentation.ActionResponse;
 import com.platform.teachingassignment.domain.TeachingAssignment;
@@ -55,6 +56,7 @@ public class TeachingAssignmentGenerationService {
     private final TeachingAssignmentRankPreferenceRepository preferenceRepository;
     private final ModuleClassResponsibilityRepository responsibilityRepository;
     private final AdminPermissionAuthorizationService authorizationService;
+    private final ModuleClassResponsibilityService responsibilityService;
 
     public TeachingAssignmentGenerationService(
         TeachingAssignmentRepository assignmentRepository,
@@ -65,7 +67,8 @@ public class TeachingAssignmentGenerationService {
         ProfessorExpertiseRepository expertiseRepository,
         TeachingAssignmentRankPreferenceRepository preferenceRepository,
         ModuleClassResponsibilityRepository responsibilityRepository,
-        AdminPermissionAuthorizationService authorizationService
+        AdminPermissionAuthorizationService authorizationService,
+        ModuleClassResponsibilityService responsibilityService
     ) {
         this.assignmentRepository = assignmentRepository;
         this.requirementRepository = requirementRepository;
@@ -76,6 +79,7 @@ public class TeachingAssignmentGenerationService {
         this.preferenceRepository = preferenceRepository;
         this.responsibilityRepository = responsibilityRepository;
         this.authorizationService = authorizationService;
+        this.responsibilityService = responsibilityService;
     }
 
     @Transactional
@@ -109,6 +113,7 @@ public class TeachingAssignmentGenerationService {
                 semesterId,
                 TeachingAssignmentStatus.ACTIVE
             );
+        existingAssignments.forEach(responsibilityService::synchronizeWithCourseAssignment);
         List<TeachingAssignment> teachingPeriodAssignments = assignmentRepository
             .findInTeachingPeriod(
                 establishmentId,
@@ -164,7 +169,9 @@ public class TeachingAssignmentGenerationService {
             assignment.setTeachingRequirement(item.requirement());
             assignment.setStatus(TeachingAssignmentStatus.ACTIVE);
             assignment.setAssignmentSource(TeachingAssignmentSource.AUTOMATIC);
-            created.add(assignmentRepository.save(assignment));
+            assignment = assignmentRepository.save(assignment);
+            responsibilityService.synchronizeWithCourseAssignment(assignment);
+            created.add(assignment);
             workloads.merge(selected.getId(), weeklyMinutes(item.requirement()), Integer::sum);
         }
 
