@@ -13,9 +13,12 @@ public record ModuleExamResponse(
     LocalDate examDate,
     LocalTime startTime,
     LocalTime endTime,
-    String location,
+    UUID roomId,
+    String roomCode,
+    String roomName,
     Instant candidateListGeneratedAt,
     Instant createdAt,
     Instant updatedAt
 ) {
+    public String location() { return roomCode; }
 }

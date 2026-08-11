@@ -1,6 +1,7 @@
 package com.platform.scheduling.examschedule.domain;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import com.platform.universitygovernance.academicyear.domain.AcademicYear;
@@ -44,6 +45,12 @@ public class ExamSchedule {
     @Enumerated(EnumType.STRING)
     @Column(name = "publication_status", nullable = false)
     private PublicationStatus publicationStatus;
+
+    @Column(name = "start_date", nullable = false)
+    private LocalDate startDate;
+
+    @Column(name = "end_date", nullable = false)
+    private LocalDate endDate;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -112,6 +119,11 @@ public class ExamSchedule {
     public void setPublicationStatus(PublicationStatus publicationStatus) {
         this.publicationStatus = publicationStatus;
     }
+
+    public LocalDate getStartDate() { return startDate; }
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+    public LocalDate getEndDate() { return endDate; }
+    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
 
     public Instant getCreatedAt() {
         return createdAt;

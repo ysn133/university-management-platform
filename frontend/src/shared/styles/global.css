@@ -3581,6 +3581,433 @@ a.workspace-module-card:hover {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.exam-session-switch {
+  display: flex;
+  padding: 0.25rem;
+  border: 1px solid var(--management-line);
+  border-radius: 0.65rem;
+  background: #f4f8fb;
+}
+
+.exam-session-switch button {
+  padding: 0.55rem 0.85rem;
+  border: 0;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: var(--management-muted);
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.exam-session-switch button[aria-pressed="true"] {
+  background: #fff;
+  color: var(--management-blue-dark);
+  box-shadow: 0 2px 8px rgba(18, 74, 120, 0.1);
+}
+
+.exam-plan-table-wrap {
+  padding: 1.25rem;
+  overflow-x: auto;
+  background: #f4f8fb;
+}
+
+.exam-plan-table {
+  width: 100%;
+  min-width: 48rem;
+  border: 1px solid #9fb6c6;
+  border-collapse: collapse;
+  background: #fff;
+  color: var(--management-ink);
+  font-size: 0.74rem;
+}
+
+.exam-plan-table th,
+.exam-plan-table td {
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #bfd0dc;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.exam-plan-table thead th {
+  border-color: #1769aa;
+  background: #1769aa;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.exam-plan-table tbody + tbody tr:first-child > * {
+  border-top: 2px solid #7598af;
+}
+
+.exam-plan-table tr.is-editable {
+  cursor: pointer;
+}
+
+.exam-plan-table tr.is-editable:hover td {
+  background: #f0f7fc;
+}
+
+.exam-plan-table .exam-plan-date {
+  width: 9.5rem;
+  background: #e4f2e1;
+  color: #214d36;
+}
+
+.exam-plan-date span,
+.exam-plan-date strong {
+  display: block;
+}
+
+.exam-plan-date span {
+  margin-bottom: 0.2rem;
+  font-size: 0.78rem;
+  text-transform: capitalize;
+}
+
+.exam-plan-date strong {
+  font-size: 0.68rem;
+}
+
+.exam-plan-module {
+  width: 32%;
+  font-weight: 750;
+}
+
+.exam-plan-time {
+  width: 9rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 760px) {
+  .exam-plan-table-wrap {
+    padding: 0.75rem;
+  }
+}
+
+.exam-group-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--management-line);
+  background: #f7fafc;
+}
+
+.exam-group-summary__context {
+  display: grid;
+  gap: 0.12rem;
+  padding-right: 1rem;
+  border-right: 1px solid var(--management-line);
+}
+
+.exam-group-summary__context > span {
+  color: var(--management-muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.exam-group-summary__context > strong {
+  color: var(--management-blue-dark);
+  font-size: 0.72rem;
+}
+
+.exam-group-summary__groups {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.exam-group-size {
+  display: flex;
+  gap: 0.38rem;
+  align-items: baseline;
+  padding: 0.32rem 0.55rem;
+  border: 1px solid #cfe0eb;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.exam-group-size strong {
+  color: var(--management-blue-dark);
+  font-size: 0.65rem;
+}
+
+.exam-group-size small {
+  color: var(--management-muted);
+  font-size: 0.6rem;
+}
+
+.exam-group-summary > button {
+  margin-left: auto;
+}
+
+.exam-split-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.6rem;
+}
+
+.exam-split-preview > span {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.75rem;
+  border: 1px solid #cfe0eb;
+  border-radius: 0.6rem;
+  background: #f6fafc;
+  color: var(--management-muted);
+  font-size: 0.68rem;
+}
+
+.exam-split-preview strong {
+  color: var(--management-blue-dark);
+}
+
+.exam-room-allocation-fields {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0;
+  border: 1px solid var(--management-line);
+  border-radius: 0.7rem;
+  background: #f7fafc;
+}
+
+.exam-planning-form {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.exam-planning-form > * {
+  min-width: 0;
+}
+
+.exam-room-allocation-fields > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--management-line);
+  background: #eef5fa;
+}
+
+.exam-room-allocation-fields > header > div {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.exam-room-allocation-fields > header strong {
+  color: var(--management-ink);
+  font-size: 0.76rem;
+}
+
+.exam-room-allocation-fields > header span,
+.exam-room-allocation-fields > header small {
+  color: var(--management-muted);
+  font-size: 0.67rem;
+}
+
+.exam-room-allocation-fields > header small {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #cfe0eb;
+  border-radius: 999px;
+  background: #fff;
+  white-space: nowrap;
+}
+
+.exam-room-allocation-list {
+  display: grid;
+}
+
+.exam-room-allocation-row {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.3fr) minmax(10rem, 0.7fr) minmax(13rem, 1fr) auto;
+  gap: 0.7rem 1rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+}
+
+.exam-room-allocation-row > * {
+  min-width: 0;
+}
+
+.exam-room-allocation-row + .exam-room-allocation-row {
+  border-top: 1px solid var(--management-line);
+}
+
+.exam-room-group {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+}
+
+.exam-room-group > span {
+  grid-row: 1 / span 2;
+  align-self: center;
+  color: var(--management-blue-dark);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.exam-room-group > strong {
+  color: var(--management-ink);
+  font-size: 0.78rem;
+}
+
+.exam-room-group > small,
+.exam-room-fit {
+  color: var(--management-muted);
+  font-size: 0.6rem;
+}
+
+.exam-room-choice {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.exam-room-choice label {
+  color: var(--management-muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.exam-room-choice select {
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.58rem 2.25rem 0.58rem 0.75rem;
+  border: 1px solid #c7d9e6;
+  border-radius: 0.55rem;
+  background: #fff;
+  color: var(--management-ink);
+  font: inherit;
+}
+
+.exam-room-choice select:focus {
+  border-color: var(--management-blue);
+  outline: 3px solid rgba(23, 105, 170, 0.11);
+}
+
+.exam-room-choice select:disabled {
+  cursor: not-allowed;
+  background: #eef3f6;
+  color: #8a9ca8;
+}
+
+.exam-room-fit {
+  min-width: 6rem;
+}
+
+.exam-room-fit.is-selected {
+  color: #287354;
+  font-weight: 750;
+}
+
+.print-schedule-header {
+  display: none;
+}
+
+.pdf-export-document {
+  --management-blue: #1769aa;
+  --management-blue-dark: #124a78;
+  --management-ink: #17324a;
+  --management-muted: #687d8f;
+  --management-line: #d8e4ed;
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  z-index: -1;
+  width: 1400px;
+  padding: 34px;
+  background: #fff;
+  color: var(--management-ink);
+  font-family: "Manrope Variable", sans-serif;
+}
+
+.pdf-export-document .print-schedule-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 32px;
+  margin-bottom: 24px;
+  padding: 0 2px 18px;
+  border-bottom: 3px solid #17324a;
+}
+
+.pdf-export-document .print-schedule-header > div {
+  display: grid;
+  gap: 4px;
+}
+
+.pdf-export-document .print-schedule-header > div:last-child {
+  text-align: right;
+}
+
+.pdf-export-document .print-schedule-header strong {
+  color: #17324a;
+  font-size: 20px;
+}
+
+.pdf-export-document .print-schedule-header span {
+  color: #50687a;
+  font-size: 13px;
+}
+
+.pdf-export-document .weekly-timetable,
+.pdf-export-document .exam-plan-table {
+  width: 100%;
+  min-width: 0;
+  box-shadow: none;
+}
+
+.pdf-export-document .timetable-session {
+  box-shadow: none;
+}
+
+.pdf-export-document .exam-plan-table {
+  font-size: 13px;
+}
+
+.pdf-export-document .exam-plan-table th,
+.pdf-export-document .exam-plan-table td {
+  padding: 9px 12px;
+}
+
+@media (max-width: 680px) {
+  .exam-group-summary__context {
+    width: 100%;
+    border-right: 0;
+  }
+
+  .exam-room-allocation-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .exam-room-allocation-row {
+    grid-template-columns: minmax(7rem, 0.35fr) minmax(10rem, 0.65fr) minmax(12rem, 1fr);
+  }
+
+  .exam-room-fit {
+    grid-column: 2 / -1;
+  }
+}
+
+.exam-room-allocation-fields > label strong {
+  color: var(--management-blue-dark);
+}
+
 .professor-week-grid > section {
   min-height: 8rem;
   padding: 0.8rem;

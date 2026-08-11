@@ -2277,6 +2277,10 @@ export interface components {
             semesterOrder?: number;
             /** @enum {string} */
             termType: "AUTUMN" | "SPRING";
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
         };
         SemesterResponse: {
             /** Format: uuid */
@@ -2292,6 +2296,12 @@ export interface components {
             semesterOrder?: number;
             /** @enum {string} */
             termType?: "AUTUMN" | "SPRING";
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+            /** @enum {string} */
+            lifecycleStatus?: "PLANNED" | "ACTIVE" | "FINISHED";
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -2447,6 +2457,8 @@ export interface components {
             startTime: string;
             endTime?: string;
             location?: string;
+            /** Format: uuid */
+            roomId?: string;
         };
         ModuleExamResponse: {
             /** Format: uuid */
@@ -2461,7 +2473,10 @@ export interface components {
             examDate?: string;
             startTime?: string;
             endTime?: string;
-            location?: string;
+            /** Format: uuid */
+            roomId?: string;
+            roomCode?: string;
+            roomName?: string;
             /** Format: date-time */
             candidateListGeneratedAt?: string;
             /** Format: date-time */
@@ -2514,6 +2529,10 @@ export interface components {
             semesterId: string;
             /** @enum {string} */
             sessionType: "NORMAL" | "RATTRAPAGE";
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
         };
         ExamScheduleResponse: {
             /** Format: uuid */
@@ -2528,6 +2547,10 @@ export interface components {
             sessionType?: "NORMAL" | "RATTRAPAGE";
             /** @enum {string} */
             publicationStatus?: "PUBLISHED" | "DRAFT";
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -3091,6 +3114,8 @@ export interface components {
             startTime: string;
             endTime?: string;
             location?: string;
+            /** Format: uuid */
+            roomId?: string;
         };
         CreateEstablishmentRequest: {
             /** Format: uuid */
@@ -3283,6 +3308,10 @@ export interface components {
             semesterId: string;
             /** @enum {string} */
             sessionType: "NORMAL" | "RATTRAPAGE";
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
         };
         CreateDepartmentRequest: {
             name: string;
@@ -3417,6 +3446,10 @@ export interface components {
             semesterOrder?: number;
             /** @enum {string} */
             termType: "AUTUMN" | "SPRING";
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
         };
         CreateAcademicLevelRuleAssignmentRequest: {
             /** Format: uuid */

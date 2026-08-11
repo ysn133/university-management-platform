@@ -1,5 +1,5 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApiRequestError } from "@/shared/api/client/ApiRequestError";
 import { academicStructureKeys, getModuleTeachingComponents, type Semester, type SubjectModule } from "@/features/academic-structure/api/academic-structure-api";
 import { facilityKeys, getBlocks, getRooms } from "@/features/facility-management/api/facility-api";
@@ -9,6 +9,7 @@ import { ManagementModal } from "@/features/root-governance/components/Managemen
 import { classGroupKeys, getClassGroups } from "@/features/student-registration/api/class-group-api";
 import { getTeachingAssignments, getTeachingPlan, teachingPlanKeys } from "@/features/teaching-planning/api/teaching-plan-api";
 import { createScheduleEntry, createSemesterSchedule, deleteScheduleEntry, getScheduleEntries, getSemesterSchedules, publishSemesterSchedule, scheduleKeys, updateScheduleEntry, type ScheduleDay, type ScheduleEntry, type ScheduleEntryInput } from "../api/schedule-api";
+import { saveSchedulePdf } from "../utils/save-schedule-pdf";
 
 interface SemesterTimetableWorkspaceProps {
   academicLevelName?: string;
@@ -53,6 +54,8 @@ function assignLanes(entries: ScheduleEntry[]) {
 
 export function SemesterTimetableWorkspace({ academicLevelName, academicLevelId, academicYearId, academicYearLabel, establishmentId, modules, semesterId, semesterName, semesters, onSelectSemester }: SemesterTimetableWorkspaceProps) {
   const queryClient = useQueryClient();
+  const scheduleRootRef = useRef<HTMLElement>(null);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [entryForm, setEntryForm] = useState<EntryForm | null>(null);
   const [selectedBlockId, setSelectedBlockId] = useState("");
   const [editingEntry, setEditingEntry] = useState<ScheduleEntry | null>(null);
@@ -145,10 +148,21 @@ export function SemesterTimetableWorkspace({ academicLevelName, academicLevelId,
   const loading = schedulesQuery.isPending || planQuery.isPending || assignmentsQuery.isPending || professorsQuery.isPending || blocksQuery.isPending || roomsQuery.isPending || classGroupsQuery.isPending || componentQueries.some((query) => query.isPending);
   const loadError = schedulesQuery.error ?? planQuery.error ?? assignmentsQuery.error ?? professorsQuery.error ?? blocksQuery.error ?? roomsQuery.error ?? classGroupsQuery.error ?? componentQueries.find((query) => query.error)?.error;
 
-  return <section className="management-panel semester-timetable-panel">
+  async function exportPdf() {
+    if (!scheduleRootRef.current) return;
+    setExportingPdf(true);
+    try {
+      await saveSchedulePdf(scheduleRootRef.current, ".weekly-timetable", `semester-schedule-${semesterName ?? semesterId}.pdf`);
+    } finally {
+      setExportingPdf(false);
+    }
+  }
+
+  return <section className="management-panel semester-timetable-panel print-schedule" ref={scheduleRootRef}>
+    <div className="print-schedule-header"><div><strong>Université Ibn Zohr</strong><span>Academic timetable</span></div><div><strong>{semesterName} · {classGroups.find((group) => group.id === selectedClassGroupId)?.name ?? "Class Group"}</strong><span>{academicLevelName} · {academicYearLabel}</span></div></div>
     <div className="teaching-plan-context"><label><span>Semester</span><select onChange={(event) => onSelectSemester(event.target.value)} value={semesterId}>{semesters.map((semester) => <option key={semester.id} value={semester.id}>{semester.name}</option>)}</select></label><p>{academicLevelName} · {academicYearLabel}</p></div>
     <nav aria-label="Class group schedules" className="schedule-class-tabs">{classGroups.map((group) => <button aria-selected={selectedClassGroupId === group.id} key={group.id} onClick={() => setSelectedClassGroupId(group.id)} type="button"><strong>{group.name}</strong><span>Class schedule</span></button>)}</nav>
-    <header className="panel-header panel-header--bordered"><div><p className="management-kicker">{semesterName} · {classGroups.find((group) => group.id === selectedClassGroupId)?.name ?? "Class Group"}</p><h2>Weekly Schedule</h2><p>Click empty timetable space to place a session for this class or one of its teaching groups.</p></div>{schedule && <div className="timetable-header-actions"><span className={`status-badge status-badge--${schedule.publicationStatus === "PUBLISHED" ? "active" : "inactive"}`}>{schedule.publicationStatus === "PUBLISHED" ? "Published" : "Draft"}</span>{schedule.publicationStatus === "DRAFT" && <button className="management-primary-button" disabled={!allEntries.length} onClick={() => setConfirmingPublish(true)} type="button">Publish schedule</button>}</div>}</header>
+    <header className="panel-header panel-header--bordered"><div><p className="management-kicker">{semesterName} · {classGroups.find((group) => group.id === selectedClassGroupId)?.name ?? "Class Group"}</p><h2>Weekly Schedule</h2><p>Click empty timetable space to place a session for this class or one of its teaching groups.</p></div>{schedule && <div className="timetable-header-actions"><span className={`status-badge status-badge--${schedule.publicationStatus === "PUBLISHED" ? "active" : "inactive"}`}>{schedule.publicationStatus === "PUBLISHED" ? "Published" : "Draft"}</span><button className="secondary-button" disabled={!entries.length || exportingPdf} onClick={exportPdf} type="button">{exportingPdf ? "Preparing PDF..." : "Save as PDF"}</button>{schedule.publicationStatus === "DRAFT" && <button className="management-primary-button" disabled={!allEntries.length} onClick={() => setConfirmingPublish(true)} type="button">Publish schedule</button>}</div>}</header>
     {loading ? <div className="panel-empty">Loading timetable context...</div> : loadError ? <div className="panel-empty panel-empty--error">{errorMessage(loadError)}</div> : !semesterId ? <div className="panel-empty"><strong>Select a semester.</strong></div> : !selectedClassGroupId ? <div className="panel-empty"><strong>No class group is available.</strong><p>Create and assign the semester Class Groups before building their schedules.</p></div> : !schedule ? <div className="timetable-empty-state"><span>Weekly timetable</span><h3>No schedule created for {semesterName}.</h3><p>Create the semester draft, then plan each Class Group through its own view.</p><button className="management-primary-button" disabled={createScheduleMutation.isPending} onClick={() => createScheduleMutation.mutate()} type="button">{createScheduleMutation.isPending ? "Creating..." : "Create draft schedule"}</button>{createScheduleMutation.isError && <div className="management-alert management-alert--error">{errorMessage(createScheduleMutation.error)}</div>}</div> : <>
       <div className="timetable-progress"><span><strong>{entries.length}</strong> scheduled sessions</span><span><strong>{remainingAssignments.length}</strong> requirements remaining</span><span><strong>{assignments.length}</strong> assigned requirements</span></div>
       <div className="timetable-scroll"><div className="weekly-timetable"><div className="timetable-time-header"><span>Days</span><div>{hourLabels.map((hour) => <span key={hour} style={{ left: `${((hour * 60 - gridStart) / (gridEnd - gridStart)) * 100}%` }}>{hour}h</span>)}</div></div>{days.map((day) => {
