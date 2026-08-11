@@ -6,6 +6,8 @@ import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.scheduling.examschedule.domain.ExamSchedule;
 import com.platform.scheduling.examschedule.domain.PublicationStatus;
 import com.platform.scheduling.examschedule.infrastructure.ExamScheduleRepository;
+import com.platform.scheduling.examgroup.infrastructure.ExamRoomAllocationRepository;
+import com.platform.scheduling.examgroup.application.ExamRoomAllocationService;
 import com.platform.scheduling.moduleexam.domain.ModuleExam;
 import com.platform.scheduling.moduleexam.infrastructure.ModuleExamRepository;
 import com.platform.scheduling.moduleexam.presentation.dto.CreateModuleExamRequest;
@@ -17,6 +19,10 @@ import com.platform.universitygovernance.classgroup.domain.ClassGroupStatus;
 import com.platform.universitygovernance.classgroup.infrastructure.ClassGroupRepository;
 import com.platform.universitygovernance.subjectmodules.domain.SubjectModule;
 import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleRepository;
+import com.platform.universitygovernance.room.domain.Room;
+import com.platform.universitygovernance.room.domain.RoomStatus;
+import com.platform.universitygovernance.room.infrastructure.RoomRepository;
+import com.platform.scheduling.semesterschedule.infrastructure.ScheduleEntryRepository;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -33,6 +39,10 @@ public class ModuleExamService {
     private final ExamScheduleRepository examScheduleRepository;
     private final SubjectModuleRepository subjectModuleRepository;
     private final ClassGroupRepository classGroupRepository;
+    private final RoomRepository roomRepository;
+    private final ScheduleEntryRepository scheduleEntryRepository;
+    private final ExamRoomAllocationRepository allocationRepository;
+    private final ExamRoomAllocationService allocationService;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
 
     public ModuleExamService(
@@ -40,13 +50,21 @@ public class ModuleExamService {
         ExamScheduleRepository examScheduleRepository,
         SubjectModuleRepository subjectModuleRepository,
         ClassGroupRepository classGroupRepository,
-        AdminPermissionAuthorizationService permissionAuthorizationService
+        AdminPermissionAuthorizationService permissionAuthorizationService,
+        RoomRepository roomRepository,
+        ScheduleEntryRepository scheduleEntryRepository,
+        ExamRoomAllocationRepository allocationRepository,
+        ExamRoomAllocationService allocationService
     ) {
         this.moduleExamRepository = moduleExamRepository;
         this.examScheduleRepository = examScheduleRepository;
         this.subjectModuleRepository = subjectModuleRepository;
         this.classGroupRepository = classGroupRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
+        this.roomRepository = roomRepository;
+        this.scheduleEntryRepository = scheduleEntryRepository;
+        this.allocationRepository = allocationRepository;
+        this.allocationService = allocationService;
     }
 
     @Transactional
@@ -61,8 +79,11 @@ public class ModuleExamService {
 
         SubjectModule subjectModule = findSubjectModule(request.subjectModuleId());
         ClassGroup classGroup = findClassGroup(request.classGroupId());
+        Room room = request.roomId() == null ? null : findRoom(request.roomId());
         ensureExamContext(examSchedule, subjectModule, classGroup);
+        ensureExamDate(examSchedule, request.examDate());
         ensureValidTimeRange(request.startTime(), request.endTime());
+        if (room != null) ensureRoomAvailable(examSchedule, room, request.examDate(), request.startTime(), request.endTime(), null);
         ensureUniqueModuleExam(
             examScheduleId,
             subjectModule.getId(),
@@ -87,9 +108,14 @@ public class ModuleExamService {
             request.examDate(),
             request.startTime(),
             request.endTime(),
+            room,
             request.location()
         );
-        return toResponse(moduleExamRepository.save(moduleExam));
+        moduleExam = moduleExamRepository.save(moduleExam);
+        if (request.roomAllocations() != null) {
+            allocationService.replace(principal, moduleExam.getId(), request.roomAllocations());
+        }
+        return toResponse(moduleExam);
     }
 
     @Transactional(readOnly = true)
@@ -130,8 +156,13 @@ public class ModuleExamService {
 
         SubjectModule subjectModule = findSubjectModule(request.subjectModuleId());
         ClassGroup classGroup = findClassGroup(request.classGroupId());
+        Room room = request.roomId() == null ? null : findRoom(request.roomId());
         ensureExamContext(examSchedule, subjectModule, classGroup);
+        ensureExamDate(examSchedule, request.examDate());
         ensureValidTimeRange(request.startTime(), request.endTime());
+        if (room != null) ensureRoomAvailable(examSchedule, room, request.examDate(), request.startTime(), request.endTime(), moduleExamId);
+        allocationRepository.findByModuleExamIdOrderByExamGroupGroupOrderAsc(moduleExamId)
+            .forEach(allocation -> ensureRoomAvailable(examSchedule, allocation.getRoom(), request.examDate(), request.startTime(), request.endTime(), moduleExamId));
         ensureUniqueModuleExam(
             examSchedule.getId(),
             subjectModule.getId(),
@@ -154,9 +185,14 @@ public class ModuleExamService {
             request.examDate(),
             request.startTime(),
             request.endTime(),
+            room,
             request.location()
         );
-        return toResponse(moduleExamRepository.save(moduleExam));
+        moduleExam = moduleExamRepository.save(moduleExam);
+        if (request.roomAllocations() != null) {
+            allocationService.replace(principal, moduleExam.getId(), request.roomAllocations());
+        }
+        return toResponse(moduleExam);
     }
 
     @Transactional
@@ -201,6 +237,40 @@ public class ModuleExamService {
                 HttpStatus.NOT_FOUND,
                 "Class group not found"
             ));
+    }
+
+    private Room findRoom(UUID roomId) {
+        return roomRepository.findById(roomId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found"));
+    }
+
+    private void ensureExamDate(ExamSchedule schedule, LocalDate examDate) {
+        if (examDate.isBefore(schedule.getStartDate()) || examDate.isAfter(schedule.getEndDate())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Module exam date must be inside the examination period");
+        }
+    }
+
+    private void ensureRoomAvailable(ExamSchedule schedule, Room room, LocalDate date, LocalTime start, LocalTime end, UUID excludedId) {
+        if (room.getStatus() != RoomStatus.ACTIVE || !room.getEstablishment().getId().equals(schedule.getEstablishment().getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Room must be active and belong to the exam schedule establishment");
+        }
+        boolean examConflict = moduleExamRepository.findByRoomIdAndExamDate(room.getId(), date).stream()
+            .filter(exam -> excludedId == null || !excludedId.equals(exam.getId()))
+            .anyMatch(exam -> overlaps(start, end, exam.getStartTime(), exam.getEndTime()));
+        if (examConflict) throw new ResponseStatusException(HttpStatus.CONFLICT, "The room already has an overlapping exam");
+
+        boolean allocationConflict = allocationRepository.findByRoomId(room.getId()).stream()
+            .map(allocation -> allocation.getModuleExam())
+            .filter(exam -> excludedId == null || !excludedId.equals(exam.getId()))
+            .anyMatch(exam -> exam.getExamDate().equals(date) && overlaps(start, end, exam.getStartTime(), exam.getEndTime()));
+        if (allocationConflict) throw new ResponseStatusException(HttpStatus.CONFLICT, "The room already has an overlapping exam allocation");
+
+        boolean teachingConflict = scheduleEntryRepository.findByRoomIdAndDayOfWeek(room.getId(), date.getDayOfWeek()).stream()
+            .filter(entry -> {
+                var semester = entry.getSemesterSchedule().getSemester();
+                return !date.isBefore(semester.getStartDate()) && !date.isAfter(semester.getEndDate());
+            })
+            .anyMatch(entry -> overlaps(start, end, entry.getStartTime(), entry.getEndTime()));
+        if (teachingConflict) throw new ResponseStatusException(HttpStatus.CONFLICT, "The room is still occupied by an active semester teaching session");
     }
 
     private void ensureExamContext(
@@ -350,6 +420,7 @@ public class ModuleExamService {
         LocalDate examDate,
         LocalTime startTime,
         LocalTime endTime,
+        Room room,
         String location
     ) {
         moduleExam.setSubjectModule(subjectModule);
@@ -357,14 +428,12 @@ public class ModuleExamService {
         moduleExam.setExamDate(examDate);
         moduleExam.setStartTime(startTime);
         moduleExam.setEndTime(endTime);
-        moduleExam.setLocation(normalizeLocation(location));
+        moduleExam.setRoom(room);
+        moduleExam.setLocation(room == null ? normalizeLocation(location) : room.getCode());
     }
 
     private String normalizeLocation(String location) {
-        if (location == null || location.isBlank()) {
-            return null;
-        }
-        return location.trim();
+        return location == null || location.isBlank() ? null : location.trim();
     }
 
     private ModuleExamResponse toResponse(ModuleExam moduleExam) {
@@ -376,7 +445,9 @@ public class ModuleExamService {
             moduleExam.getExamDate(),
             moduleExam.getStartTime(),
             moduleExam.getEndTime(),
-            moduleExam.getLocation(),
+            moduleExam.getRoom() == null ? null : moduleExam.getRoom().getId(),
+            moduleExam.getRoom() == null ? moduleExam.getLocation() : moduleExam.getRoom().getCode(),
+            moduleExam.getRoom() == null ? moduleExam.getLocation() : moduleExam.getRoom().getName(),
             moduleExam.getCandidateListGeneratedAt(),
             moduleExam.getCreatedAt(),
             moduleExam.getUpdatedAt()

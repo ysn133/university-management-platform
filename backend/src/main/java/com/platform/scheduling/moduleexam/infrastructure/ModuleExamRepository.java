@@ -18,6 +18,8 @@ public interface ModuleExamRepository extends JpaRepository<ModuleExam, UUID> {
         LocalDate examDate
     );
 
+    List<ModuleExam> findByRoomIdAndExamDate(UUID roomId, LocalDate examDate);
+
     boolean existsByExamScheduleIdAndSubjectModuleIdAndClassGroupId(
         UUID examScheduleId,
         UUID subjectModuleId,

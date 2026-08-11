@@ -13,6 +13,8 @@ import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.scheduling.examcandidate.domain.ExamCandidate;
 import com.platform.scheduling.examcandidate.infrastructure.ExamCandidateRepository;
 import com.platform.scheduling.examcandidate.presentation.dto.ExamCandidateResponse;
+import com.platform.scheduling.examgroup.infrastructure.ExamGroupMembershipRepository;
+import com.platform.scheduling.examgroup.infrastructure.ExamRoomAllocationRepository;
 import com.platform.scheduling.examschedule.domain.ExamSessionType;
 import com.platform.scheduling.moduleexam.domain.ModuleExam;
 import com.platform.scheduling.moduleexam.infrastructure.ModuleExamRepository;
@@ -43,6 +45,8 @@ public class ExamCandidateService {
     private final GradeRecordRepository gradeRecordRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
     private final ModuleClassResponsibilityRepository responsibilityRepository;
+    private final ExamGroupMembershipRepository examGroupMembershipRepository;
+    private final ExamRoomAllocationRepository roomAllocationRepository;
 
     public ExamCandidateService(
         ExamCandidateRepository examCandidateRepository,
@@ -52,7 +56,9 @@ public class ExamCandidateService {
         AcademicLevelRuleAssignmentRepository ruleAssignmentRepository,
         GradeRecordRepository gradeRecordRepository,
         AdminPermissionAuthorizationService permissionAuthorizationService,
-        ModuleClassResponsibilityRepository responsibilityRepository
+        ModuleClassResponsibilityRepository responsibilityRepository,
+        ExamGroupMembershipRepository examGroupMembershipRepository,
+        ExamRoomAllocationRepository roomAllocationRepository
     ) {
         this.examCandidateRepository = examCandidateRepository;
         this.moduleExamRepository = moduleExamRepository;
@@ -62,6 +68,8 @@ public class ExamCandidateService {
         this.gradeRecordRepository = gradeRecordRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
         this.responsibilityRepository = responsibilityRepository;
+        this.examGroupMembershipRepository = examGroupMembershipRepository;
+        this.roomAllocationRepository = roomAllocationRepository;
     }
 
     @Transactional
@@ -261,6 +269,14 @@ public class ExamCandidateService {
     private ExamCandidateResponse toResponse(ExamCandidate candidate) {
         ModuleRegistration registration = candidate.getModuleRegistration();
         ModuleExam moduleExam = candidate.getModuleExam();
+        String roomCode = examGroupMembershipRepository
+            .findBySemesterRegistrationIdAndExamGroupExamScheduleId(
+                registration.getSemesterRegistration().getId(),
+                moduleExam.getExamSchedule().getId()
+            )
+            .flatMap(membership -> roomAllocationRepository.findByModuleExamIdAndExamGroupId(moduleExam.getId(), membership.getExamGroup().getId()))
+            .map(allocation -> allocation.getRoom().getCode())
+            .orElse(moduleExam.getLocation());
         return new ExamCandidateResponse(
             candidate.getId(),
             moduleExam.getId(),
@@ -273,7 +289,7 @@ public class ExamCandidateService {
             moduleExam.getExamSchedule().getSessionType(),
             moduleExam.getExamDate(),
             moduleExam.getStartTime(),
-            moduleExam.getLocation(),
+            roomCode,
             candidate.getCreatedAt()
         );
     }

@@ -3,6 +3,7 @@ package com.platform.scheduling.moduleexam.domain;
 import com.platform.scheduling.examschedule.domain.ExamSchedule;
 import com.platform.universitygovernance.classgroup.domain.ClassGroup;
 import com.platform.universitygovernance.subjectmodules.domain.SubjectModule;
+import com.platform.universitygovernance.room.domain.Room;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -46,6 +47,10 @@ public class ModuleExam {
 
     @Column(name = "location")
     private String location;
+
+    @ManyToOne
+    @JoinColumn(name = "room_id")
+    private Room room;
 
     @Column(name = "candidate_list_generated_at")
     private Instant candidateListGeneratedAt;
@@ -133,6 +138,9 @@ public class ModuleExam {
     public void setLocation(String location) {
         this.location = location;
     }
+
+    public Room getRoom() { return room; }
+    public void setRoom(Room room) { this.room = room; }
 
     public Instant getCandidateListGeneratedAt() {
         return candidateListGeneratedAt;

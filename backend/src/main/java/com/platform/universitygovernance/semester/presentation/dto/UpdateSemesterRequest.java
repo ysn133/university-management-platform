@@ -6,10 +6,16 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.NotNull;
 import com.platform.universitygovernance.semester.domain.SemesterTermType;
+import java.time.LocalDate;
 
 public record UpdateSemesterRequest(
     @NotBlank @Size(max = 100) String name,
     @Positive @Max(32767) int semesterOrder,
-    @NotNull SemesterTermType termType
+    @NotNull SemesterTermType termType,
+    @NotNull LocalDate startDate,
+    @NotNull LocalDate endDate
 ) {
+    public UpdateSemesterRequest(String name, int semesterOrder, SemesterTermType termType) {
+        this(name, semesterOrder, termType, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 6, 30));
+    }
 }

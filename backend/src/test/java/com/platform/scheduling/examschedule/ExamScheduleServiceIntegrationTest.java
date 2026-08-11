@@ -3,6 +3,8 @@ package com.platform.scheduling.examschedule;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.LocalDate;
+
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.AccountStatus;
 import com.platform.identityaccess.domain.Admin;
@@ -398,6 +400,8 @@ class ExamScheduleServiceIntegrationTest {
         savedSemester.setAcademicYear(year);
         savedSemester.setName(name);
         savedSemester.setSemesterOrder(1);
+        savedSemester.setStartDate(LocalDate.of(2025, 9, 1));
+        savedSemester.setEndDate(LocalDate.of(2026, 6, 30));
         return semesterRepository.save(savedSemester);
     }
 

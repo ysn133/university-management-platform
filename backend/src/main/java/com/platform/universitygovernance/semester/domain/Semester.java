@@ -1,6 +1,7 @@
 package com.platform.universitygovernance.semester.domain;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import com.platform.universitygovernance.academiclevel.domain.AcademicLevel;
@@ -42,6 +43,12 @@ public class Semester {
     @Column(name = "term_type", nullable = false)
     private SemesterTermType termType;
 
+    @Column(name = "start_date", nullable = false)
+    private LocalDate startDate;
+
+    @Column(name = "end_date", nullable = false)
+    private LocalDate endDate;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -61,6 +68,11 @@ public class Semester {
             termType = semesterOrder % 2 == 1
                 ? SemesterTermType.AUTUMN
                 : SemesterTermType.SPRING;
+        }
+        if (startDate == null || endDate == null) {
+            boolean autumn = termType == SemesterTermType.AUTUMN;
+            startDate = LocalDate.of(autumn ? academicYear.getStartYear() : academicYear.getEndYear(), autumn ? 9 : 2, 1);
+            endDate = LocalDate.of(academicYear.getEndYear(), autumn ? 1 : 6, autumn ? 31 : 30);
         }
         createdAt = now;
         updatedAt = now;
@@ -114,6 +126,11 @@ public class Semester {
     public void setTermType(SemesterTermType termType) {
         this.termType = termType;
     }
+
+    public LocalDate getStartDate() { return startDate; }
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+    public LocalDate getEndDate() { return endDate; }
+    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
 
     public Instant getCreatedAt() {
         return createdAt;

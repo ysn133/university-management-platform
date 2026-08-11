@@ -14,6 +14,8 @@ import com.platform.universitygovernance.semester.presentation.dto.CreateSemeste
 import com.platform.universitygovernance.semester.presentation.dto.SemesterResponse;
 import com.platform.universitygovernance.semester.presentation.dto.UpdateSemesterRequest;
 import java.util.List;
+import java.time.LocalDate;
+import com.platform.universitygovernance.semester.domain.SemesterLifecycleStatus;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -68,6 +70,9 @@ public class SemesterService {
         semester.setName(name);
         semester.setSemesterOrder(request.semesterOrder());
         semester.setTermType(request.termType());
+        validateDates(request.startDate(), request.endDate());
+        semester.setStartDate(request.startDate());
+        semester.setEndDate(request.endDate());
         return toResponse(semesterRepository.save(semester));
     }
 
@@ -128,6 +133,9 @@ public class SemesterService {
         semester.setName(name);
         semester.setSemesterOrder(request.semesterOrder());
         semester.setTermType(request.termType());
+        validateDates(request.startDate(), request.endDate());
+        semester.setStartDate(request.startDate());
+        semester.setEndDate(request.endDate());
         return toResponse(semesterRepository.save(semester));
     }
 
@@ -241,6 +249,19 @@ public class SemesterService {
         return name.trim().toUpperCase();
     }
 
+    private void validateDates(LocalDate startDate, LocalDate endDate) {
+        if (endDate.isBefore(startDate)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Semester end date must be on or after its start date");
+        }
+    }
+
+    private SemesterLifecycleStatus lifecycleStatus(Semester semester) {
+        LocalDate today = LocalDate.now();
+        if (today.isBefore(semester.getStartDate())) return SemesterLifecycleStatus.PLANNED;
+        if (today.isAfter(semester.getEndDate())) return SemesterLifecycleStatus.FINISHED;
+        return SemesterLifecycleStatus.ACTIVE;
+    }
+
     private SemesterResponse toResponse(Semester semester) {
         return new SemesterResponse(
             semester.getId(),
@@ -250,6 +271,9 @@ public class SemesterService {
             semester.getName(),
             semester.getSemesterOrder(),
             semester.getTermType(),
+            semester.getStartDate(),
+            semester.getEndDate(),
+            lifecycleStatus(semester),
             semester.getCreatedAt(),
             semester.getUpdatedAt()
         );

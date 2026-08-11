@@ -16,6 +16,11 @@ public interface StudentClassAssignmentRepository
 
     List<StudentClassAssignment> findBySemesterRegistrationSemesterId(UUID semesterId);
 
+    List<StudentClassAssignment> findBySemesterRegistrationSemesterIdAndClassGroupId(
+        UUID semesterId,
+        UUID classGroupId
+    );
+
     List<StudentClassAssignment> findBySemesterRegistrationIdIn(
         Collection<UUID> semesterRegistrationIds
     );

@@ -13,6 +13,8 @@ public interface ScheduleEntryRepository extends JpaRepository<ScheduleEntry, UU
 
     List<ScheduleEntry> findBySemesterScheduleId(UUID semesterScheduleId);
 
+    List<ScheduleEntry> findByRoomIdAndDayOfWeek(UUID roomId, DayOfWeek dayOfWeek);
+
     long countByTeachingAssignmentId(UUID teachingAssignmentId);
 
     long countByTeachingAssignmentIdAndIdNot(

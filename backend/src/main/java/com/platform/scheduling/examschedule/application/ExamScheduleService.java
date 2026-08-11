@@ -6,6 +6,9 @@ import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.scheduling.examschedule.domain.ExamSchedule;
 import com.platform.scheduling.examschedule.domain.PublicationStatus;
 import com.platform.scheduling.examschedule.infrastructure.ExamScheduleRepository;
+import com.platform.scheduling.examgroup.infrastructure.ExamGroupRepository;
+import com.platform.scheduling.examgroup.infrastructure.ExamRoomAllocationRepository;
+import com.platform.scheduling.moduleexam.infrastructure.ModuleExamRepository;
 import com.platform.scheduling.examschedule.presentation.dto.CreateExamSchedule;
 import com.platform.scheduling.examschedule.presentation.dto.ExamScheduleResponse;
 import com.platform.scheduling.examschedule.presentation.dto.UpdateExamScheduleRequest;
@@ -16,6 +19,7 @@ import com.platform.universitygovernance.establishment.domain.Establishment;
 import com.platform.universitygovernance.establishment.infrastructure.EstablishmentRepository;
 import com.platform.universitygovernance.semester.domain.Semester;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -31,19 +35,28 @@ public class ExamScheduleService {
     private final SemesterRepository semesterRepository;
     private final ExamScheduleRepository examScheduleRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
+    private final ModuleExamRepository moduleExamRepository;
+    private final ExamGroupRepository examGroupRepository;
+    private final ExamRoomAllocationRepository allocationRepository;
 
     public ExamScheduleService(
         EstablishmentRepository establishmentRepository,
         AcademicYearRepository academicYearRepository,
         SemesterRepository semesterRepository,
         ExamScheduleRepository examScheduleRepository,
-        AdminPermissionAuthorizationService permissionAuthorizationService
+        AdminPermissionAuthorizationService permissionAuthorizationService,
+        ModuleExamRepository moduleExamRepository,
+        ExamGroupRepository examGroupRepository,
+        ExamRoomAllocationRepository allocationRepository
     ) {
         this.establishmentRepository = establishmentRepository;
         this.academicYearRepository = academicYearRepository;
         this.semesterRepository = semesterRepository;
         this.examScheduleRepository = examScheduleRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
+        this.moduleExamRepository = moduleExamRepository;
+        this.examGroupRepository = examGroupRepository;
+        this.allocationRepository = allocationRepository;
     }
 
     @Transactional
@@ -82,6 +95,9 @@ public class ExamScheduleService {
         examSchedule.setSemester(semester);
         examSchedule.setSessionType(request.sessionType());
         examSchedule.setPublicationStatus(PublicationStatus.DRAFT);
+        validateDates(request.startDate(), request.endDate());
+        examSchedule.setStartDate(request.startDate());
+        examSchedule.setEndDate(request.endDate());
         return toResponse(examScheduleRepository.save(examSchedule));
     }
 
@@ -154,6 +170,9 @@ public class ExamScheduleService {
         examSchedule.setAcademicYear(academicYear);
         examSchedule.setSemester(semester);
         examSchedule.setSessionType(request.sessionType());
+        validateDates(request.startDate(), request.endDate());
+        examSchedule.setStartDate(request.startDate());
+        examSchedule.setEndDate(request.endDate());
         return toResponse(examScheduleRepository.save(examSchedule));
     }
 
@@ -188,6 +207,17 @@ public class ExamScheduleService {
         if (examSchedule.getPublicationStatus() == PublicationStatus.PUBLISHED) {
             return toResponse(examSchedule);
         }
+
+        if (!LocalDate.now().isAfter(examSchedule.getSemester().getEndDate())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "The exam schedule cannot be published before the semester is finished");
+        }
+
+        moduleExamRepository.findByExamScheduleIdOrderByExamDateAscStartTimeAsc(examScheduleId).forEach(exam -> {
+            long groupCount = examGroupRepository.findByExamScheduleIdAndClassGroupIdOrderByGroupOrderAsc(examScheduleId, exam.getClassGroup().getId()).size();
+            if (groupCount > 0 && allocationRepository.countByModuleExamId(exam.getId()) != groupCount) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Every module exam must allocate one room to each exam group before publication");
+            }
+        });
 
         examSchedule.setPublicationStatus(PublicationStatus.PUBLISHED);
         return toResponse(examScheduleRepository.save(examSchedule));
@@ -256,6 +286,12 @@ public class ExamScheduleService {
         }
     }
 
+    private void validateDates(LocalDate startDate, LocalDate endDate) {
+        if (endDate.isBefore(startDate)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Exam period end date must be on or after its start date");
+        }
+    }
+
     private void requirePermission(
         AuthenticatedUserPrincipal principal,
         UUID establishmentId,
@@ -276,6 +312,8 @@ public class ExamScheduleService {
             schedule.getSemester().getId(),
             schedule.getSessionType(),
             schedule.getPublicationStatus(),
+            schedule.getStartDate(),
+            schedule.getEndDate(),
             schedule.getCreatedAt(),
             schedule.getUpdatedAt()
         );

@@ -526,6 +526,8 @@ class ModuleExamServiceIntegrationTest {
         savedSemester.setAcademicYear(year);
         savedSemester.setName(name);
         savedSemester.setSemesterOrder(1);
+        savedSemester.setStartDate(LocalDate.of(2025, 9, 1));
+        savedSemester.setEndDate(LocalDate.of(2026, 6, 30));
         return semesterRepository.save(savedSemester);
     }
 
