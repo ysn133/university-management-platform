@@ -9,13 +9,13 @@ import { StatusBadge } from "@/features/root-governance/components/StatusBadge";
 import {
   changeProfessorStatus,
   getProfessor,
-  getProfessorExpertise,
   professorManagementKeys,
   resetProfessorPassword,
   updateProfessor,
   type ProfessorLifecycleAction,
 } from "../api/professor-management-api";
 import { ProfessorForm, type ProfessorFormValues } from "../components/ProfessorForm";
+import { ProfessorAcademicWorkspace } from "../components/ProfessorAcademicWorkspace";
 
 function errorMessage(error: unknown): string {
   return error instanceof ApiRequestError ? error.message : "The request could not be completed.";
@@ -40,15 +40,11 @@ export function ProfessorDetailsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<ProfessorLifecycleAction | null>(null);
+  const [activeTab, setActiveTab] = useState<"profile" | "expertise" | "teaching" | "schedule">("profile");
 
   const professorQuery = useQuery({
     queryKey: professorManagementKeys.professor(professorId ?? "missing"),
     queryFn: () => getProfessor(professorId!),
-    enabled: Boolean(professorId),
-  });
-  const expertiseQuery = useQuery({
-    queryKey: professorManagementKeys.expertise(professorId ?? "missing"),
-    queryFn: () => getProfessorExpertise(professorId!),
     enabled: Boolean(professorId),
   });
 
@@ -91,7 +87,6 @@ export function ProfessorDetailsPage() {
   if (professorQuery.isError) return <div className="management-state management-state--error"><h1>Professor unavailable</h1><p>{errorMessage(professorQuery.error)}</p></div>;
 
   const professor = professorQuery.data;
-  const expertise = expertiseQuery.data?.academicDomains ?? [];
   const navigationState = location.state as { returnLabel?: string; returnTo?: string } | null;
   const returnTo = navigationState?.returnTo ?? `${workspacePath}/professors`;
   const returnLabel = navigationState?.returnLabel ?? "Back to Professors";
@@ -112,7 +107,8 @@ export function ProfessorDetailsPage() {
         <div className="admin-profile-heading"><p className="management-kicker">Professor record</p><h1>{professor.firstName} {professor.lastName}</h1><p>{professor.universityEmail}</p></div>
         <div className="admin-profile-state"><StatusBadge status={professor.accountStatus} /><button className="management-primary-button" disabled={professor.accountStatus === "ARCHIVED"} onClick={() => { updateMutation.reset(); setEditing(true); }} type="button">Edit profile</button></div>
       </header>
-      <div className="admin-profile-content professor-profile-content">
+      <nav aria-label="Professor record sections" className="professor-record-tabs"><button aria-selected={activeTab === "profile"} onClick={() => setActiveTab("profile")} type="button">General Information</button><button aria-selected={activeTab === "expertise"} onClick={() => setActiveTab("expertise")} type="button">Academic Expertise</button><button aria-selected={activeTab === "teaching"} onClick={() => setActiveTab("teaching")} type="button">Teaching</button><button aria-selected={activeTab === "schedule"} onClick={() => setActiveTab("schedule")} type="button">Schedule</button></nav>
+      {activeTab === "profile" ? <div className="admin-profile-content professor-profile-content">
         <section className="admin-section-panel"><header><p className="management-kicker">Profile</p><h2>Professional and personal information</h2><p>Employment, identity, and contact information attached to this account.</p></header>
           <dl className="admin-info-grid">
             <div><dt>Employee number</dt><dd>{professor.employeeNumber}</dd></div><div><dt>Academic rank</dt><dd>{professor.academicRank || "Not provided"}</dd></div>
@@ -130,10 +126,7 @@ export function ProfessorDetailsPage() {
             {professor.accountStatus !== "ARCHIVED" && <button className="danger-button" onClick={() => setConfirmation("archive")} type="button">Archive</button>}
           </footer>
         </section>
-        <section className="admin-section-panel professor-expertise-summary"><header><p className="management-kicker">Qualifications</p><h2>Academic expertise</h2><p>Knowledge areas used when preparing teaching assignments.</p></header>
-          {expertiseQuery.isPending ? <div className="panel-empty">Loading expertise...</div> : expertiseQuery.isError ? <div className="panel-empty panel-empty--error">{errorMessage(expertiseQuery.error)}</div> : expertise.length === 0 ? <div className="panel-empty"><strong>No expertise assigned.</strong></div> : <div className="professor-expertise-tags">{expertise.map((domain) => <span key={domain.academicDomainId}><strong>{domain.name}</strong><small>{domain.code}</small></span>)}</div>}
-        </section>
-      </div>
+      </div> : <ProfessorAcademicWorkspace establishmentId={establishmentId} professorId={professorId} section={activeTab} />}
     </section>
     {isEditing && <ManagementModal size="wide" title="Edit Professor" description="Update professional, identity, and contact information." onClose={() => setEditing(false)}><ProfessorForm establishmentId={establishmentId} professor={professor} error={updateMutation.isError ? errorMessage(updateMutation.error) : null} isSubmitting={updateMutation.isPending} onCancel={() => setEditing(false)} onSubmit={(values) => updateMutation.mutate(values)} /></ManagementModal>}
     {isResettingPassword && <ManagementModal title="Reset password" description={`Set a temporary password for ${professor.firstName} ${professor.lastName}.`} onClose={() => setResettingPassword(false)}><div className="management-form"><div className="form-field form-field--wide"><label htmlFor="reset-professor-password">New temporary password</label><input id="reset-professor-password" onChange={(event) => { setNewPassword(event.target.value); setPasswordError(null); }} type="password" value={newPassword} />{passwordError && <p className="field-error">{passwordError}</p>}</div>{resetMutation.isError && <div className="management-alert management-alert--error">{errorMessage(resetMutation.error)}</div>}<footer className="form-actions"><button className="secondary-button" onClick={() => setResettingPassword(false)} type="button">Cancel</button><button className="management-primary-button" disabled={resetMutation.isPending} onClick={submitPasswordReset} type="button">{resetMutation.isPending ? "Resetting..." : "Reset password"}</button></footer></div></ManagementModal>}

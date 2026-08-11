@@ -6,7 +6,7 @@ export interface WorkspaceNavigationItem {
   label: string;
   to: string;
   end?: boolean;
-  icon?: "overview" | "establishments" | "information" | "leadership" | "admins" | "students" | "professors" | "departments" | "paths" | "cycles" | "programs" | "years" | "rules" | "domains";
+  icon?: "overview" | "establishments" | "information" | "leadership" | "admins" | "students" | "professors" | "departments" | "paths" | "cycles" | "programs" | "years" | "rules" | "domains" | "facilities";
   group?: string;
 }
 
@@ -48,6 +48,7 @@ function NavigationIcon({ icon }: { icon?: WorkspaceNavigationItem["icon"] }) {
     years: <><rect height="16" rx="2" width="18" x="3" y="5" /><path d="M7 3v4M17 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></>,
     rules: <><path d="M5 3h14v18H5zM8 7h8M8 11h8M8 15h4" /><path d="m14 16 1.5 1.5L19 14" /></>,
     domains: <><circle cx="12" cy="6" r="3" /><circle cx="6" cy="17" r="3" /><circle cx="18" cy="17" r="3" /><path d="m10 8-2.5 6M14 8l2.5 6M9 17h6" /></>,
+    facilities: <><path d="M3 21h18M5 21V8l7-4 7 4v13M9 12h6M9 16h6M8 21v-3h8v3" /></>,
   };
 
   return (

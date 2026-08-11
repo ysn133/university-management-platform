@@ -9,6 +9,7 @@ import { ProgramStudentCohort } from "@/features/student-registration/components
 import { TeachingGroupWorkspace } from "@/features/student-registration/components/TeachingGroupWorkspace";
 import { TeachingPlanWorkspace } from "@/features/teaching-planning/components/TeachingPlanWorkspace";
 import { SemesterProfessorsWorkspace } from "@/features/teaching-planning/components/SemesterProfessorsWorkspace";
+import { SemesterTimetableWorkspace } from "@/features/scheduling/components/SemesterTimetableWorkspace";
 import { TeachingGroupPolicyModal } from "../components/TeachingGroupPolicyModal";
 import {
   academicStructureKeys,
@@ -83,7 +84,7 @@ export function ProgramCurriculumPage() {
   const [searchParams] = useSearchParams();
   const { establishmentId, workspacePath } = useEstablishmentScope();
   const queryClient = useQueryClient();
-  const [activeSection, setActiveSection] = useState<"curriculum" | "students" | "teaching-groups" | "teaching-plan" | "professors">(() => searchParams.get("section") === "teaching-plan" ? "teaching-plan" : searchParams.get("section") === "professors" ? "professors" : "curriculum");
+  const [activeSection, setActiveSection] = useState<"curriculum" | "students" | "teaching-groups" | "teaching-plan" | "professors" | "schedule">(() => searchParams.get("section") === "teaching-plan" ? "teaching-plan" : searchParams.get("section") === "professors" ? "professors" : searchParams.get("section") === "schedule" ? "schedule" : "curriculum");
   const [academicYearId, setAcademicYearId] = useState(() => routeAcademicYearId ?? searchParams.get("academicYearId") ?? "");
   const [academicLevelId, setAcademicLevelId] = useState(() => searchParams.get("academicLevelId") ?? "");
   const [semesterId, setSemesterId] = useState(() => searchParams.get("semesterId") ?? "");
@@ -278,6 +279,7 @@ export function ProgramCurriculumPage() {
       <button aria-selected={activeSection === "teaching-groups"} onClick={() => setActiveSection("teaching-groups")} role="tab" type="button">Teaching Groups</button>
       <button aria-selected={activeSection === "teaching-plan"} onClick={() => setActiveSection("teaching-plan")} role="tab" type="button">Teaching Plan</button>
       <button aria-selected={activeSection === "professors"} onClick={() => setActiveSection("professors")} role="tab" type="button">Professors</button>
+      <button aria-selected={activeSection === "schedule"} onClick={() => setActiveSection("schedule")} role="tab" type="button">Schedule</button>
     </nav>
 
     <div className="curriculum-layout">
@@ -295,7 +297,7 @@ export function ProgramCurriculumPage() {
           return <article className={isSelected ? "is-active" : ""} key={level.id}>
             <button className="curriculum-level-select" onClick={() => { setAcademicLevelId(level.id); setSemesterId(""); }} type="button">
               <strong>{level.name}</strong>
-              <small>{isSelected ? "Currently viewing" : activeSection === "students" ? "View student cohort" : activeSection === "teaching-groups" ? "View TD and TP groups" : activeSection === "teaching-plan" ? "View required teaching delivery" : activeSection === "professors" ? "View assigned Professors" : "View semesters and modules"}</small>
+              <small>{isSelected ? "Currently viewing" : activeSection === "students" ? "View student cohort" : activeSection === "teaching-groups" ? "View TD and TP groups" : activeSection === "teaching-plan" ? "View required teaching delivery" : activeSection === "professors" ? "View assigned Professors" : activeSection === "schedule" ? "View weekly timetable" : "View semesters and modules"}</small>
             </button>
             {activeSection === "curriculum" && <div className="row-actions">
               <button disabled={!academicYearId} onClick={() => { setAcademicLevelId(level.id); setConfiguringGroupPolicy(level); }} type="button">Group sizes</button>
@@ -314,6 +316,7 @@ export function ProgramCurriculumPage() {
         </> : activeSection === "students" ? <ProgramStudentCohort academicLevel={selectedLevel} academicLevels={levels} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} onSelectAcademicLevel={(levelId) => { setAcademicLevelId(levelId); setSemesterId(""); }} programFiliereId={programFiliereId} semesters={semesters} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />
           : activeSection === "teaching-groups" ? <TeachingGroupWorkspace academicLevelName={selectedLevel?.name} semesters={semesters} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />
           : activeSection === "professors" ? <SemesterProfessorsWorkspace academicLevelName={selectedLevel?.name} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} onSelectSemester={setSemesterId} professorDetailsPath={(professorId) => `${workspacePath}/professors/${professorId}`} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />
+          : activeSection === "schedule" ? <SemesterTimetableWorkspace academicLevelId={academicLevelId} academicLevelName={selectedLevel?.name} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} onSelectSemester={setSemesterId} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />
           : <TeachingPlanWorkspace academicLevelName={selectedLevel?.name} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} onSelectSemester={setSemesterId} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />}
       </main>
     </div>

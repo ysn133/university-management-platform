@@ -177,8 +177,10 @@ export const academicStructureKeys = {
   programFilieres: (departmentId: string) => ["academic-structure", "program-filieres", departmentId] as const,
   programFiliere: (programFiliereId: string) => ["academic-structure", "program-filiere", programFiliereId] as const,
   academicLevels: (programFiliereId: string) => ["academic-structure", "academic-levels", programFiliereId] as const,
+  academicLevel: (academicLevelId: string) => ["academic-structure", "academic-level", academicLevelId] as const,
   teachingGroupPolicies: (academicLevelId: string, academicYearId: string) => ["academic-structure", "teaching-group-policies", academicLevelId, academicYearId] as const,
   semesters: (academicLevelId: string, academicYearId: string) => ["academic-structure", "semesters", academicLevelId, academicYearId] as const,
+  semester: (semesterId: string) => ["academic-structure", "semester", semesterId] as const,
   subjectModules: (semesterId: string) => ["academic-structure", "subject-modules", semesterId] as const,
   subjectModule: (subjectModuleId: string) => ["academic-structure", "subject-module", subjectModuleId] as const,
   moduleTeachingComponents: (subjectModuleId: string) => ["academic-structure", "module-teaching-components", subjectModuleId] as const,
@@ -285,6 +287,10 @@ export async function getAcademicLevels(programFiliereId: string): Promise<Acade
   return parseResponse(await apiClient.GET("/api/v1/program-filieres/{programFiliereId}/academic-levels", { params: { path: { programFiliereId } } }), z.array(academicLevelSchema));
 }
 
+export async function getAcademicLevel(id: string): Promise<AcademicLevel> {
+  return parseResponse(await apiClient.GET("/api/v1/academic-levels/{academicLevelId}", { params: { path: { academicLevelId: id } } }), academicLevelSchema);
+}
+
 export async function createAcademicLevel(programFiliereId: string, request: CreateAcademicLevelRequest): Promise<AcademicLevel> {
   return parseResponse(await apiClient.POST("/api/v1/program-filieres/{programFiliereId}/academic-levels", { params: { path: { programFiliereId } }, body: request }), academicLevelSchema);
 }
@@ -316,6 +322,10 @@ export async function replaceTeachingGroupPolicies(
 
 export async function getSemesters(academicLevelId: string, academicYearId: string): Promise<Semester[]> {
   return parseResponse(await apiClient.GET("/api/v1/academic-levels/{academicLevelId}/semesters", { params: { path: { academicLevelId }, query: { academicYearId } } }), z.array(semesterSchema));
+}
+
+export async function getSemester(id: string): Promise<Semester> {
+  return parseResponse(await apiClient.GET("/api/v1/semesters/{semesterId}", { params: { path: { semesterId: id } } }), semesterSchema);
 }
 
 export async function createSemester(academicLevelId: string, academicYearId: string, request: CreateSemesterRequest): Promise<Semester> {

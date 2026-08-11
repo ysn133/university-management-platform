@@ -10,6 +10,8 @@ const plan = [{
   componentType: "TD",
   teachingGroupId: "00000000-0000-4000-8000-000000000005",
   teachingGroupName: "A",
+  sourceClassGroupId: "00000000-0000-4000-8000-000000000005",
+  sourceClassGroupName: "A",
   audienceType: "CLASS_GROUP",
   status: "ACTIVE",
 }];

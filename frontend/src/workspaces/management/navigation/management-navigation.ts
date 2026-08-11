@@ -37,6 +37,7 @@ export function getManagementNavigation(
       { label: "Academic Years", to: `${contextPath}/academic-years`, icon: "years", group: "Academic structure" },
       { label: "Academic Settings", to: `${contextPath}/academic-rule-profiles`, icon: "rules", group: "Academic structure" },
       { label: "Academic Domains", to: `${contextPath}/academic-domains`, icon: "domains", group: "Academic structure" },
+      { label: "Facilities", to: `${contextPath}/facilities`, icon: "facilities", group: "Planning resources" },
     ];
   }
 

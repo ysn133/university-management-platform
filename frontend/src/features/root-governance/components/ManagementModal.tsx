@@ -8,6 +8,9 @@ interface ManagementModalProps extends PropsWithChildren {
   size?: "default" | "wide";
 }
 
+let openModalCount = 0;
+let bodyOverflowBeforeModals = "";
+
 export function ManagementModal({ title, description, onClose, children, size = "default" }: ManagementModalProps) {
   const titleId = useId();
   const descriptionId = useId();
@@ -16,7 +19,6 @@ export function ManagementModal({ title, description, onClose, children, size = 
 
   useEffect(() => {
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
 
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -24,12 +26,19 @@ export function ManagementModal({ title, description, onClose, children, size = 
       }
     }
 
-    document.body.style.overflow = "hidden";
+    if (openModalCount === 0) {
+      bodyOverflowBeforeModals = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+    }
+    openModalCount += 1;
     document.addEventListener("keydown", closeOnEscape);
     closeButtonRef.current?.focus();
 
     return () => {
-      document.body.style.overflow = previousOverflow;
+      openModalCount = Math.max(0, openModalCount - 1);
+      if (openModalCount === 0) {
+        document.body.style.overflow = bodyOverflowBeforeModals;
+      }
       document.removeEventListener("keydown", closeOnEscape);
       previouslyFocused?.focus();
     };

@@ -62,6 +62,7 @@ export function ManagementLayout() {
     "academic-years": "Academic Years",
     "academic-rule-profiles": "Academic Settings",
     "academic-domains": "Academic Domains",
+    facilities: "Facilities",
   };
   const lastPathSegment = location.pathname.split("/").filter(Boolean).at(-1) ?? "";
   const section = isAcademicYearContext || isDirectProgramPathContext ? null : sectionLabels[lastPathSegment] ?? null;
