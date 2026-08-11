@@ -1,6 +1,7 @@
 package com.platform.scheduling.semesterschedule.infrastructure;
 
 import com.platform.scheduling.semesterschedule.domain.ScheduleEntry;
+import com.platform.universitygovernance.semester.domain.SemesterTermType;
 import java.time.DayOfWeek;
 import java.util.List;
 import java.util.UUID;
@@ -12,18 +13,25 @@ public interface ScheduleEntryRepository extends JpaRepository<ScheduleEntry, UU
 
     List<ScheduleEntry> findBySemesterScheduleId(UUID semesterScheduleId);
 
+    long countByTeachingAssignmentId(UUID teachingAssignmentId);
+
+    long countByTeachingAssignmentIdAndIdNot(
+        UUID teachingAssignmentId,
+        UUID scheduleEntryId
+    );
+
     @Query("""
         select entry
         from ScheduleEntry entry
         where entry.semesterSchedule.establishment.id = :establishmentId
           and entry.semesterSchedule.academicYear.id = :academicYearId
-          and entry.semesterSchedule.semester.semesterOrder = :semesterOrder
+          and entry.semesterSchedule.semester.termType = :termType
           and entry.dayOfWeek = :dayOfWeek
         """)
     List<ScheduleEntry> findPotentialConflicts(
         @Param("establishmentId") UUID establishmentId,
         @Param("academicYearId") UUID academicYearId,
-        @Param("semesterOrder") int semesterOrder,
+        @Param("termType") SemesterTermType termType,
         @Param("dayOfWeek") DayOfWeek dayOfWeek
     );
 }

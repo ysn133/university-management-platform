@@ -22,6 +22,7 @@ import { StudentDirectoryPage } from "@/features/student-registration/pages/Stud
 import { StudentDetailsPage } from "@/features/student-registration/pages/StudentDetailsPage";
 import { ProfessorManagementPage } from "@/features/professor-management/pages/ProfessorManagementPage";
 import { ProfessorDetailsPage } from "@/features/professor-management/pages/ProfessorDetailsPage";
+import { FacilitiesPage } from "@/features/facility-management/pages/FacilitiesPage";
 
 export const managementRoutes: RouteObject = {
   path: "/management",
@@ -52,6 +53,7 @@ export const managementRoutes: RouteObject = {
         { path: "establishments/:establishmentId/academic-years", element: <AcademicYearsPage /> },
         { path: "establishments/:establishmentId/academic-rule-profiles", element: <AcademicRuleProfilesPage /> },
         { path: "establishments/:establishmentId/academic-domains", element: <AcademicDomainsPage /> },
+        { path: "establishments/:establishmentId/facilities", element: <FacilitiesPage /> },
         { path: "establishments/:establishmentId/academic-years/:academicYearId/program-paths", element: <AcademicYearProgramPathsPage /> },
         { path: "establishments/:establishmentId/academic-years/:academicYearId/program-paths/:programPathId/programs", element: <ProgramFilieresPage /> },
         { path: "establishments/:establishmentId/academic-years/:academicYearId/program-paths/:programPathId/programs/:programFiliereId", element: <ProgramCurriculumPage /> },
@@ -80,6 +82,7 @@ export const managementRoutes: RouteObject = {
         { path: "academic-years", element: <AcademicYearsPage /> },
         { path: "academic-rule-profiles", element: <AcademicRuleProfilesPage /> },
         { path: "academic-domains", element: <AcademicDomainsPage /> },
+        { path: "facilities", element: <FacilitiesPage /> },
         { path: "academic-years/:academicYearId/program-paths", element: <AcademicYearProgramPathsPage /> },
         { path: "academic-years/:academicYearId/program-paths/:programPathId/programs", element: <ProgramFilieresPage /> },
         { path: "academic-years/:academicYearId/program-paths/:programPathId/programs/:programFiliereId", element: <ProgramCurriculumPage /> },

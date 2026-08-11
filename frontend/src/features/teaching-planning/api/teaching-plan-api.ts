@@ -9,6 +9,8 @@ const teachingPlanItemSchema = z.object({
   componentType: z.enum(["COURSE", "TD", "TP"]),
   teachingGroupId: z.string().uuid(),
   teachingGroupName: z.string(),
+  sourceClassGroupId: z.string().uuid().nullable(),
+  sourceClassGroupName: z.string().nullable(),
   audienceType: z.enum(["WHOLE_COHORT", "CLASS_GROUP", "SUBGROUP"]),
   status: z.enum(["ACTIVE", "INACTIVE"]),
 });

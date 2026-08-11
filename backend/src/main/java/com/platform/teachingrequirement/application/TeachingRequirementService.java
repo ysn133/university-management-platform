@@ -172,6 +172,12 @@ public class TeachingRequirementService {
             component.getComponentType(),
             group.getId(),
             group.getName(),
+            group.getSourceClassGroup() == null
+                ? null
+                : group.getSourceClassGroup().getId(),
+            group.getSourceClassGroup() == null
+                ? null
+                : group.getSourceClassGroup().getName(),
             group.getAudienceType(),
             requirement.getStatus()
         );
