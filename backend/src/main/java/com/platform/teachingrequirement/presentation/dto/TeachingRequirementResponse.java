@@ -12,6 +12,8 @@ public record TeachingRequirementResponse(
     TeachingComponentType componentType,
     UUID teachingGroupId,
     String teachingGroupName,
+    UUID sourceClassGroupId,
+    String sourceClassGroupName,
     TeachingAudienceMode audienceType,
     TeachingRequirementStatus status
 ) {

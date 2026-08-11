@@ -67,6 +67,7 @@ import com.platform.universitygovernance.room.domain.RoomStatus;
 import com.platform.universitygovernance.room.infrastructure.RoomRepository;
 import com.platform.universitygovernance.semester.domain.Semester;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
+import com.platform.universitygovernance.semester.domain.SemesterTermType;
 import com.platform.universitygovernance.subjectmodules.domain.SubjectModule;
 import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleRepository;
 import com.platform.universitygovernance.moduleteachingcomponent.domain.ModuleTeachingComponent;
@@ -313,7 +314,7 @@ class SemesterScheduleServiceIntegrationTest {
             .createSemesterSchedule(root, firstEstablishment.getId(), request());
         TeachingAssignment assignment = saveTeachingAssignment();
         Room roomA = saveRoom("A", "Room A", RoomType.CLASSROOM, 100);
-        Room roomB = saveRoom("B", "Room B", RoomType.CLASSROOM, 100);
+        Room roomB = saveRoom("B", "Room B", RoomType.LECTURE_HALL, 100);
 
         ScheduleEntryResponse created = scheduleEntryService.createScheduleEntry(
             root,
@@ -329,6 +330,11 @@ class SemesterScheduleServiceIntegrationTest {
 
         assertThat(created.roomId()).isEqualTo(roomA.getId());
         assertThat(created.roomName()).isEqualTo("Room A");
+        assertThat(created.sourceClassGroupId()).isEqualTo(
+            assignment.getTeachingRequirement().getTeachingGroup()
+                .getSourceClassGroup().getId()
+        );
+        assertThat(created.audienceType()).isEqualTo(TeachingAudienceMode.CLASS_GROUP);
         assertThat(scheduleEntryService.getScheduleEntry(root, created.id()).id())
             .isEqualTo(created.id());
         assertThat(scheduleEntryService.getScheduleEntries(root, schedule.id()))
@@ -378,12 +384,11 @@ class SemesterScheduleServiceIntegrationTest {
             .hasMessageContaining("400 BAD_REQUEST");
 
         semesterScheduleService.publishSemesterSchedule(root, schedule.id());
-        assertThatThrownBy(() -> scheduleEntryService.deleteScheduleEntry(
+        assertThat(scheduleEntryService.deleteScheduleEntry(
             root,
             created.id()
-        ))
-            .isInstanceOf(ResponseStatusException.class)
-            .hasMessageContaining("409 CONFLICT");
+        ).success()).isTrue();
+        assertThat(scheduleEntryService.getScheduleEntries(root, schedule.id())).isEmpty();
     }
 
     private CreateSemesterScheduleRequest request() {
@@ -575,6 +580,7 @@ class SemesterScheduleServiceIntegrationTest {
         savedSemester.setAcademicYear(year);
         savedSemester.setName(name);
         savedSemester.setSemesterOrder(1);
+        savedSemester.setTermType(SemesterTermType.AUTUMN);
         return semesterRepository.save(savedSemester);
     }
 

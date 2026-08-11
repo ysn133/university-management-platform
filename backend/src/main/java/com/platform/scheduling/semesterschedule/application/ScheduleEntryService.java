@@ -4,7 +4,6 @@ import com.platform.identityaccess.application.AdminPermissionAuthorizationServi
 import com.platform.identityaccess.domain.PermissionCode;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.scheduling.semesterschedule.domain.ScheduleEntry;
-import com.platform.scheduling.semesterschedule.domain.SchedulePublicationStatus;
 import com.platform.scheduling.semesterschedule.domain.SemesterSchedule;
 import com.platform.scheduling.semesterschedule.infrastructure.ScheduleEntryRepository;
 import com.platform.scheduling.semesterschedule.infrastructure.SemesterScheduleRepository;
@@ -69,7 +68,6 @@ public class ScheduleEntryService {
     ) {
         SemesterSchedule schedule = findSchedule(scheduleId);
         requireUpdatePermission(principal, schedule);
-        ensureDraft(schedule);
 
         TeachingAssignment assignment = findTeachingAssignment(
             request.teachingAssignmentId()
@@ -78,6 +76,7 @@ public class ScheduleEntryService {
         ensureAssignmentMatchesSchedule(assignment, schedule);
         ensureRoomMatchesSchedule(room, assignment, schedule);
         ensureValidTimeRange(request.startTime(), request.endTime());
+        ensureWeeklyFrequency(assignment, null);
         ensureNoConflict(
             schedule,
             assignment,
@@ -140,7 +139,6 @@ public class ScheduleEntryService {
         ScheduleEntry entry = findScheduleEntry(scheduleEntryId);
         SemesterSchedule schedule = entry.getSemesterSchedule();
         requireUpdatePermission(principal, schedule);
-        ensureDraft(schedule);
 
         TeachingAssignment assignment = findTeachingAssignment(
             request.teachingAssignmentId()
@@ -149,6 +147,7 @@ public class ScheduleEntryService {
         ensureAssignmentMatchesSchedule(assignment, schedule);
         ensureRoomMatchesSchedule(room, assignment, schedule);
         ensureValidTimeRange(request.startTime(), request.endTime());
+        ensureWeeklyFrequency(assignment, entry.getId());
         ensureNoConflict(
             schedule,
             assignment,
@@ -177,7 +176,6 @@ public class ScheduleEntryService {
     ) {
         ScheduleEntry entry = findScheduleEntry(scheduleEntryId);
         requireUpdatePermission(principal, entry.getSemesterSchedule());
-        ensureDraft(entry.getSemesterSchedule());
         scheduleEntryRepository.delete(entry);
         return new ActionResponse(true, "Schedule entry deleted");
     }
@@ -228,14 +226,11 @@ public class ScheduleEntryService {
         boolean compatible = room.getStatus() == RoomStatus.ACTIVE
             && activeBlock
             && room.getEstablishment().getId().equals(schedule.getEstablishment().getId())
-            && room.getRoomType() == requirement
-                .getModuleTeachingComponent()
-                .getRequiredRoomType()
             && room.getCapacity() >= audienceSize;
         if (!compatible) {
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
-                "Room must be active, compatible, large enough, and in the schedule establishment"
+                "Room must be active, large enough, and in the schedule establishment"
             );
         }
     }
@@ -300,7 +295,7 @@ public class ScheduleEntryService {
             .findPotentialConflicts(
                 schedule.getEstablishment().getId(),
                 schedule.getAcademicYear().getId(),
-                schedule.getSemester().getSemesterOrder(),
+                schedule.getSemester().getTermType(),
                 dayOfWeek
             );
 
@@ -351,6 +346,28 @@ public class ScheduleEntryService {
             .anyMatch(firstMembers::contains);
     }
 
+    private void ensureWeeklyFrequency(
+        TeachingAssignment assignment,
+        UUID excludedEntryId
+    ) {
+        long scheduledSessions = excludedEntryId == null
+            ? scheduleEntryRepository.countByTeachingAssignmentId(assignment.getId())
+            : scheduleEntryRepository.countByTeachingAssignmentIdAndIdNot(
+                assignment.getId(),
+                excludedEntryId
+            );
+        int allowedSessions = assignment
+            .getTeachingRequirement()
+            .getModuleTeachingComponent()
+            .getSessionsPerWeek();
+        if (scheduledSessions >= allowedSessions) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "This teaching assignment already reached its weekly session count"
+            );
+        }
+    }
+
     private boolean overlaps(
         LocalTime firstStart,
         LocalTime firstEnd,
@@ -358,15 +375,6 @@ public class ScheduleEntryService {
         LocalTime secondEnd
     ) {
         return firstStart.isBefore(secondEnd) && firstEnd.isAfter(secondStart);
-    }
-
-    private void ensureDraft(SemesterSchedule schedule) {
-        if (schedule.getPublicationStatus() != SchedulePublicationStatus.DRAFT) {
-            throw new ResponseStatusException(
-                HttpStatus.CONFLICT,
-                "Published schedules cannot be modified"
-            );
-        }
     }
 
     private void requireViewPermission(
@@ -418,6 +426,13 @@ public class ScheduleEntryService {
             requirement.getModuleTeachingComponent().getSubjectModule().getId(),
             requirement.getTeachingGroup().getId(),
             requirement.getTeachingGroup().getName(),
+            requirement.getTeachingGroup().getSourceClassGroup() == null
+                ? null
+                : requirement.getTeachingGroup().getSourceClassGroup().getId(),
+            requirement.getTeachingGroup().getSourceClassGroup() == null
+                ? null
+                : requirement.getTeachingGroup().getSourceClassGroup().getName(),
+            requirement.getTeachingGroup().getAudienceType(),
             entry.getDayOfWeek(),
             entry.getStartTime(),
             entry.getEndTime(),
