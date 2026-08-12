@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createScheduleEntry, createSemesterSchedule, deleteScheduleEntry, getScheduleEntries, getSemesterSchedules } from "./schedule-api";
+import { createScheduleEntry, createSemesterSchedule, deleteScheduleEntry, getMyScheduleEntries, getScheduleEntries, getSemesterSchedules } from "./schedule-api";
 
 const establishmentId = "00000000-0000-4000-8000-000000000001";
 const scheduleId = "00000000-0000-4000-8000-000000000002";
@@ -27,6 +27,13 @@ describe("schedule API", () => {
     vi.stubGlobal("fetch", fetchMock);
     await expect(getScheduleEntries(scheduleId)).resolves.toEqual([entry]);
     await expect(createScheduleEntry(scheduleId, input)).resolves.toEqual(entry);
+  });
+
+  it("loads the authenticated Professor schedule", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify([entry]), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(getMyScheduleEntries()).resolves.toEqual([entry]);
+    expect((fetchMock.mock.calls[0][0] as Request).url).toContain("/api/v1/me/schedule-entries");
   });
 
   it("deletes an entry", async () => {

@@ -14,6 +14,241 @@
   --shadow: 0 28px 70px rgba(26, 40, 41, 0.11);
 }
 
+.professor-exam-panel {
+  overflow: hidden;
+}
+
+.professor-exam-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 112px;
+  padding: 24px 26px;
+  border-bottom: 1px solid #d7e4ee;
+  background: linear-gradient(120deg, #fff 55%, #f1f7fb);
+}
+
+.professor-exam-panel-header h2 {
+  margin: 2px 0 4px;
+  color: #173752;
+  font-family: var(--management-heading-font);
+  font-size: 27px;
+}
+
+.professor-exam-panel-header p:last-child {
+  margin: 0;
+  color: #6c8193;
+  font-size: 13px;
+}
+
+.professor-exam-panel-header > strong {
+  display: grid;
+  justify-items: center;
+  min-width: 72px;
+  color: #116aa5;
+  font-size: 28px;
+}
+
+.professor-exam-panel-header > strong span {
+  color: #6d8294;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.professor-exam-context-selector {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 14px;
+  padding: 18px 26px;
+  border-bottom: 1px solid #d7e4ee;
+  background: #f7fafc;
+}
+
+.professor-exam-context-selector label {
+  display: grid;
+  gap: 7px;
+}
+
+.professor-exam-context-selector label > span {
+  color: #466079;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.professor-exam-context-selector select {
+  width: 100%;
+  min-height: 43px;
+  padding: 0 38px 0 12px;
+  border: 1px solid #cbdce9;
+  border-radius: 9px;
+  color: #203d56;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+}
+
+.professor-exam-calendar {
+  display: grid;
+  gap: 24px;
+  padding: 24px;
+}
+
+.professor-class-exams .professor-exam-calendar {
+  padding: 18px;
+}
+
+.professor-class-exams .professor-exam-module small {
+  display: none;
+}
+
+.professor-exam-day {
+  overflow: hidden;
+  border: 1px solid var(--management-border);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.professor-exam-day > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--management-border);
+  background: #f3f8fc;
+}
+
+.professor-exam-day > header time {
+  color: #173753;
+  font-family: var(--management-heading-font);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.professor-exam-day > header span {
+  color: #6b8195;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.professor-exam-day > div {
+  display: grid;
+}
+
+.professor-exam-card {
+  display: grid;
+  grid-template-columns: 86px minmax(260px, 1.6fr) minmax(110px, .55fr) minmax(140px, .7fr);
+  gap: 20px;
+  align-items: center;
+  min-height: 98px;
+  padding: 16px 18px;
+}
+
+.professor-exam-card + .professor-exam-card {
+  border-top: 1px solid var(--management-border);
+}
+
+.professor-exam-time {
+  display: grid;
+  gap: 2px;
+  padding-right: 16px;
+  border-right: 2px solid #d8e7f3;
+}
+
+.professor-exam-time strong {
+  color: #125f99;
+  font-size: 18px;
+}
+
+.professor-exam-time span,
+.professor-exam-card small {
+  color: #75899c;
+  font-size: 12px;
+}
+
+.professor-exam-module,
+.professor-exam-class,
+.professor-exam-room {
+  display: grid;
+  gap: 4px;
+}
+
+.professor-exam-module > span {
+  color: #2878b5;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.professor-exam-module strong,
+.professor-exam-class strong,
+.professor-exam-room strong {
+  color: #203d56;
+}
+
+.professor-exam-session-switch {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #edf4f8;
+}
+
+.professor-exam-session-switch button {
+  padding: 8px 13px;
+  border: 0;
+  border-radius: 7px;
+  color: #60798d;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.professor-exam-session-switch button.is-active {
+  color: #125f99;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(29, 76, 108, .12);
+}
+
+@media (max-width: 980px) {
+  .professor-exam-context-selector {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+
+  .professor-exam-card {
+    grid-template-columns: 78px minmax(220px, 1fr) minmax(110px, .5fr);
+  }
+
+  .professor-exam-room {
+    grid-column: 2;
+  }
+
+}
+
+@media (max-width: 680px) {
+  .professor-exam-context-selector {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+  .professor-exam-calendar {
+    padding: 14px;
+  }
+
+  .professor-exam-card {
+    grid-template-columns: 70px 1fr;
+    gap: 14px;
+  }
+
+  .professor-exam-class,
+  .professor-exam-room {
+    grid-column: 2;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -697,6 +932,18 @@ h3 {
   grid-template-columns: 4.75rem 17.5rem minmax(0, 1fr);
   background: #f6f8fb;
   color: var(--management-ink);
+}
+
+.workspace-shell--management.workspace-shell--without-global-rail {
+  grid-template-columns: 17.5rem minmax(0, 1fr);
+}
+
+.workspace-shell--management.workspace-shell--without-global-rail .workspace-sidebar {
+  grid-column: 1;
+}
+
+.workspace-shell--management.workspace-shell--without-global-rail .workspace-main {
+  grid-column: 2;
 }
 
 .management-global-rail {
@@ -4618,6 +4865,776 @@ a.workspace-module-card:hover {
 .professor-portal-security span { color: var(--muted); font-size: 0.68rem; }
 .professor-portal-security a { padding: 0.65rem 0.9rem; border-radius: 0.55rem; background: var(--navy); color: white; font-size: 0.68rem; font-weight: 750; white-space: nowrap; }
 
+.professor-dashboard-header {
+  align-items: center;
+}
+
+.professor-dashboard-identity {
+  display: flex;
+  min-width: 17rem;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--management-line);
+  border-radius: 0.8rem;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(31, 71, 102, 0.06);
+}
+
+.professor-dashboard-identity > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.professor-dashboard-identity strong {
+  color: var(--management-ink);
+  font-size: 0.78rem;
+}
+
+.professor-dashboard-identity small {
+  overflow: hidden;
+  color: var(--management-muted);
+  font-size: 0.62rem;
+  text-overflow: ellipsis;
+}
+
+.professor-dashboard-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.professor-dashboard-card {
+  display: grid;
+  min-height: 13rem;
+  gap: 1rem;
+  padding: 1.35rem;
+}
+
+.professor-dashboard-card--wide {
+  grid-column: 1 / -1;
+  min-height: 10rem;
+}
+
+.professor-dashboard-card header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.professor-dashboard-card h2 {
+  color: var(--management-ink);
+  font-size: 1.35rem;
+}
+
+.professor-dashboard-card header > span {
+  color: var(--management-muted);
+  font-size: 0.62rem;
+}
+
+.professor-card-link {
+  color: var(--management-blue);
+  font-size: 0.64rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.professor-card-link:hover {
+  color: var(--management-blue-dark);
+}
+
+.professor-dashboard-card > p {
+  color: var(--management-muted);
+  font-size: 0.75rem;
+  line-height: 1.7;
+}
+
+.professor-dashboard-card > strong {
+  align-self: end;
+  color: var(--management-blue-dark);
+  font-size: 0.7rem;
+}
+
+.professor-dashboard-card--assignments {
+  align-content: start;
+}
+
+.professor-dashboard-card--delivery {
+  align-content: start;
+}
+
+.professor-overview-assignment-list {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--management-line);
+}
+
+.professor-overview-assignment-list > article {
+  display: grid;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--management-line);
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.professor-overview-assignment-list > article > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.professor-overview-assignment-list strong {
+  overflow: hidden;
+  color: var(--management-ink);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.professor-overview-assignment-list small,
+.professor-overview-more {
+  color: var(--management-muted);
+  font-size: 0.61rem;
+}
+
+.professor-overview-more {
+  padding-top: 0.7rem;
+  font-weight: 700;
+}
+
+.professor-weekly-schedule {
+  display: grid;
+  border-top: 1px solid var(--management-line);
+}
+
+.professor-weekly-schedule > article {
+  display: grid;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--management-line);
+  grid-template-columns: 5.7rem minmax(0, 1fr) auto;
+}
+
+.professor-weekly-schedule-time,
+.professor-weekly-schedule-session,
+.professor-weekly-schedule-location {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.professor-weekly-schedule-time strong,
+.professor-weekly-schedule-session strong,
+.professor-weekly-schedule-location strong {
+  color: var(--management-ink);
+  font-size: 0.69rem;
+}
+
+.professor-weekly-schedule-time span,
+.professor-weekly-schedule-session > span,
+.professor-weekly-schedule-location span {
+  color: var(--management-muted);
+  font-size: 0.62rem;
+}
+
+.professor-weekly-schedule-session > div {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.professor-weekly-schedule-session strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.professor-weekly-schedule-location {
+  justify-items: end;
+  text-align: right;
+}
+
+.professor-weekly-schedule-location strong {
+  color: var(--management-blue-dark);
+}
+
+.professor-weekly-schedule-location span {
+  white-space: nowrap;
+}
+
+@media (max-width: 680px) {
+  .professor-weekly-schedule > article {
+    align-items: start;
+    grid-template-columns: 5.2rem minmax(0, 1fr);
+  }
+
+  .professor-weekly-schedule-location {
+    grid-column: 2;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .professor-responsibility-list > a {
+    align-items: start;
+    grid-template-columns: 3.8rem minmax(0, 1fr);
+  }
+
+  .professor-responsibility-groups {
+    grid-column: 2;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .professor-modules-total {
+    justify-items: start;
+  }
+
+  .professor-module-directory > a {
+    align-items: start;
+    grid-template-columns: 3.8rem minmax(0, 1fr) auto;
+  }
+
+  .professor-module-directory > a > div:nth-of-type(2) {
+    grid-column: 2 / -1;
+  }
+}
+
+.professor-responsibility-list {
+  display: grid;
+  border-top: 1px solid var(--management-line);
+}
+
+.professor-responsibility-list > a {
+  display: grid;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--management-line);
+  color: inherit;
+  grid-template-columns: 4.25rem minmax(0, 1fr) minmax(8rem, auto);
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+
+.professor-responsibility-list > a:hover {
+  background: #f8fbfd;
+}
+
+.professor-responsibility-code {
+  display: inline-flex;
+  width: fit-content;
+  min-width: 3rem;
+  justify-content: center;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.45rem;
+  background: var(--management-blue-soft);
+  color: var(--management-blue-dark);
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+.professor-responsibility-list > a > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.18rem;
+}
+
+.professor-responsibility-list > a > div > strong {
+  overflow: hidden;
+  color: var(--management-ink);
+  font-size: 0.71rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.professor-responsibility-list > a > div > span,
+.professor-responsibility-groups small {
+  color: var(--management-muted);
+  font-size: 0.62rem;
+}
+
+.professor-responsibility-groups {
+  justify-items: end;
+  text-align: right;
+}
+
+.professor-responsibility-groups strong {
+  font-size: 0.66rem !important;
+}
+
+.professor-modules-total {
+  display: grid;
+  min-width: 7rem;
+  justify-items: end;
+  gap: 0.1rem;
+}
+
+.professor-modules-total strong {
+  color: var(--management-blue-dark);
+  font-family: "Newsreader Variable", serif;
+  font-size: 2.2rem;
+  font-weight: 600;
+}
+
+.professor-modules-total span {
+  color: var(--management-muted);
+  font-size: 0.63rem;
+}
+
+.professor-modules-panel {
+  overflow: hidden;
+}
+
+.professor-modules-panel > header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.4rem;
+  border-bottom: 1px solid var(--management-line);
+}
+
+.professor-modules-panel h2 {
+  color: var(--management-ink);
+  font-size: 1.35rem;
+}
+
+.professor-modules-panel > header > span {
+  color: var(--management-muted);
+  font-size: 0.62rem;
+}
+
+.professor-module-filters {
+  display: grid;
+  align-items: end;
+  gap: 0.75rem;
+  padding: 1rem 1.4rem;
+  border-bottom: 1px solid var(--management-line);
+  background: #f8fbfd;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+}
+
+.professor-module-filters label {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.professor-module-filters label > span {
+  color: var(--management-ink);
+  font-size: 0.61rem;
+  font-weight: 750;
+}
+
+.professor-module-filters select {
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--management-line);
+  border-radius: 0.55rem;
+  background: #fff;
+  color: var(--management-ink);
+  font: inherit;
+  font-size: 0.67rem;
+}
+
+.professor-module-filters button {
+  min-height: 2.65rem;
+  padding: 0 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--management-blue);
+  cursor: pointer;
+  font-size: 0.63rem;
+  font-weight: 750;
+}
+
+.professor-module-directory {
+  display: grid;
+}
+
+.professor-module-directory > a {
+  display: grid;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.4rem;
+  border-bottom: 1px solid var(--management-line);
+  color: inherit;
+  grid-template-columns: 4.5rem minmax(12rem, 1fr) minmax(9rem, 0.45fr) auto;
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+
+.professor-module-directory > a:last-child {
+  border-bottom: 0;
+}
+
+.professor-module-directory > a:hover {
+  background: #f8fbfd;
+}
+
+.professor-module-directory-code {
+  width: fit-content;
+  min-width: 3.2rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.5rem;
+  background: var(--management-blue-soft);
+  color: var(--management-blue-dark);
+  font-size: 0.64rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.professor-module-directory > a > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.professor-module-directory > a > div strong {
+  overflow: hidden;
+  color: var(--management-ink);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.professor-module-directory > a > div span,
+.professor-module-directory > a > div small {
+  color: var(--management-muted);
+  font-size: 0.62rem;
+}
+
+.professor-module-directory-state {
+  padding: 0.3rem 0.5rem;
+  border-radius: 999px;
+  background: #e9f7ef;
+  color: #28784c;
+  font-size: 0.58rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.management-back-link {
+  width: fit-content;
+  color: var(--management-blue);
+  font-size: 0.65rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.management-back-link:hover {
+  color: var(--management-blue-dark);
+}
+
+.professor-module-details-header {
+  display: grid;
+  align-items: center;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.professor-module-details-code {
+  display: inline-flex;
+  min-width: 4.5rem;
+  min-height: 4.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  background: var(--management-blue-dark);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.professor-module-class-count {
+  display: grid;
+  justify-items: end;
+  gap: 0.12rem;
+}
+
+.professor-module-class-count strong {
+  color: var(--management-blue-dark);
+  font-family: "Newsreader Variable", serif;
+  font-size: 2.1rem;
+  font-weight: 600;
+}
+
+.professor-module-class-count span {
+  color: var(--management-muted);
+  font-size: 0.62rem;
+}
+
+.professor-module-classes-panel {
+  overflow: hidden;
+}
+
+.professor-module-classes-panel > header {
+  padding: 1.3rem 1.4rem;
+  border-bottom: 1px solid var(--management-line);
+}
+
+.professor-module-classes-panel h2 {
+  color: var(--management-ink);
+  font-size: 1.35rem;
+}
+
+.professor-module-classes-panel header p:last-child {
+  margin-top: 0.2rem;
+  color: var(--management-muted);
+  font-size: 0.68rem;
+}
+
+.professor-module-class-list {
+  display: grid;
+}
+
+.professor-module-class-list > a {
+  display: grid;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.4rem;
+  border-bottom: 1px solid var(--management-line);
+  color: inherit;
+  grid-template-columns: auto minmax(10rem, 1.2fr) repeat(3, minmax(7rem, 0.55fr)) auto;
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+
+.professor-module-class-list > a:last-child {
+  border-bottom: 0;
+}
+
+.professor-module-class-list > a:hover {
+  background: #f8fbfd;
+}
+
+.professor-module-class-monogram {
+  display: inline-flex;
+  width: 2.4rem;
+  height: 2.4rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--management-blue-soft);
+  color: var(--management-blue-dark);
+  font-size: 0.6rem;
+  font-weight: 850;
+}
+
+.professor-module-class-list > a > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.18rem;
+}
+
+.professor-module-class-list > a > div strong {
+  color: var(--management-ink);
+  font-size: 0.74rem;
+}
+
+.professor-module-class-list > a > div span {
+  color: var(--management-muted);
+  font-size: 0.62rem;
+}
+
+.professor-module-class-list > a > div small {
+  color: var(--management-muted);
+  font-size: 0.57rem;
+}
+
+.professor-module-class-identity strong,
+.professor-module-class-identity span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.professor-class-context {
+  display: grid;
+  min-width: 14rem;
+  justify-items: end;
+  gap: 0.2rem;
+  text-align: right;
+}
+
+.professor-class-context strong {
+  color: var(--management-ink);
+  font-size: 0.74rem;
+}
+
+.professor-class-context span {
+  color: var(--management-muted);
+  font-size: 0.62rem;
+}
+
+.professor-class-workspace {
+  overflow: hidden;
+}
+
+.professor-class-schedule-list {
+  display: grid;
+}
+
+.professor-class-schedule-list > article {
+  display: grid;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.4rem;
+  border-bottom: 1px solid var(--management-line);
+  grid-template-columns: 8rem minmax(0, 1fr) minmax(9rem, auto);
+}
+
+.professor-class-schedule-list > article:last-child {
+  border-bottom: 0;
+}
+
+.professor-class-schedule-list > article > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.professor-class-schedule-list > article > div:last-child {
+  justify-items: end;
+  text-align: right;
+}
+
+.professor-class-schedule-list strong {
+  overflow: hidden;
+  color: var(--management-ink);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.professor-class-schedule-list span {
+  color: var(--management-muted);
+  font-size: 0.62rem;
+}
+
+.professor-class-students-header label {
+  display: grid;
+  width: min(19rem, 100%);
+  gap: 0.35rem;
+}
+
+.professor-class-students-header label span {
+  color: var(--management-muted);
+  font-size: 0.58rem;
+  font-weight: 750;
+}
+
+.professor-class-students-header input {
+  width: 100%;
+  min-height: 2.55rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--management-line);
+  border-radius: 0.55rem;
+  background: #fff;
+  color: var(--management-ink);
+  font: inherit;
+  font-size: 0.66rem;
+}
+
+@media (max-width: 680px) {
+  .professor-responsibility-list > a {
+    align-items: start;
+    grid-template-columns: 3.8rem minmax(0, 1fr);
+  }
+
+  .professor-responsibility-groups {
+    grid-column: 2;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .professor-modules-total {
+    justify-items: start;
+  }
+
+  .professor-module-directory > a {
+    align-items: start;
+    grid-template-columns: 3.8rem minmax(0, 1fr) auto;
+  }
+
+  .professor-module-directory > a > div:nth-of-type(2) {
+    grid-column: 2 / -1;
+  }
+
+  .professor-module-details-header {
+    align-items: start;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .professor-module-details-code {
+    min-width: 3.5rem;
+    min-height: 3.5rem;
+  }
+
+  .professor-module-class-count {
+    grid-column: 2;
+    justify-items: start;
+  }
+
+  .professor-module-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .professor-module-class-list > a {
+    align-items: start;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .professor-module-class-list > a > div:not(.professor-module-class-identity) {
+    grid-column: 2 / -1;
+  }
+
+  .professor-class-context {
+    grid-column: 2;
+    min-width: 0;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .professor-class-schedule-list > article {
+    align-items: start;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+  }
+
+  .professor-class-schedule-list > article > div:last-child {
+    grid-column: 2;
+    justify-items: start;
+    text-align: left;
+  }
+}
+
+.professor-dashboard-security {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.2rem 1.35rem;
+}
+
+.professor-dashboard-security > div {
+  display: grid;
+  gap: 0.22rem;
+}
+
+.professor-dashboard-security strong {
+  color: var(--management-ink);
+  font-size: 0.82rem;
+}
+
+.professor-dashboard-security span {
+  color: var(--management-muted);
+  font-size: 0.68rem;
+}
+
 .student-academic-filters {
   display: grid;
   align-items: end;
@@ -7088,6 +8105,10 @@ a.workspace-module-card:hover {
 @media (max-width: 900px) {
   .management-global-rail {
     display: none;
+  }
+
+  .workspace-shell--management.workspace-shell--without-global-rail {
+    grid-template-columns: 1fr;
   }
 
   .workspace-shell--management .workspace-sidebar,

@@ -30,6 +30,8 @@ interface WorkspaceLayoutProps {
   variant?: "default" | "management";
   breadcrumbs?: WorkspaceBreadcrumb[];
   context?: WorkspaceContext;
+  showGlobalRail?: boolean;
+  accountPath?: string;
 }
 
 function NavigationIcon({ icon }: { icon?: WorkspaceNavigationItem["icon"] }) {
@@ -65,6 +67,8 @@ export function WorkspaceLayout({
   variant = "default",
   breadcrumbs = [],
   context,
+  showGlobalRail = true,
+  accountPath = "/management/account/password",
 }: WorkspaceLayoutProps) {
   const { user, logout } = useAuth();
 
@@ -72,15 +76,15 @@ export function WorkspaceLayout({
     let currentGroup = "";
 
     return (
-      <div className="workspace-shell workspace-shell--management">
-        <aside className="management-global-rail" aria-label="Global navigation">
+      <div className={`workspace-shell workspace-shell--management${showGlobalRail ? "" : " workspace-shell--without-global-rail"}`}>
+        {showGlobalRail && <aside className="management-global-rail" aria-label="Global navigation">
           <Link className="global-rail-brand" to="/management" aria-label="Université Ibn Zohr management">UIZ</Link>
           <nav>
             <Link className="global-rail-link" to="/management" title="University home"><NavigationIcon icon="overview" /><span>Home</span></Link>
             {user?.role === "ROOT_SUPER_ADMIN" && <Link className="global-rail-link" to="/management/establishments" title="Establishments"><NavigationIcon icon="establishments" /><span>Structure</span></Link>}
           </nav>
           <Link className="global-rail-link global-rail-link--bottom" to="/management/account/password" title="Account security"><NavigationIcon icon="information" /><span>Account</span></Link>
-        </aside>
+        </aside>}
 
         <aside className="workspace-sidebar">
           {context && (
@@ -120,7 +124,7 @@ export function WorkspaceLayout({
                 </span>
               )) : <strong>University Management</strong>}
             </nav>
-            {user && <div className="account-menu"><span className="account-avatar">{user.firstName[0]}{user.lastName[0]}</span><div><strong>{user.firstName} {user.lastName}</strong><small>{user.role.replaceAll("_", " ")}</small></div><Link to="/management/account/password">Security</Link><button onClick={() => void logout()} type="button">Sign out</button></div>}
+            {user && <div className="account-menu"><span className="account-avatar">{user.firstName[0]}{user.lastName[0]}</span><div><strong>{user.firstName} {user.lastName}</strong><small>{user.role.replaceAll("_", " ")}</small></div><Link to={accountPath}>Security</Link><button onClick={() => void logout()} type="button">Sign out</button></div>}
           </header>
           <main className="workspace-content"><Outlet /></main>
         </div>

@@ -175,6 +175,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/module-exams/{moduleExamId}/room-allocations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get"];
+        put: operations["replace"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/module-exams/{moduleExamId}/grade-sheet": {
         parameters: {
             query?: never;
@@ -231,7 +247,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["replace"];
+        put: operations["replace_1"];
         post?: never;
         delete?: never;
         options?: never;
@@ -985,6 +1001,22 @@ export interface paths {
         get: operations["getModuleExams"];
         put?: never;
         post: operations["createModuleExam"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam-schedules/{examScheduleId}/class-groups/{classGroupId}/exam-groups/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["generate_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1903,6 +1935,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/schedule-entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMyScheduleEntries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/modules/{subjectModuleId}/classes/{classGroupId}/students": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMyClassStudents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/module-class-responsibilities": {
         parameters: {
             query?: never;
@@ -1935,6 +1999,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/exams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMyExams"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/exam-invitations": {
         parameters: {
             query?: never;
@@ -1959,6 +2039,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getMyAbsences"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam-schedules/{examScheduleId}/class-groups/{classGroupId}/exam-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2331,6 +2427,11 @@ export interface components {
             /** Format: uuid */
             teachingGroupId?: string;
             teachingGroupName?: string;
+            /** Format: uuid */
+            sourceClassGroupId?: string;
+            sourceClassGroupName?: string;
+            /** @enum {string} */
+            audienceType?: "WHOLE_COHORT" | "CLASS_GROUP" | "SUBGROUP";
             /** @enum {string} */
             dayOfWeek?: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
             startTime?: string;
@@ -2341,6 +2442,8 @@ export interface components {
             roomName?: string;
             /** Format: uuid */
             blockId?: string;
+            blockCode?: string;
+            blockName?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -2447,6 +2550,12 @@ export interface components {
             professorId?: string;
             academicDomains?: components["schemas"]["ProfessorExpertiseItemResponse"][];
         };
+        ExamRoomAllocationItemRequest: {
+            /** Format: uuid */
+            examGroupId: string;
+            /** Format: uuid */
+            roomId: string;
+        };
         UpdateModuleExamRequest: {
             /** Format: uuid */
             subjectModuleId: string;
@@ -2459,6 +2568,7 @@ export interface components {
             location?: string;
             /** Format: uuid */
             roomId?: string;
+            roomAllocations?: components["schemas"]["ExamRoomAllocationItemRequest"][];
         };
         ModuleExamResponse: {
             /** Format: uuid */
@@ -2483,6 +2593,24 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        ReplaceExamRoomAllocationsRequest: {
+            allocations: components["schemas"]["ExamRoomAllocationItemRequest"][];
+        };
+        ExamRoomAllocationResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            examGroupId?: string;
+            examGroupLabel?: string;
+            /** Format: int64 */
+            studentCount?: number;
+            /** Format: uuid */
+            roomId?: string;
+            roomCode?: string;
+            roomName?: string;
+            /** Format: int32 */
+            roomCapacity?: number;
         };
         GradeItemRequest: {
             /** Format: uuid */
@@ -2980,6 +3108,9 @@ export interface components {
             /** Format: uuid */
             teachingGroupId?: string;
             teachingGroupName?: string;
+            /** Format: uuid */
+            sourceClassGroupId?: string;
+            sourceClassGroupName?: string;
             /** @enum {string} */
             audienceType?: "WHOLE_COHORT" | "CLASS_GROUP" | "SUBGROUP";
             /** @enum {string} */
@@ -3014,11 +3145,30 @@ export interface components {
             teachingRequirementId?: string;
             /** Format: uuid */
             subjectModuleId?: string;
+            subjectModuleCode?: string;
+            subjectModuleTitle?: string;
             /** @enum {string} */
             componentType?: "COURSE" | "TD" | "TP";
+            /** Format: int32 */
+            sessionsPerWeek?: number;
+            /** Format: int32 */
+            sessionDurationMinutes?: number;
             /** Format: uuid */
             teachingGroupId?: string;
             teachingGroupName?: string;
+            /** Format: uuid */
+            semesterId?: string;
+            semesterName?: string;
+            /** Format: uuid */
+            academicYearId?: string;
+            academicYearLabel?: string;
+            /** Format: uuid */
+            academicLevelId?: string;
+            academicLevelName?: string;
+            /** Format: uuid */
+            programFiliereId?: string;
+            programFiliereCode?: string;
+            programFiliereName?: string;
             /** @enum {string} */
             status?: "ACTIVE" | "INACTIVE";
             /** @enum {string} */
@@ -3116,6 +3266,31 @@ export interface components {
             location?: string;
             /** Format: uuid */
             roomId?: string;
+            roomAllocations?: components["schemas"]["ExamRoomAllocationItemRequest"][];
+        };
+        GenerateExamGroupsRequest: {
+            /** Format: int32 */
+            splitCount?: number;
+        };
+        ExamGroupPlanResponse: {
+            /** Format: uuid */
+            examScheduleId?: string;
+            /** Format: uuid */
+            classGroupId?: string;
+            /** Format: int32 */
+            totalStudentCount?: number;
+            /** Format: int32 */
+            splitCount?: number;
+            groups?: components["schemas"]["ExamGroupResponse"][];
+        };
+        ExamGroupResponse: {
+            /** Format: uuid */
+            id?: string;
+            label?: string;
+            /** Format: int32 */
+            groupOrder?: number;
+            /** Format: int64 */
+            studentCount?: number;
         };
         CreateEstablishmentRequest: {
             /** Format: uuid */
@@ -3288,12 +3463,17 @@ export interface components {
             professorId?: string;
             /** Format: uuid */
             subjectModuleId?: string;
+            subjectModuleCode?: string;
+            subjectModuleTitle?: string;
             /** Format: uuid */
             classGroupId?: string;
+            classGroupName?: string;
             /** Format: uuid */
             academicYearId?: string;
+            academicYearLabel?: string;
             /** Format: uuid */
             semesterId?: string;
+            semesterName?: string;
             /** @enum {string} */
             status?: "ACTIVE" | "INACTIVE";
             /** Format: date-time */
@@ -3593,6 +3773,39 @@ export interface components {
             /** @enum {string} */
             code?: "DEPARTMENT_VIEW" | "DEPARTMENT_CREATE" | "DEPARTMENT_UPDATE" | "DEPARTMENT_DELETE" | "PROGRAM_FILIERE_VIEW" | "PROGRAM_FILIERE_CREATE" | "PROGRAM_FILIERE_UPDATE" | "PROGRAM_FILIERE_DELETE" | "DEGREE_CYCLE_VIEW" | "DEGREE_CYCLE_CREATE" | "DEGREE_CYCLE_UPDATE" | "DEGREE_CYCLE_DELETE" | "PROGRAM_PATH_VIEW" | "PROGRAM_PATH_CREATE" | "PROGRAM_PATH_UPDATE" | "PROGRAM_PATH_DELETE" | "ACADEMIC_LEVEL_VIEW" | "ACADEMIC_LEVEL_CREATE" | "ACADEMIC_LEVEL_UPDATE" | "ACADEMIC_LEVEL_DELETE" | "ACADEMIC_RULE_PROFILE_VIEW" | "ACADEMIC_RULE_PROFILE_CREATE" | "ACADEMIC_RULE_PROFILE_UPDATE" | "ACADEMIC_RULE_ASSIGNMENT_VIEW" | "ACADEMIC_RULE_ASSIGNMENT_CREATE" | "ACADEMIC_YEAR_VIEW" | "ACADEMIC_YEAR_CREATE" | "ACADEMIC_YEAR_UPDATE" | "ACADEMIC_YEAR_DELETE" | "SEMESTER_VIEW" | "SEMESTER_CREATE" | "SEMESTER_UPDATE" | "SEMESTER_DELETE" | "SUBJECT_MODULE_VIEW" | "SUBJECT_MODULE_CREATE" | "SUBJECT_MODULE_UPDATE" | "SUBJECT_MODULE_DELETE" | "CLASS_GROUP_VIEW" | "CLASS_GROUP_CREATE" | "CLASS_GROUP_UPDATE" | "ADMIN_CREATE" | "STUDENT_VIEW" | "STUDENT_CREATE" | "STUDENT_UPDATE" | "STUDENT_ACCOUNT_MANAGE" | "PROFESSOR_VIEW" | "PROFESSOR_CREATE" | "PROFESSOR_UPDATE" | "PROFESSOR_ACCOUNT_MANAGE" | "ACADEMIC_DOMAIN_VIEW" | "ACADEMIC_DOMAIN_CREATE" | "ACADEMIC_DOMAIN_UPDATE" | "ACADEMIC_DOMAIN_DELETE" | "PROFESSOR_EXPERTISE_VIEW" | "PROFESSOR_EXPERTISE_UPDATE" | "MODULE_TEACHING_COMPONENT_VIEW" | "MODULE_TEACHING_COMPONENT_UPDATE" | "TEACHING_GROUP_POLICY_VIEW" | "TEACHING_GROUP_POLICY_UPDATE" | "TEACHING_GROUP_VIEW" | "TEACHING_GROUP_GENERATE" | "TEACHING_GROUP_UPDATE" | "ACADEMIC_REGISTRATION_VIEW" | "ACADEMIC_REGISTRATION_CREATE" | "ACADEMIC_REGISTRATION_UPDATE" | "MODULE_CLASS_RESPONSIBILITY_VIEW" | "MODULE_CLASS_RESPONSIBILITY_CREATE" | "MODULE_CLASS_RESPONSIBILITY_DELETE" | "TEACHING_REQUIREMENT_VIEW" | "TEACHING_REQUIREMENT_GENERATE" | "TEACHING_ASSIGNMENT_VIEW" | "TEACHING_ASSIGNMENT_CREATE" | "TEACHING_ASSIGNMENT_DELETE" | "ABSENCE_VIEW" | "BLOCK_VIEW" | "BLOCK_CREATE" | "BLOCK_UPDATE" | "BLOCK_DELETE" | "ROOM_VIEW" | "ROOM_CREATE" | "ROOM_UPDATE" | "ROOM_DELETE" | "SEMESTER_SCHEDULE_VIEW" | "SEMESTER_SCHEDULE_CREATE" | "SEMESTER_SCHEDULE_UPDATE" | "SEMESTER_SCHEDULE_PUBLISH" | "EXAM_SCHEDULE_VIEW" | "EXAM_SCHEDULE_CREATE" | "EXAM_SCHEDULE_UPDATE" | "EXAM_SCHEDULE_DELETE" | "EXAM_SCHEDULE_PUBLISH" | "GRADE_VIEW" | "GRADE_REVIEW" | "GRADE_APPROVE" | "GRADE_PUBLISH";
             name?: string;
+        };
+        ProfessorExamResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            subjectModuleId?: string;
+            subjectModuleCode?: string;
+            subjectModuleTitle?: string;
+            /** Format: uuid */
+            classGroupId?: string;
+            classGroupName?: string;
+            /** Format: uuid */
+            academicYearId?: string;
+            academicYearLabel?: string;
+            /** @enum {string} */
+            academicYearStatus?: "PLANNED" | "ACTIVE" | "CLOSED";
+            /** Format: uuid */
+            semesterId?: string;
+            semesterName?: string;
+            /** Format: date */
+            semesterStartDate?: string;
+            /** Format: date */
+            semesterEndDate?: string;
+            academicLevelName?: string;
+            programFiliereCode?: string;
+            programFiliereName?: string;
+            /** @enum {string} */
+            sessionType?: "NORMAL" | "RATTRAPAGE";
+            /** Format: date */
+            examDate?: string;
+            startTime?: string;
+            endTime?: string;
+            rooms?: string[];
         };
         CurrentUserResponse: {
             /** Format: uuid */
@@ -4273,6 +4486,54 @@ export interface operations {
             };
         };
     };
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleExamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamRoomAllocationResponse"][];
+                };
+            };
+        };
+    };
+    replace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                moduleExamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceExamRoomAllocationsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamRoomAllocationResponse"][];
+                };
+            };
+        };
+    };
     getGradeSheet: {
         parameters: {
             query?: never;
@@ -4439,7 +4700,7 @@ export interface operations {
             };
         };
     };
-    replace: {
+    replace_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -6060,6 +6321,33 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ModuleExamResponse"];
+                };
+            };
+        };
+    };
+    generate_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                examScheduleId: string;
+                classGroupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateExamGroupsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamGroupPlanResponse"];
                 };
             };
         };
@@ -8156,6 +8444,49 @@ export interface operations {
             };
         };
     };
+    getMyScheduleEntries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ScheduleEntryResponse"][];
+                };
+            };
+        };
+    };
+    getMyClassStudents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectModuleId: string;
+                classGroupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeachingAssignmentStudentResponse"][];
+                };
+            };
+        };
+    };
     getMyResponsibilities: {
         parameters: {
             query?: never;
@@ -8200,6 +8531,26 @@ export interface operations {
             };
         };
     };
+    getMyExams: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProfessorExamResponse"][];
+                };
+            };
+        };
+    };
     getMyInvitations: {
         parameters: {
             query?: never;
@@ -8236,6 +8587,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AbsenceRecordResponse"][];
+                };
+            };
+        };
+    };
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                examScheduleId: string;
+                classGroupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamGroupPlanResponse"];
                 };
             };
         };

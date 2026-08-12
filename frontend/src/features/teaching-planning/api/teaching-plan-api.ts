@@ -23,9 +23,22 @@ const teachingAssignmentSchema = z.object({
   professorId: z.string().uuid(),
   teachingRequirementId: z.string().uuid(),
   subjectModuleId: z.string().uuid(),
+  subjectModuleCode: z.string(),
+  subjectModuleTitle: z.string(),
   componentType: z.enum(["COURSE", "TD", "TP"]),
+  sessionsPerWeek: z.number().int(),
+  sessionDurationMinutes: z.number().int(),
   teachingGroupId: z.string().uuid(),
   teachingGroupName: z.string(),
+  semesterId: z.string().uuid(),
+  semesterName: z.string(),
+  academicYearId: z.string().uuid(),
+  academicYearLabel: z.string(),
+  academicLevelId: z.string().uuid(),
+  academicLevelName: z.string(),
+  programFiliereId: z.string().uuid(),
+  programFiliereCode: z.string(),
+  programFiliereName: z.string(),
   status: z.enum(["ACTIVE", "INACTIVE"]),
   assignmentSource: z.enum(["MANUAL", "AUTOMATIC"]),
 });
@@ -62,6 +75,7 @@ export type TeachingAssignmentGeneration = z.infer<typeof generationResponseSche
 export const teachingPlanKeys = {
   semester: (semesterId: string) => ["teaching-plan", "semester", semesterId] as const,
   assignments: (establishmentId: string) => ["teaching-plan", "assignments", establishmentId] as const,
+  myAssignments: () => ["teaching-plan", "my-assignments"] as const,
 };
 
 async function parseItems(result: { response: Response; data?: unknown; error?: unknown }): Promise<TeachingPlanItem[]> {
@@ -79,6 +93,12 @@ export async function generateTeachingPlan(semesterId: string): Promise<Teaching
 
 export async function getTeachingAssignments(establishmentId: string): Promise<TeachingAssignment[]> {
   const result = await apiClient.GET("/api/v1/establishments/{establishmentId}/teaching-assignments", { params: { path: { establishmentId } } });
+  if (!result.response.ok || !result.data) throw apiRequestError(result.response, result.error);
+  return z.array(teachingAssignmentSchema).parse(result.data);
+}
+
+export async function getMyTeachingAssignments(): Promise<TeachingAssignment[]> {
+  const result = await apiClient.GET("/api/v1/me/teaching-assignments");
   if (!result.response.ok || !result.data) throw apiRequestError(result.response, result.error);
   return z.array(teachingAssignmentSchema).parse(result.data);
 }
