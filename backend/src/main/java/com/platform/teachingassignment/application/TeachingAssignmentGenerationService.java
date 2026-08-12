@@ -398,16 +398,32 @@ public class TeachingAssignmentGenerationService {
     private TeachingAssignmentResponse toResponse(TeachingAssignment assignment) {
         TeachingRequirement requirement = assignment.getTeachingRequirement();
         ModuleTeachingComponent component = requirement.getModuleTeachingComponent();
+        var subjectModule = component.getSubjectModule();
+        var semester = requirement.getTeachingGroup().getSemester();
+        var academicLevel = semester.getAcademicLevel();
+        var programFiliere = academicLevel.getProgramFiliere();
         return new TeachingAssignmentResponse(
             assignment.getId(),
-            requirement.getTeachingGroup().getSemester().getAcademicLevel()
-                .getProgramFiliere().getDepartment().getEstablishment().getId(),
+            programFiliere.getDepartment().getEstablishment().getId(),
             assignment.getProfessor().getId(),
             requirement.getId(),
-            component.getSubjectModule().getId(),
+            subjectModule.getId(),
+            subjectModule.getCode(),
+            subjectModule.getTitle(),
             component.getComponentType(),
+            component.getSessionsPerWeek(),
+            component.getSessionDurationMinutes(),
             requirement.getTeachingGroup().getId(),
             requirement.getTeachingGroup().getName(),
+            semester.getId(),
+            semester.getName(),
+            semester.getAcademicYear().getId(),
+            semester.getAcademicYear().getLabel(),
+            academicLevel.getId(),
+            academicLevel.getName(),
+            programFiliere.getId(),
+            programFiliere.getCode(),
+            programFiliere.getName(),
             assignment.getStatus(),
             assignment.getAssignmentSource(),
             assignment.getCreatedAt(),

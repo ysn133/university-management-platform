@@ -1,10 +1,12 @@
 package com.platform.scheduling.semesterschedule.application;
 
 import com.platform.identityaccess.application.AdminPermissionAuthorizationService;
+import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.PermissionCode;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.scheduling.semesterschedule.domain.ScheduleEntry;
 import com.platform.scheduling.semesterschedule.domain.SemesterSchedule;
+import com.platform.scheduling.semesterschedule.domain.SchedulePublicationStatus;
 import com.platform.scheduling.semesterschedule.infrastructure.ScheduleEntryRepository;
 import com.platform.scheduling.semesterschedule.infrastructure.SemesterScheduleRepository;
 import com.platform.scheduling.semesterschedule.presentation.dto.CreateScheduleEntryRequest;
@@ -110,6 +112,25 @@ public class ScheduleEntryService {
 
         return scheduleEntryRepository
             .findBySemesterScheduleId(scheduleId)
+            .stream()
+            .sorted(
+                Comparator.comparingInt(
+                    (ScheduleEntry entry) -> entry.getDayOfWeek().getValue()
+                ).thenComparing(ScheduleEntry::getStartTime)
+            )
+            .map(this::toResponse)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ScheduleEntryResponse> getMyScheduleEntries(
+        AuthenticatedUserPrincipal principal
+    ) {
+        if (principal == null || principal.role() != AccountRoleType.PROFESSOR) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Professor access required");
+        }
+        return scheduleEntryRepository
+            .findProfessorSchedule(principal.roleEntityId(), SchedulePublicationStatus.PUBLISHED)
             .stream()
             .sorted(
                 Comparator.comparingInt(
@@ -440,6 +461,8 @@ public class ScheduleEntryService {
             room == null ? null : room.getCode(),
             room == null ? null : room.getName(),
             room == null || room.getBlock() == null ? null : room.getBlock().getId(),
+            room == null || room.getBlock() == null ? null : room.getBlock().getCode(),
+            room == null || room.getBlock() == null ? null : room.getBlock().getName(),
             entry.getCreatedAt(),
             entry.getUpdatedAt()
         );

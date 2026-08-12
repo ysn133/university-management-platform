@@ -297,6 +297,13 @@ class TeachingAssignmentServiceIntegrationTest {
             );
 
         assertThat(first.status()).isEqualTo(TeachingAssignmentStatus.ACTIVE);
+        assertThat(first.subjectModuleCode()).isEqualTo("ALG");
+        assertThat(first.subjectModuleTitle()).isEqualTo("Algorithms");
+        assertThat(first.semesterName()).isEqualTo("S1");
+        assertThat(first.academicYearLabel()).isEqualTo("2026-2027");
+        assertThat(first.academicLevelName()).isEqualTo("M1");
+        assertThat(first.programFiliereCode()).isEqualTo("IL");
+        assertThat(first.sessionsPerWeek()).isEqualTo(1);
         assertThat(responsibilityRepository
             .findBySubjectModuleIdAndClassGroupIdAndAcademicYearIdAndSemesterIdAndStatus(
                 subjectModule.getId(),
@@ -444,6 +451,9 @@ class TeachingAssignmentServiceIntegrationTest {
             responsibilityRequest(firstProfessor)
         );
         assertThat(first.status()).isEqualTo(ModuleClassResponsibilityStatus.ACTIVE);
+        assertThat(first.subjectModuleCode()).isEqualTo("ALG");
+        assertThat(first.subjectModuleTitle()).isEqualTo("Algorithms");
+        assertThat(first.classGroupName()).isEqualTo("Group A");
 
         assertThatThrownBy(() -> responsibilityService.createResponsibility(
             root,
