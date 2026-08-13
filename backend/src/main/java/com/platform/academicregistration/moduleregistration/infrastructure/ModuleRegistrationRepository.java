@@ -20,6 +20,20 @@ public interface ModuleRegistrationRepository extends JpaRepository<ModuleRegist
     );
 
     @Query("""
+        select registration from ModuleRegistration registration
+        where registration.semesterRegistration.academicRegistration.student.id = :studentId
+          and lower(registration.subjectModule.code) = lower(:subjectModuleCode)
+          and registration.inscriptionNumber < :inscriptionNumber
+        order by registration.inscriptionNumber desc,
+                 registration.semesterRegistration.academicRegistration.academicYear.startYear desc
+        """)
+    List<ModuleRegistration> findEarlierInscription(
+        @Param("studentId") UUID studentId,
+        @Param("subjectModuleCode") String subjectModuleCode,
+        @Param("inscriptionNumber") int inscriptionNumber
+    );
+
+    @Query("""
         select registration
         from ModuleRegistration registration
         where registration.subjectModule.id = :subjectModuleId
@@ -38,6 +52,24 @@ public interface ModuleRegistrationRepository extends JpaRepository<ModuleRegist
         @Param("classGroupId") UUID classGroupId,
         @Param("academicYearId") UUID academicYearId,
         @Param("semesterId") UUID semesterId,
+        @Param("status") ModuleRegistrationStatus status
+    );
+
+    @Query("""
+        select registration from ModuleRegistration registration
+        where registration.semesterRegistration.semester.id = :semesterId
+          and registration.status = :status
+          and exists (
+              select assignment.id from StudentClassAssignment assignment
+              where assignment.semesterRegistration.id = registration.semesterRegistration.id
+                and assignment.classGroup.id = :classGroupId
+          )
+        order by registration.subjectModule.code asc,
+                 registration.semesterRegistration.academicRegistration.student.apogeeCode asc
+        """)
+    List<ModuleRegistration> findBySemesterAndClassGroup(
+        @Param("semesterId") UUID semesterId,
+        @Param("classGroupId") UUID classGroupId,
         @Param("status") ModuleRegistrationStatus status
     );
 }

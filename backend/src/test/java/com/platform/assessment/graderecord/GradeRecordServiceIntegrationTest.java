@@ -22,6 +22,7 @@ import com.platform.assessment.graderecord.presentation.dto.GradeItemRequest;
 import com.platform.assessment.graderecord.presentation.dto.GradeSheetResponse;
 import com.platform.assessment.graderecord.presentation.dto.SaveGradeSheetRequest;
 import com.platform.assessment.moduleresult.domain.ModuleResultStatus;
+import com.platform.assessment.moduleresult.application.FinalResultService;
 import com.platform.assessment.moduleresult.domain.ModuleResult;
 import com.platform.assessment.moduleresult.infrastructure.ModuleResultRepository;
 import com.platform.assessment.progressiondecision.domain.ProgressionDecisionStatus;
@@ -137,6 +138,7 @@ import org.springframework.web.server.ResponseStatusException;
 class GradeRecordServiceIntegrationTest {
 
     @Autowired private GradeRecordService gradeRecordService;
+    @Autowired private FinalResultService finalResultService;
     @Autowired private AbsenceRecordService absenceRecordService;
     @Autowired private ExamCandidateService examCandidateService;
     @Autowired private StudentClassAssignmentService classAssignmentService;
@@ -315,6 +317,7 @@ class GradeRecordServiceIntegrationTest {
             .workflowStatus()).isEqualTo(GradeWorkflowStatus.APPROVED);
         assertThat(gradeRecordService.publishGradeSheet(root, moduleExam.id())
             .workflowStatus()).isEqualTo(GradeWorkflowStatus.PUBLISHED);
+        finalResultService.generate(root, semester.getId(), classGroup.getId());
 
         assertThat(gradeRecordService.getMyGrades(
             studentPrincipal,
@@ -513,6 +516,7 @@ class GradeRecordServiceIntegrationTest {
             rattrapageExam.id(),
             gradeRequest(rattrapageGrade, "9.00")
         );
+        finalResultService.generate(root, semester.getId(), classGroup.getId());
 
         assertThat(moduleResultRepository.findByModuleRegistrationId(
             firstModuleRegistration.getId()

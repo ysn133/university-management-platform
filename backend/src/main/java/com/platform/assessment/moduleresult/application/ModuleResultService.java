@@ -57,7 +57,7 @@ public class ModuleResultService {
         registrations.values().forEach(this::recalculate);
     }
 
-    private void recalculate(ModuleRegistration moduleRegistration) {
+    public void recalculate(ModuleRegistration moduleRegistration) {
         AcademicRegistration academicRegistration = moduleRegistration
             .getSemesterRegistration()
             .getAcademicRegistration();

@@ -1,7 +1,6 @@
 package com.platform.assessment.graderecord.application;
 
 import com.platform.academicregistration.moduleregistration.domain.ModuleRegistration;
-import com.platform.assessment.moduleresult.application.ModuleResultService;
 import com.platform.assessment.moduleresult.domain.ModuleResult;
 import com.platform.assessment.moduleresult.infrastructure.ModuleResultRepository;
 import com.platform.assessment.graderecord.domain.GradeRecord;
@@ -49,7 +48,6 @@ public class GradeRecordService {
     private final ModuleExamRepository moduleExamRepository;
     private final StudentRepository studentRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
-    private final ModuleResultService moduleResultService;
     private final ModuleResultRepository moduleResultRepository;
     private final ExamCandidateRepository examCandidateRepository;
     private final ModuleClassResponsibilityRepository responsibilityRepository;
@@ -60,7 +58,6 @@ public class GradeRecordService {
         ModuleExamRepository moduleExamRepository,
         StudentRepository studentRepository,
         AdminPermissionAuthorizationService permissionAuthorizationService,
-        ModuleResultService moduleResultService,
         ModuleResultRepository moduleResultRepository,
         ExamCandidateRepository examCandidateRepository,
         ModuleClassResponsibilityRepository responsibilityRepository,
@@ -70,7 +67,6 @@ public class GradeRecordService {
         this.moduleExamRepository = moduleExamRepository;
         this.studentRepository = studentRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
-        this.moduleResultService = moduleResultService;
         this.moduleResultRepository = moduleResultRepository;
         this.examCandidateRepository = examCandidateRepository;
         this.responsibilityRepository = responsibilityRepository;
@@ -199,7 +195,6 @@ public class GradeRecordService {
             GradeWorkflowStatus.PUBLISHED,
             Instant.now()
         );
-        moduleResultService.recalculateForPublishedRecords(records);
         return buildGradeSheet(moduleExam);
     }
 
