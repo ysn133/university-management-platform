@@ -18,6 +18,7 @@ import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.PermissionCode;
 import com.platform.identityaccess.domain.Student;
 import com.platform.identityaccess.infrastructure.StudentRepository;
+import com.platform.identityaccess.infrastructure.UserProfileRepository;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.scheduling.examcandidate.infrastructure.ExamCandidateRepository;
 import com.platform.scheduling.examschedule.domain.PublicationStatus;
@@ -52,6 +53,7 @@ public class GradeRecordService {
     private final ModuleResultRepository moduleResultRepository;
     private final ExamCandidateRepository examCandidateRepository;
     private final ModuleClassResponsibilityRepository responsibilityRepository;
+    private final UserProfileRepository userProfileRepository;
 
     public GradeRecordService(
         GradeRecordRepository gradeRecordRepository,
@@ -61,7 +63,8 @@ public class GradeRecordService {
         ModuleResultService moduleResultService,
         ModuleResultRepository moduleResultRepository,
         ExamCandidateRepository examCandidateRepository,
-        ModuleClassResponsibilityRepository responsibilityRepository
+        ModuleClassResponsibilityRepository responsibilityRepository,
+        UserProfileRepository userProfileRepository
     ) {
         this.gradeRecordRepository = gradeRecordRepository;
         this.moduleExamRepository = moduleExamRepository;
@@ -71,6 +74,7 @@ public class GradeRecordService {
         this.moduleResultRepository = moduleResultRepository;
         this.examCandidateRepository = examCandidateRepository;
         this.responsibilityRepository = responsibilityRepository;
+        this.userProfileRepository = userProfileRepository;
     }
 
     @Transactional(readOnly = true)
@@ -478,13 +482,23 @@ public class GradeRecordService {
         ModuleRegistration registration,
         GradeRecord record
     ) {
+        Student student = registration.getSemesterRegistration()
+            .getAcademicRegistration()
+            .getStudent();
+        var profile = userProfileRepository.findByUserAccountId(
+            student.getUserAccount().getId()
+        ).orElseThrow(() -> new ResponseStatusException(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Student profile not found"
+        ));
         return new GradeItemResponse(
             record == null ? null : record.getId(),
             registration.getId(),
-            registration.getSemesterRegistration()
-                .getAcademicRegistration()
-                .getStudent()
-                .getId(),
+            student.getId(),
+            student.getApogeeCode(),
+            student.getUserAccount().getUniversityEmail(),
+            profile.getFirstName(),
+            profile.getLastName(),
             registration.getInscriptionNumber(),
             record == null ? null : record.getGradeValue(),
             record == null ? null : record.getZeroGradeReason(),

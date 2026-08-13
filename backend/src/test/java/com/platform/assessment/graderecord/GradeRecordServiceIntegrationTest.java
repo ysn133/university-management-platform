@@ -42,6 +42,7 @@ import com.platform.identityaccess.domain.PermissionCode;
 import com.platform.identityaccess.domain.Professor;
 import com.platform.identityaccess.domain.Student;
 import com.platform.identityaccess.domain.UserAccount;
+import com.platform.identityaccess.domain.UserProfile;
 import com.platform.identityaccess.infrastructure.AdminPermissionGrantRepository;
 import com.platform.identityaccess.infrastructure.AdminRepository;
 import com.platform.identityaccess.infrastructure.PermissionRepository;
@@ -270,6 +271,13 @@ class GradeRecordServiceIntegrationTest {
         );
         assertThat(emptySheet.workflowStatus()).isEqualTo(GradeWorkflowStatus.DRAFT);
         assertThat(emptySheet.grades()).hasSize(2);
+        assertThat(emptySheet.grades())
+            .allSatisfy(item -> {
+                assertThat(item.apogeeCode()).isNotBlank();
+                assertThat(item.universityEmail()).isNotBlank();
+                assertThat(item.firstName()).isNotBlank();
+                assertThat(item.lastName()).isNotBlank();
+            });
 
         GradeSheetResponse draft = gradeRecordService.saveDraftGradeSheet(
             professorPrincipal,
@@ -667,6 +675,13 @@ class GradeRecordServiceIntegrationTest {
         assertThat(invitedCandidates)
             .extracting(ExamCandidateResponse::moduleRegistrationId)
             .containsExactly(secondModuleRegistration.getId());
+        assertThat(invitedCandidates).singleElement().satisfies(candidate -> {
+            assertThat(candidate.apogeeCode()).isNotBlank();
+            assertThat(candidate.firstName()).isNotBlank();
+            assertThat(candidate.lastName()).isNotBlank();
+            assertThat(candidate.examGroupLabel()).isEqualTo(classGroup.getName());
+            assertThat(candidate.roomCode()).isEqualTo("Room A");
+        });
 
         absenceRecordService.updateJustification(
             professorPrincipal,
@@ -814,6 +829,13 @@ class GradeRecordServiceIntegrationTest {
 
     private Student saveStudent(String email) {
         UserAccount account = saveAccount(email, AccountRoleType.STUDENT);
+
+        UserProfile profile = new UserProfile();
+        profile.setUserAccount(account);
+        profile.setFirstName(email.startsWith("student1") ? "Salma" : "Youssef");
+        profile.setLastName("Student");
+        userProfileRepository.save(profile);
+
         Student student = new Student();
         student.setUserAccount(account);
         student.setEstablishment(establishment);

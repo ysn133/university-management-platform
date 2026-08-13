@@ -4,6 +4,7 @@ import com.platform.academicregistration.classassignment.domain.StudentClassAssi
 import com.platform.academicregistration.classassignment.infrastructure.StudentClassAssignmentRepository;
 import com.platform.identityaccess.application.AdminPermissionAuthorizationService;
 import com.platform.identityaccess.domain.PermissionCode;
+import com.platform.identityaccess.infrastructure.UserProfileRepository;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.scheduling.examgroup.domain.ExamGroup;
 import com.platform.scheduling.examgroup.domain.ExamGroupMembership;
@@ -11,6 +12,7 @@ import com.platform.scheduling.examgroup.infrastructure.ExamGroupMembershipRepos
 import com.platform.scheduling.examgroup.infrastructure.ExamGroupRepository;
 import com.platform.scheduling.examgroup.presentation.dto.ExamGroupPlanResponse;
 import com.platform.scheduling.examgroup.presentation.dto.ExamGroupResponse;
+import com.platform.scheduling.examgroup.presentation.dto.ExamGroupMemberResponse;
 import com.platform.scheduling.examschedule.domain.ExamSchedule;
 import com.platform.scheduling.examschedule.domain.PublicationStatus;
 import com.platform.scheduling.examschedule.infrastructure.ExamScheduleRepository;
@@ -33,16 +35,19 @@ public class ExamGroupService {
     private final ExamGroupRepository groupRepository;
     private final ExamGroupMembershipRepository membershipRepository;
     private final AdminPermissionAuthorizationService authorizationService;
+    private final UserProfileRepository userProfileRepository;
 
     public ExamGroupService(ExamScheduleRepository scheduleRepository, ClassGroupRepository classGroupRepository,
         StudentClassAssignmentRepository classAssignmentRepository, ExamGroupRepository groupRepository,
-        ExamGroupMembershipRepository membershipRepository, AdminPermissionAuthorizationService authorizationService) {
+        ExamGroupMembershipRepository membershipRepository, AdminPermissionAuthorizationService authorizationService,
+        UserProfileRepository userProfileRepository) {
         this.scheduleRepository = scheduleRepository;
         this.classGroupRepository = classGroupRepository;
         this.classAssignmentRepository = classAssignmentRepository;
         this.groupRepository = groupRepository;
         this.membershipRepository = membershipRepository;
         this.authorizationService = authorizationService;
+        this.userProfileRepository = userProfileRepository;
     }
 
     @Transactional(readOnly = true)
@@ -90,7 +95,17 @@ public class ExamGroupService {
 
     private ExamGroupPlanResponse response(UUID scheduleId, UUID classGroupId) {
         List<ExamGroupResponse> groups = groupRepository.findByExamScheduleIdAndClassGroupIdOrderByGroupOrderAsc(scheduleId, classGroupId)
-            .stream().map(group -> new ExamGroupResponse(group.getId(), group.getLabel(), group.getGroupOrder(), membershipRepository.countByExamGroupId(group.getId()))).toList();
+            .stream().map(group -> {
+                List<ExamGroupMemberResponse> members = membershipRepository.findByExamGroupIdIn(List.of(group.getId()))
+                    .stream().map(membership -> {
+                        var student = membership.getSemesterRegistration().getAcademicRegistration().getStudent();
+                        var profile = userProfileRepository.findByUserAccountId(student.getUserAccount().getId())
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Student profile not found"));
+                        return new ExamGroupMemberResponse(student.getId(), student.getApogeeCode(), student.getNationalStudentCode(),
+                            profile.getCin(), profile.getLastName(), profile.getFirstName());
+                    }).sorted(Comparator.comparing(ExamGroupMemberResponse::lastName).thenComparing(ExamGroupMemberResponse::firstName)).toList();
+                return new ExamGroupResponse(group.getId(), group.getLabel(), group.getGroupOrder(), members.size(), members);
+            }).toList();
         ExamSchedule schedule = findSchedule(scheduleId);
         int total = classAssignmentRepository.findBySemesterRegistrationSemesterIdAndClassGroupId(schedule.getSemester().getId(), classGroupId).size();
         return new ExamGroupPlanResponse(scheduleId, classGroupId, total, groups.size(), groups);

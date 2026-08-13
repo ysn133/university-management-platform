@@ -11,11 +11,18 @@ public record ExamCandidateResponse(
     UUID moduleExamId,
     UUID moduleRegistrationId,
     UUID studentId,
+    String apogeeCode,
+    String nationalStudentCode,
+    String cin,
+    String lastName,
+    String firstName,
     UUID subjectModuleId,
+    UUID examGroupId,
+    String examGroupLabel,
     ExamSessionType sessionType,
     LocalDate examDate,
     LocalTime startTime,
-    String location,
+    String roomCode,
     Instant createdAt
 ) {
 }
