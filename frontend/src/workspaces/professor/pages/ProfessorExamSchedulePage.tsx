@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { ApiRequestError } from "@/shared/api/client/ApiRequestError";
 import { getMyExams, professorOverviewKeys, type ProfessorExam } from "../api/professor-overview-api";
 
@@ -19,7 +20,7 @@ function currentSemesterPeriod(exams: ProfessorExam[]): string | undefined {
     ?? periods.sort()[0];
 }
 
-export function ProfessorExamCalendar({ exams }: { exams: ProfessorExam[] }) {
+export function ProfessorExamCalendar({ exams, examHref }: { exams: ProfessorExam[]; examHref?: (exam: ProfessorExam) => string }) {
   const examsByDate = Array.from(exams.reduce((dates, exam) => {
     const day = dates.get(exam.examDate) ?? [];
     day.push(exam);
@@ -29,12 +30,12 @@ export function ProfessorExamCalendar({ exams }: { exams: ProfessorExam[] }) {
 
   return <div className="professor-exam-calendar">{examsByDate.map(([date, dayExams]) => <section className="professor-exam-day" key={date}>
     <header><time dateTime={date}>{displayDate(date)}</time><span>{dayExams.length} {dayExams.length === 1 ? "exam" : "exams"}</span></header>
-    <div>{dayExams.map((exam) => <article className="professor-exam-card" key={exam.id}>
+    <div>{dayExams.map((exam) => { const content = <>
       <div className="professor-exam-time"><strong>{exam.startTime.slice(0, 5)}</strong><span>{exam.endTime?.slice(0, 5)}</span></div>
       <div className="professor-exam-module"><span>{exam.subjectModuleCode}</span><strong>{exam.subjectModuleTitle}</strong><small>{exam.programFiliereCode} · {exam.academicLevelName} · {exam.semesterName}</small></div>
       <div className="professor-exam-class"><small>Class</small><strong>{exam.classGroupName}</strong></div>
       <div className="professor-exam-room"><small>{exam.rooms.length > 1 ? "Rooms" : "Room"}</small><strong>{exam.rooms.length ? exam.rooms.join(" · ") : "To be assigned"}</strong></div>
-    </article>)}</div>
+    </>; return examHref ? <Link className="professor-exam-card professor-exam-card--link" key={exam.id} to={examHref(exam)}>{content}<span className="professor-exam-open">Open grades →</span></Link> : <article className="professor-exam-card" key={exam.id}>{content}</article>; })}</div>
   </section>)}</div>;
 }
 
@@ -78,7 +79,7 @@ export function ProfessorExamSchedulePage() {
         <label><span>Semester</span><select onChange={(event) => { setRequestedSemesterId(event.target.value); setRequestedSession(""); }} value={semesterId}>{semesters.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
         <label><span>Session</span><select onChange={(event) => setRequestedSession(event.target.value as ProfessorExam["sessionType"])} value={sessionType}>{sessions.map((session) => <option key={session} value={session}>{session === "NORMAL" ? "Normal session" : "Rattrapage"}</option>)}</select></label>
       </div>
-      {examsQuery.isPending ? <div className="panel-empty">Loading your exam schedule...</div> : exams.length === 0 ? <div className="panel-empty"><strong>No published exams yet.</strong><p>Exams will appear here after their schedule is published.</p></div> : filteredExams.length === 0 ? <div className="panel-empty"><strong>No published exam schedule for this context.</strong></div> : <ProfessorExamCalendar exams={filteredExams} />}
+      {examsQuery.isPending ? <div className="panel-empty">Loading your exam schedule...</div> : exams.length === 0 ? <div className="panel-empty"><strong>No published exams yet.</strong><p>Exams will appear here after their schedule is published.</p></div> : filteredExams.length === 0 ? <div className="panel-empty"><strong>No published exam schedule for this context.</strong></div> : <ProfessorExamCalendar examHref={(exam) => `/professor/modules/${exam.subjectModuleId}/classes/${exam.classGroupId}?tab=grades&examId=${exam.id}`} exams={filteredExams} />}
     </section>
   </div>;
 }

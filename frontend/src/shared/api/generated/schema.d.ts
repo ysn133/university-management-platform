@@ -2629,6 +2629,10 @@ export interface components {
             moduleRegistrationId?: string;
             /** Format: uuid */
             studentId?: string;
+            apogeeCode?: string;
+            universityEmail?: string;
+            firstName?: string;
+            lastName?: string;
             /** Format: int32 */
             inscriptionNumber?: number;
             gradeValue?: number;
@@ -3243,14 +3247,22 @@ export interface components {
             moduleRegistrationId?: string;
             /** Format: uuid */
             studentId?: string;
+            apogeeCode?: string;
+            nationalStudentCode?: string;
+            cin?: string;
+            lastName?: string;
+            firstName?: string;
             /** Format: uuid */
             subjectModuleId?: string;
+            /** Format: uuid */
+            examGroupId?: string;
+            examGroupLabel?: string;
             /** @enum {string} */
             sessionType?: "NORMAL" | "RATTRAPAGE";
             /** Format: date */
             examDate?: string;
             startTime?: string;
-            location?: string;
+            roomCode?: string;
             /** Format: date-time */
             createdAt?: string;
         };
@@ -3272,6 +3284,15 @@ export interface components {
             /** Format: int32 */
             splitCount?: number;
         };
+        ExamGroupMemberResponse: {
+            /** Format: uuid */
+            studentId?: string;
+            apogeeCode?: string;
+            nationalStudentCode?: string;
+            cin?: string;
+            lastName?: string;
+            firstName?: string;
+        };
         ExamGroupPlanResponse: {
             /** Format: uuid */
             examScheduleId?: string;
@@ -3291,6 +3312,7 @@ export interface components {
             groupOrder?: number;
             /** Format: int64 */
             studentCount?: number;
+            members?: components["schemas"]["ExamGroupMemberResponse"][];
         };
         CreateEstablishmentRequest: {
             /** Format: uuid */
@@ -3796,6 +3818,8 @@ export interface components {
             semesterStartDate?: string;
             /** Format: date */
             semesterEndDate?: string;
+            /** Format: uuid */
+            academicLevelId?: string;
             academicLevelName?: string;
             programFiliereCode?: string;
             programFiliereName?: string;

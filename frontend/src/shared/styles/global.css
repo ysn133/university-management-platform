@@ -145,6 +145,424 @@
   padding: 16px 18px;
 }
 
+.professor-exam-card--link {
+  position: relative;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.professor-exam-card--link:hover {
+  z-index: 1;
+  background: #f9fcfe;
+  box-shadow: inset 3px 0 #2180bb;
+}
+
+.professor-exam-open {
+  position: absolute;
+  right: 18px;
+  bottom: 9px;
+  color: #176da7;
+  font-size: 10px;
+  font-weight: 800;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.professor-exam-card--link:hover .professor-exam-open,
+.professor-exam-card--link:focus-visible .professor-exam-open {
+  opacity: 1;
+}
+
+.professor-grade-exam-select {
+  display: grid;
+  min-width: 245px;
+  gap: 6px;
+}
+
+.professor-grade-exam-select span {
+  color: #647d91;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.professor-grade-exam-select select {
+  min-height: 42px;
+  padding: 0 38px 0 12px;
+  border: 1px solid #cbdce9;
+  border-radius: 9px;
+  color: #203d56;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+}
+
+.professor-grade-sheet {
+  display: grid;
+}
+
+.professor-grade-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #d7e4ee;
+  background: #f8fbfd;
+}
+
+.professor-grade-summary > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.professor-grade-summary > div:first-child strong {
+  color: #193b56;
+  font-size: 17px;
+}
+
+.professor-grade-summary > div:first-child small {
+  color: #6a8093;
+}
+
+.professor-grade-status {
+  width: max-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #126a49;
+  background: #e4f4eb;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.professor-grade-summary dl {
+  display: flex;
+  margin: 0;
+}
+
+.professor-grade-summary dl > div {
+  display: grid;
+  min-width: 82px;
+  justify-items: center;
+  gap: 2px;
+  padding: 0 15px;
+  border-left: 1px solid #d5e2eb;
+}
+
+.professor-grade-summary dt {
+  color: #728799;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.professor-grade-summary dd {
+  margin: 0;
+  color: #183b57;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.professor-grade-table-wrap {
+  overflow-x: auto;
+}
+
+.professor-grade-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.professor-grade-table th {
+  padding: 11px 18px;
+  color: #667f92;
+  background: #f3f7fa;
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.professor-grade-table td {
+  padding: 12px 18px;
+  border-top: 1px solid #e0e9ef;
+  color: #314d63;
+  font-size: 13px;
+}
+
+.professor-grade-table td:first-child {
+  display: grid;
+  min-width: 220px;
+  gap: 2px;
+}
+
+.professor-grade-table td:first-child strong {
+  color: #183b57;
+}
+
+.professor-grade-table td:first-child span {
+  color: #778b9c;
+  font-size: 11px;
+}
+
+.professor-grade-table select,
+.professor-grade-table input {
+  width: 100%;
+  min-width: 120px;
+  min-height: 39px;
+  padding: 0 10px;
+  border: 1px solid #c9dbe8;
+  border-radius: 8px;
+  color: #193b56;
+  background: #fff;
+  font: inherit;
+}
+
+.professor-grade-table input {
+  width: 110px;
+  min-width: 0;
+  font-weight: 800;
+}
+
+.professor-grade-table input:focus,
+.professor-grade-table select:focus {
+  border-color: #1878b5;
+  outline: 3px solid rgba(24, 120, 181, .12);
+}
+
+.professor-grade-table input:disabled,
+.professor-grade-table select:disabled {
+  color: #8494a1;
+  background: #f2f5f7;
+}
+
+.professor-grade-not-applicable {
+  color: #8a9aa6;
+  font-size: 11px;
+}
+
+.professor-grade-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 24px;
+  border-top: 1px solid #d5e3ec;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 -8px 22px rgba(28, 62, 85, .05);
+}
+
+.professor-grade-actions p {
+  margin: 0;
+  color: #6d8294;
+  font-size: 12px;
+}
+
+.professor-grade-actions > div {
+  display: flex;
+  gap: 10px;
+}
+
+.professor-grade-load-error {
+  margin: 20px;
+}
+
+.exam-candidate-workspace {
+  display: grid;
+  gap: 18px;
+}
+
+.exam-candidate-row-action button {
+  border: 0;
+  color: #126fa8;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.exam-group-summary__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.exam-candidate-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 24px;
+  border: 1px solid #d4e2eb;
+  border-radius: 12px;
+  background: linear-gradient(105deg, #f3f8fb 0%, #fbfdfe 70%);
+}
+
+.exam-candidate-toolbar__summary {
+  display: grid;
+  gap: 5px;
+}
+
+.exam-candidate-toolbar__summary > span {
+  color: #2879ad;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.exam-candidate-toolbar__summary > div,
+.exam-candidate-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.exam-candidate-toolbar__summary strong {
+  color: #173b58;
+  font-family: var(--management-heading-font);
+  font-size: 30px;
+  line-height: 1;
+}
+
+.exam-candidate-toolbar__summary p {
+  margin: 0;
+  color: #6d8293;
+  font-size: 12px;
+}
+
+.exam-candidate-toolbar__actions {
+  gap: 10px;
+}
+
+.exam-candidate-document {
+  padding: 30px;
+  border: 1px solid #cadbe7;
+  color: #172f43;
+  background: #fff;
+}
+
+.pdf-candidate-page {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  width: 900px;
+}
+
+.exam-candidate-document > header {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  padding-bottom: 20px;
+  border-bottom: 3px solid #1977b4;
+}
+
+.exam-candidate-document > header > div {
+  display: grid;
+  gap: 4px;
+}
+
+.exam-candidate-document > header > div:last-child {
+  text-align: right;
+}
+
+.exam-candidate-document > header strong {
+  font-family: var(--management-heading-font);
+  font-size: 19px;
+}
+
+.exam-candidate-document > header span {
+  color: #586f81;
+  font-size: 11px;
+}
+
+.exam-candidate-group {
+  margin-top: 24px;
+  break-inside: avoid;
+}
+
+.exam-candidate-exam + .exam-candidate-exam {
+  margin-top: 30px;
+}
+
+.exam-candidate-exam > header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 26px;
+  padding: 11px 14px;
+  color: #fff;
+  background: #173f5e;
+}
+
+.exam-candidate-exam > header > div {
+  display: grid;
+  gap: 2px;
+}
+
+.exam-candidate-exam > header > div:last-child {
+  text-align: right;
+}
+
+.exam-candidate-exam > header span {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  opacity: .75;
+  text-transform: uppercase;
+}
+
+.exam-candidate-group-heading {
+  display: flex;
+  gap: 28px;
+  padding: 10px 14px;
+  border: 1px solid #bdd4e4;
+  border-bottom: 0;
+  background: #edf6fb;
+}
+
+.exam-candidate-group-heading > div {
+  display: grid;
+  gap: 2px;
+}
+
+.exam-candidate-group-heading span {
+  color: #658096;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.exam-candidate-group table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+
+.exam-candidate-group th,
+.exam-candidate-group td {
+  padding: 6px 8px;
+  border: 1px solid #aebfca;
+  text-align: left;
+}
+
+.exam-candidate-group th {
+  color: #193b55;
+  background: #e2e9ee;
+  font-weight: 800;
+}
+
+.exam-candidate-group th:first-child,
+.exam-candidate-group td:first-child {
+  width: 42px;
+  text-align: center;
+}
+
 .professor-exam-card + .professor-exam-card {
   border-top: 1px solid var(--management-border);
 }
@@ -8768,6 +9186,37 @@ a.workspace-module-card:hover {
 }
 
 @media (max-width: 720px) {
+  .exam-candidate-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .exam-candidate-toolbar__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .professor-grade-summary,
+  .professor-grade-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .professor-grade-summary dl {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .professor-grade-summary dl > div {
+    padding: 8px;
+    border: 0;
+  }
+
+  .professor-grade-actions > div {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
   .academic-settings-tabs {
     grid-template-columns: 1fr;
   }
