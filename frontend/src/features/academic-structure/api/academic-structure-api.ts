@@ -110,6 +110,16 @@ const academicRuleProfileSchema = z.object({
   updatedAt: z.string().optional(),
 });
 
+const academicLevelRuleAssignmentSchema = z.object({
+  id: z.string().uuid(),
+  academicLevelId: z.string().uuid(),
+  academicYearId: z.string().uuid(),
+  academicRuleProfileId: z.string().uuid(),
+  status: z.enum(["ACTIVE", "INACTIVE"]),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
 const academicDomainSchema = z.object({
   id: z.string().uuid(),
   establishmentId: z.string().uuid(),
@@ -148,6 +158,7 @@ export type Semester = z.infer<typeof semesterSchema>;
 export type SubjectModule = z.infer<typeof subjectModuleSchema>;
 export type ModuleTeachingComponent = z.infer<typeof moduleTeachingComponentSchema>;
 export type AcademicRuleProfile = z.infer<typeof academicRuleProfileSchema>;
+export type AcademicLevelRuleAssignment = z.infer<typeof academicLevelRuleAssignmentSchema>;
 export type AcademicDomain = z.infer<typeof academicDomainSchema>;
 export type AcademicRank = z.infer<typeof academicRankSchema>;
 export type TeachingAssignmentRankPreference = z.infer<typeof teachingAssignmentRankPreferenceSchema>;
@@ -188,6 +199,7 @@ export const academicStructureKeys = {
   subjectModule: (subjectModuleId: string) => ["academic-structure", "subject-module", subjectModuleId] as const,
   moduleTeachingComponents: (subjectModuleId: string) => ["academic-structure", "module-teaching-components", subjectModuleId] as const,
   ruleProfiles: (establishmentId: string) => ["academic-structure", "rule-profiles", establishmentId] as const,
+  levelRuleAssignments: (academicLevelId: string) => ["academic-structure", "level-rule-assignments", academicLevelId] as const,
   academicDomains: (establishmentId: string) => ["academic-structure", "academic-domains", establishmentId] as const,
   academicRanks: (establishmentId: string) => ["academic-structure", "academic-ranks", establishmentId] as const,
   teachingAssignmentRankPreferences: (establishmentId: string) => ["teaching-planning", "rank-preferences", establishmentId] as const,
@@ -376,6 +388,10 @@ export async function replaceModuleTeachingComponents(
 
 export async function getAcademicRuleProfiles(establishmentId: string): Promise<AcademicRuleProfile[]> {
   return parseResponse(await apiClient.GET("/api/v1/establishments/{establishmentId}/academic-rule-profiles", { params: { path: { establishmentId } } }), z.array(academicRuleProfileSchema));
+}
+
+export async function getAcademicLevelRuleAssignments(academicLevelId: string): Promise<AcademicLevelRuleAssignment[]> {
+  return parseResponse(await apiClient.GET("/api/v1/academic-levels/{academicLevelId}/rule-assignments", { params: { path: { academicLevelId } } }), z.array(academicLevelRuleAssignmentSchema));
 }
 
 export async function createAcademicRuleProfile(establishmentId: string, request: CreateAcademicRuleProfileRequest): Promise<AcademicRuleProfile> {

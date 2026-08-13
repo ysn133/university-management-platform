@@ -767,6 +767,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/semesters/{semesterId}/class-groups/{classGroupId}/semester-results/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["generate_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/semesters/{semesterId}/class-groups/{classGroupId}/final-results/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["generate_3"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/semester-schedules/{scheduleId}/publish": {
         parameters: {
             query?: never;
@@ -1016,7 +1048,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["generate_2"];
+        post: operations["generate_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1823,6 +1855,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/semesters/{semesterId}/class-groups/{classGroupId}/semester-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/semesters/{semesterId}/class-groups/{classGroupId}/final-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/semester-schedules/{scheduleId}": {
         parameters: {
             query?: never;
@@ -2054,7 +2118,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_1"];
+        get: operations["get_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3200,6 +3264,46 @@ export interface components {
             code: string;
             title: string;
             academicDomainIds: string[];
+        };
+        ManagedSemesterResultResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            semesterRegistrationId?: string;
+            /** Format: uuid */
+            studentId?: string;
+            firstName?: string;
+            lastName?: string;
+            apogeeCode?: string;
+            semesterAverage?: number;
+            /** @enum {string} */
+            resultStatus?: "VALIDATED" | "NON_VALIDATED";
+            /** Format: int64 */
+            validatedModuleCount?: number;
+            /** Format: int64 */
+            compensatedModuleCount?: number;
+            /** Format: int64 */
+            nonValidatedModuleCount?: number;
+            /** Format: date-time */
+            evaluatedAt?: string;
+        };
+        FinalResultResponse: {
+            /** Format: uuid */
+            moduleRegistrationId?: string;
+            /** Format: uuid */
+            studentId?: string;
+            firstName?: string;
+            lastName?: string;
+            apogeeCode?: string;
+            /** Format: uuid */
+            subjectModuleId?: string;
+            subjectModuleCode?: string;
+            subjectModuleTitle?: string;
+            /** Format: int32 */
+            inscriptionNumber?: number;
+            finalGrade?: number;
+            /** @enum {string} */
+            resultStatus?: "V" | "AV" | "NV";
         };
         SemesterScheduleResponse: {
             /** Format: uuid */
@@ -5937,6 +6041,52 @@ export interface operations {
             };
         };
     };
+    generate_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                semesterId: string;
+                classGroupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ManagedSemesterResultResponse"][];
+                };
+            };
+        };
+    };
+    generate_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                semesterId: string;
+                classGroupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FinalResultResponse"][];
+                };
+            };
+        };
+    };
     publishSemesterSchedule: {
         parameters: {
             query?: never;
@@ -6349,7 +6499,7 @@ export interface operations {
             };
         };
     };
-    generate_2: {
+    generate_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -8296,6 +8446,54 @@ export interface operations {
             };
         };
     };
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                semesterId: string;
+                classGroupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ManagedSemesterResultResponse"][];
+                };
+            };
+        };
+    };
+    get_2: {
+        parameters: {
+            query?: {
+                subjectModuleId?: string;
+            };
+            header?: never;
+            path: {
+                semesterId: string;
+                classGroupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FinalResultResponse"][];
+                };
+            };
+        };
+    };
     getSemesterSchedule: {
         parameters: {
             query?: never;
@@ -8615,7 +8813,7 @@ export interface operations {
             };
         };
     };
-    get_1: {
+    get_3: {
         parameters: {
             query?: never;
             header?: never;

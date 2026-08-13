@@ -11,6 +11,7 @@ import { TeachingPlanWorkspace } from "@/features/teaching-planning/components/T
 import { SemesterProfessorsWorkspace } from "@/features/teaching-planning/components/SemesterProfessorsWorkspace";
 import { SemesterTimetableWorkspace } from "@/features/scheduling/components/SemesterTimetableWorkspace";
 import { ExamPlanningWorkspace } from "@/features/scheduling/components/ExamPlanningWorkspace";
+import { GradeManagementWorkspace } from "@/features/assessment/components/GradeManagementWorkspace";
 import { TeachingGroupPolicyModal } from "../components/TeachingGroupPolicyModal";
 import {
   academicStructureKeys,
@@ -24,9 +25,11 @@ import {
   deleteSubjectModule,
   getAcademicDomains,
   getAcademicLevels,
+  getAcademicLevelRuleAssignments,
   getAcademicRuleProfiles,
   getAcademicYears,
   getProgramFiliere,
+  getProgramPaths,
   getSemesters,
   getSubjectModules,
   updateAcademicLevel,
@@ -87,10 +90,11 @@ export function ProgramCurriculumPage() {
   const [searchParams] = useSearchParams();
   const { establishmentId, workspacePath } = useEstablishmentScope();
   const queryClient = useQueryClient();
-  const [activeSection, setActiveSection] = useState<"curriculum" | "students" | "teaching-groups" | "teaching-plan" | "professors" | "schedule" | "exam-planning">(() => searchParams.get("section") === "teaching-plan" ? "teaching-plan" : searchParams.get("section") === "professors" ? "professors" : searchParams.get("section") === "schedule" ? "schedule" : searchParams.get("section") === "exam-planning" ? "exam-planning" : "curriculum");
+  const [activeSection, setActiveSection] = useState<"curriculum" | "students" | "teaching-groups" | "teaching-plan" | "professors" | "schedule" | "exam-planning" | "grades">(() => searchParams.get("section") === "teaching-plan" ? "teaching-plan" : searchParams.get("section") === "professors" ? "professors" : searchParams.get("section") === "schedule" ? "schedule" : searchParams.get("section") === "exam-planning" ? "exam-planning" : searchParams.get("section") === "grades" ? "grades" : "curriculum");
   const [academicYearId, setAcademicYearId] = useState(() => routeAcademicYearId ?? searchParams.get("academicYearId") ?? "");
   const [academicLevelId, setAcademicLevelId] = useState(() => searchParams.get("academicLevelId") ?? "");
   const [semesterId, setSemesterId] = useState(() => searchParams.get("semesterId") ?? "");
+  const [pendingSemesterId, setPendingSemesterId] = useState("");
   const [levelForm, setLevelForm] = useState<LevelForm>(emptyLevelForm);
   const [semesterForm, setSemesterForm] = useState<SemesterForm>(emptySemesterForm);
   const [moduleForm, setModuleForm] = useState<ModuleForm>(emptyModuleForm);
@@ -111,9 +115,11 @@ export function ProgramCurriculumPage() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const programQuery = useQuery({ queryKey: academicStructureKeys.programFiliere(programFiliereId ?? "missing"), queryFn: () => getProgramFiliere(programFiliereId!), enabled: Boolean(programFiliereId) });
+  const programPathsQuery = useQuery({ queryKey: academicStructureKeys.programPaths(establishmentId ?? "missing"), queryFn: () => getProgramPaths(establishmentId!), enabled: Boolean(establishmentId) });
   const levelsQuery = useQuery({ queryKey: academicStructureKeys.academicLevels(programFiliereId ?? "missing"), queryFn: () => getAcademicLevels(programFiliereId!), enabled: Boolean(programFiliereId) });
   const yearsQuery = useQuery({ queryKey: academicStructureKeys.academicYears(establishmentId ?? "missing"), queryFn: () => getAcademicYears(establishmentId!), enabled: Boolean(establishmentId) });
   const profilesQuery = useQuery({ queryKey: academicStructureKeys.ruleProfiles(establishmentId ?? "missing"), queryFn: () => getAcademicRuleProfiles(establishmentId!), enabled: Boolean(establishmentId) });
+  const ruleAssignmentsQuery = useQuery({ queryKey: academicStructureKeys.levelRuleAssignments(academicLevelId || "missing"), queryFn: () => getAcademicLevelRuleAssignments(academicLevelId), enabled: Boolean(academicLevelId) });
   const domainsQuery = useQuery({ queryKey: academicStructureKeys.academicDomains(establishmentId ?? "missing"), queryFn: () => getAcademicDomains(establishmentId!), enabled: Boolean(establishmentId) });
   const semestersQuery = useQuery({ queryKey: academicStructureKeys.semesters(academicLevelId || "missing", academicYearId || "missing"), queryFn: () => getSemesters(academicLevelId, academicYearId), enabled: Boolean(academicLevelId && academicYearId) });
   const modulesQuery = useQuery({ queryKey: academicStructureKeys.subjectModules(semesterId || "missing"), queryFn: () => getSubjectModules(semesterId), enabled: Boolean(semesterId) });
@@ -127,8 +133,16 @@ export function ProgramCurriculumPage() {
     if (levelsQuery.data && !levelsQuery.data.some((level) => level.id === academicLevelId)) setAcademicLevelId(levelsQuery.data[0]?.id ?? "");
   }, [academicLevelId, levelsQuery.data]);
   useEffect(() => {
-    if (semestersQuery.data && !semestersQuery.data.some((semester) => semester.id === semesterId)) setSemesterId(semestersQuery.data[0]?.id ?? "");
-  }, [semesterId, semestersQuery.data]);
+    if (!semestersQuery.data) return;
+    if (pendingSemesterId) {
+      if (semestersQuery.data.some((semester) => semester.id === pendingSemesterId)) {
+        setSemesterId(pendingSemesterId);
+        setPendingSemesterId("");
+      }
+      return;
+    }
+    if (!semestersQuery.data.some((semester) => semester.id === semesterId)) setSemesterId(semestersQuery.data[0]?.id ?? "");
+  }, [pendingSemesterId, semesterId, semestersQuery.data]);
 
   async function refreshLevels() { await queryClient.invalidateQueries({ queryKey: academicStructureKeys.academicLevels(programFiliereId!) }); }
   async function refreshSemesters() { await queryClient.invalidateQueries({ queryKey: academicStructureKeys.semesters(academicLevelId, academicYearId) }); }
@@ -256,6 +270,9 @@ export function ProgramCurriculumPage() {
   const selectedLevel = levels.find((level) => level.id === academicLevelId);
   const selectedSemester = semesters.find((semester) => semester.id === semesterId);
   const selectedYear = yearsQuery.data?.find((year) => year.id === academicYearId);
+  const selectedProgramPath = programPathsQuery.data?.find((path) => path.id === program?.programPathId);
+  const selectedRuleAssignment = ruleAssignmentsQuery.data?.find((assignment) => assignment.academicYearId === academicYearId && assignment.status === "ACTIVE");
+  const selectedRuleProfile = profilesQuery.data?.find((profile) => profile.id === selectedRuleAssignment?.academicRuleProfileId);
   const activeProfiles = profilesQuery.data?.filter((profile) => profile.status === "ACTIVE") ?? [];
   const domainNames = new Map(domainsQuery.data?.map((domain) => [domain.id, domain.name]));
   const canCreateLevel = Boolean(yearsQuery.data?.length);
@@ -292,6 +309,7 @@ export function ProgramCurriculumPage() {
       <button aria-selected={activeSection === "professors"} onClick={() => setActiveSection("professors")} role="tab" type="button">Professors</button>
       <button aria-selected={activeSection === "schedule"} onClick={() => setActiveSection("schedule")} role="tab" type="button">Schedule</button>
       <button aria-selected={activeSection === "exam-planning"} onClick={() => setActiveSection("exam-planning")} role="tab" type="button">Exam Planning</button>
+      <button aria-selected={activeSection === "grades"} onClick={() => setActiveSection("grades")} role="tab" type="button">Grades</button>
     </nav>
 
     <div className="curriculum-layout">
@@ -309,7 +327,7 @@ export function ProgramCurriculumPage() {
           return <article className={isSelected ? "is-active" : ""} key={level.id}>
             <button className="curriculum-level-select" onClick={() => { setAcademicLevelId(level.id); setSemesterId(""); }} type="button">
               <strong>{level.name}</strong>
-              <small>{isSelected ? "Currently viewing" : activeSection === "students" ? "View student cohort" : activeSection === "teaching-groups" ? "View TD and TP groups" : activeSection === "teaching-plan" ? "View required teaching delivery" : activeSection === "professors" ? "View assigned Professors" : activeSection === "schedule" ? "View weekly timetable" : activeSection === "exam-planning" ? "Plan examination periods" : "View semesters and modules"}</small>
+              <small>{isSelected ? "Currently viewing" : activeSection === "students" ? "View student cohort" : activeSection === "teaching-groups" ? "View TD and TP groups" : activeSection === "teaching-plan" ? "View required teaching delivery" : activeSection === "professors" ? "View assigned Professors" : activeSection === "schedule" ? "View weekly timetable" : activeSection === "exam-planning" ? "Plan examination periods" : activeSection === "grades" ? "Review and publish grades" : "View semesters and modules"}</small>
             </button>
             {activeSection === "curriculum" && <div className="row-actions">
               <button disabled={!academicYearId} onClick={() => { setAcademicLevelId(level.id); setConfiguringGroupPolicy(level); }} type="button">Group sizes</button>
@@ -330,6 +348,7 @@ export function ProgramCurriculumPage() {
           : activeSection === "professors" ? <SemesterProfessorsWorkspace academicLevelName={selectedLevel?.name} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} onSelectSemester={setSemesterId} professorDetailsPath={(professorId) => `${workspacePath}/professors/${professorId}`} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />
           : activeSection === "schedule" ? <SemesterTimetableWorkspace academicLevelId={academicLevelId} academicLevelName={selectedLevel?.name} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} onSelectSemester={setSemesterId} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />
           : activeSection === "exam-planning" ? <ExamPlanningWorkspace academicLevelId={academicLevelId} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} programName={program.name} onSelectSemester={setSemesterId} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />
+          : activeSection === "grades" ? <GradeManagementWorkspace academicLevelId={academicLevelId} academicLevelName={selectedLevel?.name} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} moduleValidationThreshold={selectedRuleProfile?.moduleValidationThreshold} modules={modules} onOpenOriginalSemester={(yearId, levelId, originalSemesterId) => { setPendingSemesterId(originalSemesterId); setAcademicYearId(yearId); setAcademicLevelId(levelId); }} onSelectSemester={setSemesterId} programName={program.name} programPathName={selectedProgramPath?.name} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />
           : <TeachingPlanWorkspace academicLevelName={selectedLevel?.name} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} onSelectSemester={setSemesterId} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />}
       </main>
     </div>
