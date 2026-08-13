@@ -192,6 +192,7 @@ class TeachingAssignmentServiceIntegrationTest {
     private SubjectModule subjectModule;
     private ClassGroup classGroup;
     private TeachingRequirement teachingRequirement;
+    private AcademicRank defaultProfessorRank;
 
     @BeforeEach
     void setUp() {
@@ -207,6 +208,13 @@ class TeachingAssignmentServiceIntegrationTest {
         establishment.setEstablishmentType(EstablishmentType.SCHOOL);
         establishment.setEstablishmentStatus(EstablishmentStatus.ACTIVE);
         establishment = establishmentRepository.save(establishment);
+
+        defaultProfessorRank = saveRank(
+            "DEFAULT_PROFESSOR",
+            "Default Professor",
+            1,
+            true
+        );
 
         ProgramFiliere program = saveProgram();
         AcademicLevel level = new AcademicLevel();
@@ -289,6 +297,24 @@ class TeachingAssignmentServiceIntegrationTest {
             );
 
         assertThat(first.status()).isEqualTo(TeachingAssignmentStatus.ACTIVE);
+        assertThat(first.subjectModuleCode()).isEqualTo("ALG");
+        assertThat(first.subjectModuleTitle()).isEqualTo("Algorithms");
+        assertThat(first.semesterName()).isEqualTo("S1");
+        assertThat(first.academicYearLabel()).isEqualTo("2026-2027");
+        assertThat(first.academicLevelName()).isEqualTo("M1");
+        assertThat(first.programFiliereCode()).isEqualTo("IL");
+        assertThat(first.sessionsPerWeek()).isEqualTo(1);
+        assertThat(responsibilityRepository
+            .findBySubjectModuleIdAndClassGroupIdAndAcademicYearIdAndSemesterIdAndStatus(
+                subjectModule.getId(),
+                classGroup.getId(),
+                academicYear.getId(),
+                semester.getId(),
+                ModuleClassResponsibilityStatus.ACTIVE
+            )
+            .orElseThrow()
+            .getProfessor()
+            .getId()).isEqualTo(firstProfessor.getId());
         assertThat(teachingAssignmentService.getTeachingAssignment(root, first.id()).id())
             .isEqualTo(first.id());
         assertThat(teachingAssignmentService.getTeachingAssignments(
@@ -333,6 +359,17 @@ class TeachingAssignmentServiceIntegrationTest {
             );
         assertThat(replacement.professorId()).isEqualTo(secondProfessor.getId());
         assertThat(replacement.status()).isEqualTo(TeachingAssignmentStatus.ACTIVE);
+        assertThat(responsibilityRepository
+            .findBySubjectModuleIdAndClassGroupIdAndAcademicYearIdAndSemesterIdAndStatus(
+                subjectModule.getId(),
+                classGroup.getId(),
+                academicYear.getId(),
+                semester.getId(),
+                ModuleClassResponsibilityStatus.ACTIVE
+            )
+            .orElseThrow()
+            .getProfessor()
+            .getId()).isEqualTo(secondProfessor.getId());
     }
 
     @Test
@@ -414,6 +451,9 @@ class TeachingAssignmentServiceIntegrationTest {
             responsibilityRequest(firstProfessor)
         );
         assertThat(first.status()).isEqualTo(ModuleClassResponsibilityStatus.ACTIVE);
+        assertThat(first.subjectModuleCode()).isEqualTo("ALG");
+        assertThat(first.subjectModuleTitle()).isEqualTo("Algorithms");
+        assertThat(first.classGroupName()).isEqualTo("Group A");
 
         assertThatThrownBy(() -> responsibilityService.createResponsibility(
             root,
@@ -519,6 +559,17 @@ class TeachingAssignmentServiceIntegrationTest {
             .isEqualTo(associate.getId());
         assertThat(firstRun.createdAssignments().get(0).assignmentSource())
             .isEqualTo(TeachingAssignmentSource.AUTOMATIC);
+        assertThat(responsibilityRepository
+            .findBySubjectModuleIdAndClassGroupIdAndAcademicYearIdAndSemesterIdAndStatus(
+                subjectModule.getId(),
+                classGroup.getId(),
+                academicYear.getId(),
+                semester.getId(),
+                ModuleClassResponsibilityStatus.ACTIVE
+            )
+            .orElseThrow()
+            .getProfessor()
+            .getId()).isEqualTo(associate.getId());
         assertThat(firstRun.unresolvedRequirements()).isEmpty();
 
         var secondRun = teachingAssignmentGenerationService.generate(root, semester.getId());
@@ -565,6 +616,7 @@ class TeachingAssignmentServiceIntegrationTest {
         Professor professor = new Professor();
         professor.setUserAccount(account);
         professor.setEstablishment(establishment);
+        professor.setAcademicRank(defaultProfessorRank);
         professor.setEmployeeNumber("EMP-" + UUID.randomUUID());
         professor.setMaximumWeeklyTeachingMinutes(480);
         return professorRepository.save(professor);

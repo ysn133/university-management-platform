@@ -6,6 +6,8 @@ import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.PermissionCode;
 import com.platform.identityaccess.domain.Professor;
 import com.platform.identityaccess.infrastructure.ProfessorRepository;
+import com.platform.identityaccess.infrastructure.UserProfileRepository;
+import com.platform.academicregistration.classassignment.infrastructure.StudentClassAssignmentRepository;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.shared.presentation.ActionResponse;
 import com.platform.moduleclassresponsibility.domain.ModuleClassResponsibility;
@@ -13,6 +15,9 @@ import com.platform.moduleclassresponsibility.domain.ModuleClassResponsibilitySt
 import com.platform.moduleclassresponsibility.infrastructure.ModuleClassResponsibilityRepository;
 import com.platform.moduleclassresponsibility.presentation.dto.CreateModuleClassResponsibilityRequest;
 import com.platform.moduleclassresponsibility.presentation.dto.ModuleClassResponsibilityResponse;
+import com.platform.teachingassignment.domain.TeachingAssignment;
+import com.platform.teachingassignment.presentation.dto.TeachingAssignmentStudentResponse;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingComponentType;
 import com.platform.universitygovernance.academicyear.domain.AcademicYear;
 import com.platform.universitygovernance.academicyear.domain.AcademicYearStatus;
 import com.platform.universitygovernance.academicyear.infrastructure.AcademicYearRepository;
@@ -44,6 +49,8 @@ public class ModuleClassResponsibilityService {
     private final SemesterRepository semesterRepository;
     private final EstablishmentRepository establishmentRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
+    private final StudentClassAssignmentRepository classAssignmentRepository;
+    private final UserProfileRepository userProfileRepository;
 
     public ModuleClassResponsibilityService(
         ModuleClassResponsibilityRepository responsibilityRepository,
@@ -53,7 +60,9 @@ public class ModuleClassResponsibilityService {
         AcademicYearRepository academicYearRepository,
         SemesterRepository semesterRepository,
         EstablishmentRepository establishmentRepository,
-        AdminPermissionAuthorizationService permissionAuthorizationService
+        AdminPermissionAuthorizationService permissionAuthorizationService,
+        StudentClassAssignmentRepository classAssignmentRepository,
+        UserProfileRepository userProfileRepository
     ) {
         this.responsibilityRepository = responsibilityRepository;
         this.professorRepository = professorRepository;
@@ -63,6 +72,8 @@ public class ModuleClassResponsibilityService {
         this.semesterRepository = semesterRepository;
         this.establishmentRepository = establishmentRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
+        this.classAssignmentRepository = classAssignmentRepository;
+        this.userProfileRepository = userProfileRepository;
     }
 
     @Transactional
@@ -179,6 +190,58 @@ public class ModuleClassResponsibilityService {
             .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<TeachingAssignmentStudentResponse> getMyClassStudents(
+        AuthenticatedUserPrincipal principal,
+        UUID subjectModuleId,
+        UUID classGroupId
+    ) {
+        if (principal == null || principal.role() != AccountRoleType.PROFESSOR) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Professor access required");
+        }
+        ModuleClassResponsibility responsibility = responsibilityRepository
+            .findByProfessorIdAndSubjectModuleIdAndClassGroupIdAndStatus(
+                principal.roleEntityId(),
+                subjectModuleId,
+                classGroupId,
+                ModuleClassResponsibilityStatus.ACTIVE
+            )
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Module class responsibility not found"
+            ));
+
+        return classAssignmentRepository
+            .findBySemesterRegistrationSemesterIdAndClassGroupId(
+                responsibility.getSemester().getId(),
+                classGroupId
+            )
+            .stream()
+            .map(assignment -> assignment.getSemesterRegistration()
+                .getAcademicRegistration().getStudent())
+            .distinct()
+            .map(student -> {
+                var profile = userProfileRepository
+                    .findByUserAccountId(student.getUserAccount().getId())
+                    .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Student profile not found"
+                    ));
+                return new TeachingAssignmentStudentResponse(
+                    student.getId(),
+                    student.getApogeeCode(),
+                    student.getNationalStudentCode(),
+                    student.getUserAccount().getUniversityEmail(),
+                    profile.getFirstName(),
+                    profile.getLastName()
+                );
+            })
+            .sorted(java.util.Comparator
+                .comparing(TeachingAssignmentStudentResponse::lastName)
+                .thenComparing(TeachingAssignmentStudentResponse::firstName))
+            .toList();
+    }
+
     @Transactional
     public ActionResponse removeResponsibility(
         AuthenticatedUserPrincipal principal,
@@ -194,6 +257,91 @@ public class ModuleClassResponsibilityService {
         responsibility.setStatus(ModuleClassResponsibilityStatus.INACTIVE);
         responsibilityRepository.save(responsibility);
         return new ActionResponse(true, "Module class responsibility removed");
+    }
+
+    @Transactional
+    public void synchronizeWithCourseAssignment(TeachingAssignment assignment) {
+        var requirement = assignment.getTeachingRequirement();
+        var component = requirement.getModuleTeachingComponent();
+        if (component.getComponentType() != TeachingComponentType.COURSE) {
+            return;
+        }
+
+        Professor professor = assignment.getProfessor();
+        SubjectModule subjectModule = component.getSubjectModule();
+        Semester semester = requirement.getTeachingGroup().getSemester();
+        AcademicYear academicYear = semester.getAcademicYear();
+        ClassGroup sourceClassGroup = requirement.getTeachingGroup().getSourceClassGroup();
+        List<ClassGroup> classGroups = sourceClassGroup == null
+            ? classGroupRepository
+                .findByAcademicLevelIdAndAcademicYearIdOrderByNameAsc(
+                    semester.getAcademicLevel().getId(),
+                    academicYear.getId()
+                )
+                .stream()
+                .filter(classGroup -> classGroup.getStatus() == ClassGroupStatus.ACTIVE)
+                .toList()
+            : List.of(sourceClassGroup);
+
+        classGroups.forEach(classGroup -> synchronizeResponsibility(
+            professor,
+            subjectModule,
+            classGroup,
+            academicYear,
+            semester
+        ));
+    }
+
+    private void synchronizeResponsibility(
+        Professor professor,
+        SubjectModule subjectModule,
+        ClassGroup classGroup,
+        AcademicYear academicYear,
+        Semester semester
+    ) {
+        ModuleClassResponsibility active = responsibilityRepository
+            .findBySubjectModuleIdAndClassGroupIdAndAcademicYearIdAndSemesterIdAndStatus(
+                subjectModule.getId(),
+                classGroup.getId(),
+                academicYear.getId(),
+                semester.getId(),
+                ModuleClassResponsibilityStatus.ACTIVE
+            )
+            .orElse(null);
+        if (active != null && active.getProfessor().getId().equals(professor.getId())) {
+            return;
+        }
+
+        ModuleClassResponsibility matching = responsibilityRepository
+            .findByProfessorIdAndSubjectModuleIdAndClassGroupIdAndAcademicYearIdAndSemesterId(
+                professor.getId(),
+                subjectModule.getId(),
+                classGroup.getId(),
+                academicYear.getId(),
+                semester.getId()
+            )
+            .orElse(null);
+
+        if (matching != null) {
+            if (active != null) {
+                active.setStatus(ModuleClassResponsibilityStatus.INACTIVE);
+                responsibilityRepository.save(active);
+            }
+            matching.setStatus(ModuleClassResponsibilityStatus.ACTIVE);
+            responsibilityRepository.save(matching);
+            return;
+        }
+
+        ModuleClassResponsibility responsibility = active == null
+            ? new ModuleClassResponsibility()
+            : active;
+        responsibility.setProfessor(professor);
+        responsibility.setSubjectModule(subjectModule);
+        responsibility.setClassGroup(classGroup);
+        responsibility.setAcademicYear(academicYear);
+        responsibility.setSemester(semester);
+        responsibility.setStatus(ModuleClassResponsibilityStatus.ACTIVE);
+        responsibilityRepository.save(responsibility);
     }
 
     private ModuleClassResponsibility findResponsibility(UUID responsibilityId) {
@@ -338,9 +486,14 @@ public class ModuleClassResponsibilityService {
             establishmentId(responsibility),
             responsibility.getProfessor().getId(),
             responsibility.getSubjectModule().getId(),
+            responsibility.getSubjectModule().getCode(),
+            responsibility.getSubjectModule().getTitle(),
             responsibility.getClassGroup().getId(),
+            responsibility.getClassGroup().getName(),
             responsibility.getAcademicYear().getId(),
+            responsibility.getAcademicYear().getLabel(),
             responsibility.getSemester().getId(),
+            responsibility.getSemester().getName(),
             responsibility.getStatus(),
             responsibility.getCreatedAt(),
             responsibility.getUpdatedAt()

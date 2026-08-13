@@ -1,6 +1,7 @@
 package com.platform.scheduling.semesterschedule.infrastructure;
 
 import com.platform.scheduling.semesterschedule.domain.ScheduleEntry;
+import com.platform.scheduling.semesterschedule.domain.SchedulePublicationStatus;
 import com.platform.universitygovernance.semester.domain.SemesterTermType;
 import java.time.DayOfWeek;
 import java.util.List;
@@ -20,6 +21,19 @@ public interface ScheduleEntryRepository extends JpaRepository<ScheduleEntry, UU
     long countByTeachingAssignmentIdAndIdNot(
         UUID teachingAssignmentId,
         UUID scheduleEntryId
+    );
+
+    @Query("""
+        select entry
+        from ScheduleEntry entry
+        where entry.teachingAssignment.professor.id = :professorId
+          and entry.teachingAssignment.status = com.platform.teachingassignment.domain.TeachingAssignmentStatus.ACTIVE
+          and entry.semesterSchedule.publicationStatus = :publicationStatus
+        order by entry.dayOfWeek, entry.startTime
+        """)
+    List<ScheduleEntry> findProfessorSchedule(
+        @Param("professorId") UUID professorId,
+        @Param("publicationStatus") SchedulePublicationStatus publicationStatus
     );
 
     @Query("""

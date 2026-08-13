@@ -79,7 +79,9 @@ export function SubjectModulePage() {
     subjectModuleId,
     academicYearId: routeAcademicYearId,
     programPathId: routeProgramPathId,
-  } = useParams<{ programFiliereId: string; subjectModuleId: string; academicYearId?: string; programPathId?: string }>();
+    departmentId: routeDepartmentId,
+    degreeCycleId: routeDegreeCycleId,
+  } = useParams<{ programFiliereId: string; subjectModuleId: string; academicYearId?: string; programPathId?: string; departmentId?: string; degreeCycleId?: string }>();
   const [searchParams] = useSearchParams();
   const { establishmentId, workspacePath } = useEstablishmentScope();
   const queryClient = useQueryClient();
@@ -152,6 +154,10 @@ export function SubjectModulePage() {
     ? `${workspacePath}/academic-years/${routeAcademicYearId}/program-paths/${programPathId}/programs/${programFiliereId}?academicLevelId=${academicLevelId}&semesterId=${module.semesterId}`
     : routeProgramPathId
     ? `${workspacePath}/program-paths/${routeProgramPathId}/programs/${programFiliereId}?academicYearId=${academicYearId}&academicLevelId=${academicLevelId}&semesterId=${module.semesterId}`
+    : routeDepartmentId
+    ? `${workspacePath}/departments/${routeDepartmentId}/programs/${programFiliereId}?academicYearId=${academicYearId}&academicLevelId=${academicLevelId}&semesterId=${module.semesterId}`
+    : routeDegreeCycleId
+    ? `${workspacePath}/degree-cycles/${routeDegreeCycleId}/programs/${programFiliereId}?academicYearId=${academicYearId}&academicLevelId=${academicLevelId}&semesterId=${module.semesterId}`
     : `${workspacePath}/programs/${programFiliereId}${backParams.size ? `?${backParams}` : ""}`;
 
   return <div className="management-page module-workspace-page">

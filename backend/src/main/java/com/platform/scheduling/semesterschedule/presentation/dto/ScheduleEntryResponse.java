@@ -24,6 +24,8 @@ public record ScheduleEntryResponse(
     String roomCode,
     String roomName,
     UUID blockId,
+    String blockCode,
+    String blockName,
     Instant createdAt,
     Instant updatedAt
 ) {

@@ -1,8 +1,23 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { assignProfessor, clearTeachingAssignments, generateTeachingAssignments, generateTeachingPlan, getTeachingAssignments, getTeachingPlan, unassignProfessor } from "./teaching-plan-api";
+import { assignProfessor, clearTeachingAssignments, generateTeachingAssignments, generateTeachingPlan, getMyTeachingAssignments, getTeachingAssignments, getTeachingPlan, unassignProfessor } from "./teaching-plan-api";
 
 const semesterId = "00000000-0000-4000-8000-000000000001";
 const establishmentId = "00000000-0000-4000-8000-000000000010";
+const assignmentContext = {
+  subjectModuleCode: "ALG",
+  subjectModuleTitle: "Algorithms",
+  sessionsPerWeek: 1,
+  sessionDurationMinutes: 120,
+  semesterId,
+  semesterName: "S1",
+  academicYearId: "00000000-0000-4000-8000-000000000020",
+  academicYearLabel: "2026-2027",
+  academicLevelId: "00000000-0000-4000-8000-000000000021",
+  academicLevelName: "M1",
+  programFiliereId: "00000000-0000-4000-8000-000000000022",
+  programFiliereCode: "IL",
+  programFiliereName: "Software Engineering",
+};
 const plan = [{
   id: "00000000-0000-4000-8000-000000000002",
   subjectModuleId: "00000000-0000-4000-8000-000000000003",
@@ -48,6 +63,7 @@ describe("teaching plan API", () => {
       professorId: "00000000-0000-4000-8000-000000000012",
       teachingRequirementId: plan[0].id,
       subjectModuleId: plan[0].subjectModuleId,
+      ...assignmentContext,
       componentType: "TD",
       teachingGroupId: plan[0].teachingGroupId,
       teachingGroupName: "A",
@@ -59,6 +75,27 @@ describe("teaching plan API", () => {
 
     await expect(getTeachingAssignments(establishmentId)).resolves.toEqual(assignments);
     expect((fetchMock.mock.calls[0][0] as Request).url).toContain(`/api/v1/establishments/${establishmentId}/teaching-assignments`);
+  });
+
+  it("loads the authenticated Professor teaching assignments", async () => {
+    const assignments = [{
+      id: "00000000-0000-4000-8000-000000000011",
+      establishmentId,
+      professorId: "00000000-0000-4000-8000-000000000012",
+      teachingRequirementId: plan[0].id,
+      subjectModuleId: plan[0].subjectModuleId,
+      ...assignmentContext,
+      componentType: "TD",
+      teachingGroupId: plan[0].teachingGroupId,
+      teachingGroupName: "A",
+      status: "ACTIVE",
+      assignmentSource: "AUTOMATIC",
+    }];
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(assignments), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getMyTeachingAssignments()).resolves.toEqual(assignments);
+    expect((fetchMock.mock.calls[0][0] as Request).url).toContain("/api/v1/me/teaching-assignments");
   });
 
   it("generates and reports semester teaching assignments", async () => {
@@ -95,6 +132,7 @@ describe("teaching plan API", () => {
       professorId: "00000000-0000-4000-8000-000000000012",
       teachingRequirementId: plan[0].id,
       subjectModuleId: plan[0].subjectModuleId,
+      ...assignmentContext,
       componentType: "TD",
       teachingGroupId: plan[0].teachingGroupId,
       teachingGroupName: "A",

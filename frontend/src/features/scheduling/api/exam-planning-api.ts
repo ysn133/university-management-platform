@@ -26,9 +26,29 @@ export interface ModuleExamInput {
   roomId: string;
   roomAllocations?: Array<{ examGroupId: string; roomId: string }>;
 }
-export interface ExamGroup { id: string; label: string; groupOrder: number; studentCount: number; }
+export interface ExamGroupMember { studentId: string; apogeeCode: string; nationalStudentCode?: string | null; cin?: string | null; lastName: string; firstName: string; }
+export interface ExamGroup { id: string; label: string; groupOrder: number; studentCount: number; members: ExamGroupMember[]; }
 export interface ExamGroupPlan { examScheduleId: string; classGroupId: string; totalStudentCount: number; splitCount: number; groups: ExamGroup[]; }
 export interface ExamRoomAllocation { id: string; examGroupId: string; examGroupLabel: string; studentCount: number; roomId: string; roomCode: string; roomName: string; roomCapacity: number; }
+export interface ExamCandidate {
+  id: string;
+  moduleExamId: string;
+  moduleRegistrationId: string;
+  studentId: string;
+  apogeeCode: string;
+  nationalStudentCode?: string | null;
+  cin?: string | null;
+  lastName: string;
+  firstName: string;
+  subjectModuleId: string;
+  examGroupId: string;
+  examGroupLabel: string;
+  sessionType: "NORMAL" | "RATTRAPAGE";
+  examDate: string;
+  startTime: string;
+  roomCode: string;
+  createdAt: string;
+}
 
 export const examPlanningKeys = {
   schedules: (establishmentId: string) => ["exam-planning", "schedules", establishmentId] as const,
@@ -86,4 +106,12 @@ export function getExamRoomAllocations(moduleExamId: string): Promise<ExamRoomAl
 
 export function replaceExamRoomAllocations(moduleExamId: string, allocations: Array<{ examGroupId: string; roomId: string }>): Promise<ExamRoomAllocation[]> {
   return requestJson(`/api/v1/module-exams/${moduleExamId}/room-allocations`, { method: "PUT", body: JSON.stringify({ allocations }) });
+}
+
+export function getExamCandidates(moduleExamId: string): Promise<ExamCandidate[]> {
+  return requestJson(`/api/v1/module-exams/${moduleExamId}/candidates`);
+}
+
+export function generateExamCandidates(moduleExamId: string): Promise<ExamCandidate[]> {
+  return requestJson(`/api/v1/module-exams/${moduleExamId}/candidates/generate`, { method: "POST" });
 }

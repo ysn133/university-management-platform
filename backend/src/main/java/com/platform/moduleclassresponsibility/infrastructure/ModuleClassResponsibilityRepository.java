@@ -17,6 +17,14 @@ public interface ModuleClassResponsibilityRepository
     List<ModuleClassResponsibility> findByProfessorIdOrderByCreatedAtDesc(UUID professorId);
 
     Optional<ModuleClassResponsibility>
+        findByProfessorIdAndSubjectModuleIdAndClassGroupIdAndStatus(
+            UUID professorId,
+            UUID subjectModuleId,
+            UUID classGroupId,
+            ModuleClassResponsibilityStatus status
+        );
+
+    Optional<ModuleClassResponsibility>
         findBySubjectModuleIdAndClassGroupIdAndAcademicYearIdAndSemesterIdAndStatus(
             UUID subjectModuleId,
             UUID classGroupId,

@@ -383,7 +383,17 @@ class SemesterScheduleServiceIntegrationTest {
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("400 BAD_REQUEST");
 
+        AuthenticatedUserPrincipal professor = principal(
+            AccountRoleType.PROFESSOR,
+            assignment.getProfessor().getId(),
+            firstEstablishment.getId()
+        );
+        assertThat(scheduleEntryService.getMyScheduleEntries(professor)).isEmpty();
+
         semesterScheduleService.publishSemesterSchedule(root, schedule.id());
+        assertThat(scheduleEntryService.getMyScheduleEntries(professor))
+            .extracting(ScheduleEntryResponse::id)
+            .containsExactly(created.id());
         assertThat(scheduleEntryService.deleteScheduleEntry(
             root,
             created.id()

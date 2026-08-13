@@ -3,7 +3,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { getEstablishment, rootGovernanceKeys } from "@/features/root-governance/api/root-governance-api";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
-import { academicStructureKeys, getAcademicYears, getProgramPaths } from "@/features/academic-structure/api/academic-structure-api";
+import { academicStructureKeys, getAcademicYears, getDegreeCycles, getDepartments, getProgramPaths } from "@/features/academic-structure/api/academic-structure-api";
 import { getManagementNavigation } from "../navigation/management-navigation";
 
 export function ManagementLayout() {
@@ -30,6 +30,10 @@ export function ManagementLayout() {
   const directProgramPathMatch = isAcademicYearContext ? null : location.pathname.match(/\/program-paths\/([^/]+)\/programs/);
   const programPathId = academicYearProgramPathMatch?.[1] ?? directProgramPathMatch?.[1] ?? searchParams.get("programPathId");
   const isDirectProgramPathContext = Boolean(directProgramPathMatch);
+  const departmentContextMatch = location.pathname.match(/\/departments\/([^/]+)\/programs/);
+  const degreeCycleContextMatch = location.pathname.match(/\/degree-cycles\/([^/]+)\/programs/);
+  const departmentId = departmentContextMatch?.[1];
+  const degreeCycleId = degreeCycleContextMatch?.[1];
   const academicYearsQuery = useQuery({
     queryKey: academicStructureKeys.academicYears(establishmentId ?? "missing"),
     queryFn: () => getAcademicYears(establishmentId!),
@@ -40,9 +44,21 @@ export function ManagementLayout() {
     queryFn: () => getProgramPaths(establishmentId!),
     enabled: Boolean(establishmentId && programPathId && (isAcademicYearContext || isDirectProgramPathContext)),
   });
+  const departmentsQuery = useQuery({
+    queryKey: academicStructureKeys.departments(establishmentId ?? "missing"),
+    queryFn: () => getDepartments(establishmentId!),
+    enabled: Boolean(establishmentId && departmentId),
+  });
+  const degreeCyclesQuery = useQuery({
+    queryKey: academicStructureKeys.degreeCycles(establishmentId ?? "missing"),
+    queryFn: () => getDegreeCycles(establishmentId!),
+    enabled: Boolean(establishmentId && degreeCycleId),
+  });
   const establishment = establishmentQuery.data;
   const academicYear = academicYearsQuery.data?.find((item) => item.id === academicYearId);
   const programPath = programPathsQuery.data?.find((item) => item.id === programPathId);
+  const department = departmentsQuery.data?.find((item) => item.id === departmentId);
+  const degreeCycle = degreeCyclesQuery.data?.find((item) => item.id === degreeCycleId);
   const contextPath = user?.role === "ROOT_SUPER_ADMIN" && establishmentId
     ? `/management/establishments/${establishmentId}`
     : "/management";
@@ -65,7 +81,8 @@ export function ManagementLayout() {
     facilities: "Facilities",
   };
   const lastPathSegment = location.pathname.split("/").filter(Boolean).at(-1) ?? "";
-  const section = isAcademicYearContext || isDirectProgramPathContext ? null : sectionLabels[lastPathSegment] ?? null;
+  const isCatalogContext = isAcademicYearContext || isDirectProgramPathContext || Boolean(departmentId) || Boolean(degreeCycleId);
+  const section = isCatalogContext ? null : sectionLabels[lastPathSegment] ?? null;
   const adminsPath = user?.role === "ROOT_SUPER_ADMIN"
     ? `${contextPath}/admins`
     : "/management/admins";
@@ -108,6 +125,34 @@ export function ManagementLayout() {
                 : [{ label: "Programs / Filières" }]),
             ]
           : []),
+        ...(departmentId
+          ? [
+              { label: "Departments", to: `${contextPath}/departments` },
+              { label: department?.name ?? "Department", to: `${contextPath}/departments/${departmentId}/programs` },
+              ...(programDetailMatch
+                ? [{ label: "Program curriculum" }]
+                : moduleDetailMatch
+                ? [
+                    { label: "Program curriculum", to: `${contextPath}/departments/${departmentId}/programs/${moduleDetailMatch[1]}` },
+                    { label: "Module delivery" },
+                  ]
+                : [{ label: "Programs / Filières" }]),
+            ]
+          : []),
+        ...(degreeCycleId
+          ? [
+              { label: "Degree Cycles", to: `${contextPath}/degree-cycles` },
+              { label: degreeCycle?.name ?? "Degree cycle", to: `${contextPath}/degree-cycles/${degreeCycleId}/programs` },
+              ...(programDetailMatch
+                ? [{ label: "Program curriculum" }]
+                : moduleDetailMatch
+                ? [
+                    { label: "Program curriculum", to: `${contextPath}/degree-cycles/${degreeCycleId}/programs/${moduleDetailMatch[1]}` },
+                    { label: "Module delivery" },
+                  ]
+                : [{ label: "Programs / Filières" }]),
+            ]
+          : []),
         ...(adminDetailMatch
           ? [
               { label: "Admins", to: adminsPath },
@@ -120,13 +165,13 @@ export function ManagementLayout() {
               { label: "Student record" },
             ]
           : []),
-        ...(!isAcademicYearContext && !isDirectProgramPathContext && programDetailMatch
+        ...(!isCatalogContext && programDetailMatch
           ? [
               { label: "Programs / Filières", to: programsPath },
               { label: "Program curriculum" },
             ]
           : []),
-        ...(!isAcademicYearContext && !isDirectProgramPathContext && moduleDetailMatch
+        ...(!isCatalogContext && moduleDetailMatch
           ? [
               { label: "Programs / Filières", to: programsPath },
               { label: "Program curriculum", to: `${programsPath}/${moduleDetailMatch[1]}` },

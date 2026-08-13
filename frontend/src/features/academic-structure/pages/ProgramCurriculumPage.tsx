@@ -81,7 +81,9 @@ export function ProgramCurriculumPage() {
     programFiliereId,
     academicYearId: routeAcademicYearId,
     programPathId: routeProgramPathId,
-  } = useParams<{ programFiliereId: string; academicYearId?: string; programPathId?: string }>();
+    departmentId: routeDepartmentId,
+    degreeCycleId: routeDegreeCycleId,
+  } = useParams<{ programFiliereId: string; academicYearId?: string; programPathId?: string; departmentId?: string; degreeCycleId?: string }>();
   const [searchParams] = useSearchParams();
   const { establishmentId, workspacePath } = useEstablishmentScope();
   const queryClient = useQueryClient();
@@ -262,12 +264,20 @@ export function ProgramCurriculumPage() {
     ? `${workspacePath}/academic-years/${routeAcademicYearId}/program-paths/${programPathId}/programs`
     : programPathId
     ? `${workspacePath}/program-paths/${programPathId}/programs`
+    : routeDepartmentId
+    ? `${workspacePath}/departments/${routeDepartmentId}/programs`
+    : routeDegreeCycleId
+    ? `${workspacePath}/degree-cycles/${routeDegreeCycleId}/programs`
     : `${workspacePath}/programs`;
   const programPathQuery = programPathId ? `&programPathId=${programPathId}` : "";
   const modulePathFor = (moduleId: string) => routeAcademicYearId && programPathId
     ? `${workspacePath}/academic-years/${routeAcademicYearId}/program-paths/${programPathId}/programs/${programFiliereId}/modules/${moduleId}?academicLevelId=${academicLevelId}&semesterId=${semesterId}`
     : routeProgramPathId
     ? `${workspacePath}/program-paths/${routeProgramPathId}/programs/${programFiliereId}/modules/${moduleId}?academicYearId=${academicYearId}&academicLevelId=${academicLevelId}&semesterId=${semesterId}`
+    : routeDepartmentId
+    ? `${workspacePath}/departments/${routeDepartmentId}/programs/${programFiliereId}/modules/${moduleId}?academicYearId=${academicYearId}&academicLevelId=${academicLevelId}&semesterId=${semesterId}`
+    : routeDegreeCycleId
+    ? `${workspacePath}/degree-cycles/${routeDegreeCycleId}/programs/${programFiliereId}/modules/${moduleId}?academicYearId=${academicYearId}&academicLevelId=${academicLevelId}&semesterId=${semesterId}`
     : `${workspacePath}/programs/${programFiliereId}/modules/${moduleId}?academicYearId=${academicYearId}&academicLevelId=${academicLevelId}&semesterId=${semesterId}${programPathQuery}`;
 
   return <div className="management-page curriculum-page">
@@ -319,7 +329,7 @@ export function ProgramCurriculumPage() {
           : activeSection === "teaching-groups" ? <TeachingGroupWorkspace academicLevelName={selectedLevel?.name} semesters={semesters} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />
           : activeSection === "professors" ? <SemesterProfessorsWorkspace academicLevelName={selectedLevel?.name} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} onSelectSemester={setSemesterId} professorDetailsPath={(professorId) => `${workspacePath}/professors/${professorId}`} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />
           : activeSection === "schedule" ? <SemesterTimetableWorkspace academicLevelId={academicLevelId} academicLevelName={selectedLevel?.name} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} onSelectSemester={setSemesterId} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />
-          : activeSection === "exam-planning" ? <ExamPlanningWorkspace academicLevelId={academicLevelId} academicYearId={academicYearId} establishmentId={establishmentId} modules={modules} onSelectSemester={setSemesterId} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />
+          : activeSection === "exam-planning" ? <ExamPlanningWorkspace academicLevelId={academicLevelId} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} programName={program.name} onSelectSemester={setSemesterId} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />
           : <TeachingPlanWorkspace academicLevelName={selectedLevel?.name} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} onSelectSemester={setSemesterId} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />}
       </main>
     </div>

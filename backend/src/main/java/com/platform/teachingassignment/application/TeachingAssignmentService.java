@@ -10,6 +10,7 @@ import com.platform.identityaccess.domain.UserProfile;
 import com.platform.identityaccess.infrastructure.ProfessorRepository;
 import com.platform.identityaccess.infrastructure.UserProfileRepository;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
+import com.platform.moduleclassresponsibility.application.ModuleClassResponsibilityService;
 import com.platform.shared.presentation.ActionResponse;
 import com.platform.teachingassignment.domain.TeachingAssignment;
 import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
@@ -23,6 +24,7 @@ import com.platform.teachingrequirement.domain.TeachingRequirementStatus;
 import com.platform.teachingrequirement.infrastructure.TeachingRequirementRepository;
 import com.platform.universitygovernance.academicyear.domain.AcademicYearStatus;
 import com.platform.universitygovernance.moduleteachingcomponent.domain.ModuleTeachingComponent;
+import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingComponentType;
 import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleDomainRepository;
 import com.platform.usermanagement.professor.expertise.infrastructure.ProfessorExpertiseRepository;
 import com.platform.scheduling.teachinggroup.domain.TeachingGroupMembership;
@@ -47,6 +49,7 @@ public class TeachingAssignmentService {
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
     private final TeachingGroupMembershipRepository teachingGroupMembershipRepository;
     private final UserProfileRepository userProfileRepository;
+    private final ModuleClassResponsibilityService responsibilityService;
 
     public TeachingAssignmentService(
         TeachingAssignmentRepository assignmentRepository,
@@ -56,7 +59,8 @@ public class TeachingAssignmentService {
         ProfessorExpertiseRepository professorExpertiseRepository,
         AdminPermissionAuthorizationService permissionAuthorizationService,
         TeachingGroupMembershipRepository teachingGroupMembershipRepository,
-        UserProfileRepository userProfileRepository
+        UserProfileRepository userProfileRepository,
+        ModuleClassResponsibilityService responsibilityService
     ) {
         this.assignmentRepository = assignmentRepository;
         this.requirementRepository = requirementRepository;
@@ -66,6 +70,7 @@ public class TeachingAssignmentService {
         this.permissionAuthorizationService = permissionAuthorizationService;
         this.teachingGroupMembershipRepository = teachingGroupMembershipRepository;
         this.userProfileRepository = userProfileRepository;
+        this.responsibilityService = responsibilityService;
     }
 
     @Transactional
@@ -104,7 +109,9 @@ public class TeachingAssignmentService {
         assignment.setStatus(TeachingAssignmentStatus.ACTIVE);
         assignment.setAssignmentSource(TeachingAssignmentSource.MANUAL);
         ensureWeeklyWorkload(professor, assignment);
-        return toResponse(assignmentRepository.save(assignment));
+        assignment = assignmentRepository.save(assignment);
+        responsibilityService.synchronizeWithCourseAssignment(assignment);
+        return toResponse(assignment);
     }
 
     @Transactional(readOnly = true)
@@ -215,6 +222,14 @@ public class TeachingAssignmentService {
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
                 "Professor and teaching requirement must belong to the same active academic context"
+            );
+        }
+        if (component.getComponentType() == TeachingComponentType.COURSE
+            && (professor.getAcademicRank() == null
+                || !professor.getAcademicRank().canHoldModuleResponsibility())) {
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Course professor must have a rank eligible for module responsibility"
             );
         }
         ensureExpertise(professor, component);
@@ -329,15 +344,32 @@ public class TeachingAssignmentService {
     private TeachingAssignmentResponse toResponse(TeachingAssignment assignment) {
         TeachingRequirement requirement = assignment.getTeachingRequirement();
         ModuleTeachingComponent component = requirement.getModuleTeachingComponent();
+        var subjectModule = component.getSubjectModule();
+        var semester = requirement.getTeachingGroup().getSemester();
+        var academicLevel = semester.getAcademicLevel();
+        var programFiliere = academicLevel.getProgramFiliere();
         return new TeachingAssignmentResponse(
             assignment.getId(),
             establishmentId(assignment),
             assignment.getProfessor().getId(),
             requirement.getId(),
-            component.getSubjectModule().getId(),
+            subjectModule.getId(),
+            subjectModule.getCode(),
+            subjectModule.getTitle(),
             component.getComponentType(),
+            component.getSessionsPerWeek(),
+            component.getSessionDurationMinutes(),
             requirement.getTeachingGroup().getId(),
             requirement.getTeachingGroup().getName(),
+            semester.getId(),
+            semester.getName(),
+            semester.getAcademicYear().getId(),
+            semester.getAcademicYear().getLabel(),
+            academicLevel.getId(),
+            academicLevel.getName(),
+            programFiliere.getId(),
+            programFiliere.getCode(),
+            programFiliere.getName(),
             assignment.getStatus(),
             assignment.getAssignmentSource(),
             assignment.getCreatedAt(),

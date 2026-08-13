@@ -12,6 +12,7 @@ const entrySchema = z.object({
   subjectModuleId: z.string().uuid(), teachingGroupId: z.string().uuid(), teachingGroupName: z.string(),
   sourceClassGroupId: z.string().uuid().nullable(), sourceClassGroupName: z.string().nullable(), audienceType: z.enum(["WHOLE_COHORT", "CLASS_GROUP", "SUBGROUP"]), dayOfWeek: daySchema,
   startTime: z.string(), endTime: z.string(), roomId: z.string().uuid(), roomCode: z.string(), roomName: z.string(), blockId: z.string().uuid().nullable().optional(),
+  blockCode: z.string().nullable().optional(), blockName: z.string().nullable().optional(),
 });
 
 export type SemesterSchedule = z.infer<typeof scheduleSchema>;
@@ -22,6 +23,7 @@ export interface ScheduleEntryInput { teachingAssignmentId: string; dayOfWeek: S
 export const scheduleKeys = {
   schedules: (establishmentId: string) => ["scheduling", "semester-schedules", establishmentId] as const,
   entries: (scheduleId: string) => ["scheduling", "entries", scheduleId] as const,
+  myEntries: () => ["scheduling", "my-entries"] as const,
 };
 
 async function parse<T>(result: { response: Response; data?: unknown; error?: unknown }, schema: z.ZodType<T>): Promise<T> {
@@ -43,6 +45,10 @@ export async function publishSemesterSchedule(scheduleId: string): Promise<Semes
 
 export async function getScheduleEntries(scheduleId: string): Promise<ScheduleEntry[]> {
   return parse(await apiClient.GET("/api/v1/semester-schedules/{scheduleId}/entries", { params: { path: { scheduleId } } }), z.array(entrySchema));
+}
+
+export async function getMyScheduleEntries(): Promise<ScheduleEntry[]> {
+  return parse(await apiClient.GET("/api/v1/me/schedule-entries"), z.array(entrySchema));
 }
 
 export async function createScheduleEntry(scheduleId: string, input: ScheduleEntryInput): Promise<ScheduleEntry> {

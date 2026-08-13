@@ -9,6 +9,7 @@ import com.platform.attendance.absencerecord.infrastructure.AbsenceRecordReposit
 import com.platform.identityaccess.application.AdminPermissionAuthorizationService;
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.PermissionCode;
+import com.platform.identityaccess.infrastructure.UserProfileRepository;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.scheduling.examcandidate.domain.ExamCandidate;
 import com.platform.scheduling.examcandidate.infrastructure.ExamCandidateRepository;
@@ -47,6 +48,7 @@ public class ExamCandidateService {
     private final ModuleClassResponsibilityRepository responsibilityRepository;
     private final ExamGroupMembershipRepository examGroupMembershipRepository;
     private final ExamRoomAllocationRepository roomAllocationRepository;
+    private final UserProfileRepository userProfileRepository;
 
     public ExamCandidateService(
         ExamCandidateRepository examCandidateRepository,
@@ -58,7 +60,8 @@ public class ExamCandidateService {
         AdminPermissionAuthorizationService permissionAuthorizationService,
         ModuleClassResponsibilityRepository responsibilityRepository,
         ExamGroupMembershipRepository examGroupMembershipRepository,
-        ExamRoomAllocationRepository roomAllocationRepository
+        ExamRoomAllocationRepository roomAllocationRepository,
+        UserProfileRepository userProfileRepository
     ) {
         this.examCandidateRepository = examCandidateRepository;
         this.moduleExamRepository = moduleExamRepository;
@@ -70,6 +73,7 @@ public class ExamCandidateService {
         this.responsibilityRepository = responsibilityRepository;
         this.examGroupMembershipRepository = examGroupMembershipRepository;
         this.roomAllocationRepository = roomAllocationRepository;
+        this.userProfileRepository = userProfileRepository;
     }
 
     @Transactional
@@ -269,23 +273,49 @@ public class ExamCandidateService {
     private ExamCandidateResponse toResponse(ExamCandidate candidate) {
         ModuleRegistration registration = candidate.getModuleRegistration();
         ModuleExam moduleExam = candidate.getModuleExam();
-        String roomCode = examGroupMembershipRepository
+        var student = registration.getSemesterRegistration()
+            .getAcademicRegistration()
+            .getStudent();
+        var profile = userProfileRepository.findByUserAccountId(
+            student.getUserAccount().getId()
+        ).orElseThrow(() -> new ResponseStatusException(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Student profile not found"
+        ));
+        var membership = examGroupMembershipRepository
             .findBySemesterRegistrationIdAndExamGroupExamScheduleId(
                 registration.getSemesterRegistration().getId(),
                 moduleExam.getExamSchedule().getId()
-            )
-            .flatMap(membership -> roomAllocationRepository.findByModuleExamIdAndExamGroupId(moduleExam.getId(), membership.getExamGroup().getId()))
-            .map(allocation -> allocation.getRoom().getCode())
-            .orElse(moduleExam.getLocation());
+            ).orElse(null);
+        var allocation = membership == null ? null
+            : roomAllocationRepository.findByModuleExamIdAndExamGroupId(
+                moduleExam.getId(),
+                membership.getExamGroup().getId()
+            ).orElse(null);
+        UUID examGroupId = membership == null
+            ? moduleExam.getClassGroup().getId()
+            : membership.getExamGroup().getId();
+        String examGroupLabel = membership == null
+            ? moduleExam.getClassGroup().getName()
+            : membership.getExamGroup().getLabel();
+        String roomCode = allocation == null
+            ? moduleExam.getLocation()
+            : allocation.getRoom().getCode();
         return new ExamCandidateResponse(
             candidate.getId(),
             moduleExam.getId(),
             registration.getId(),
             registration.getSemesterRegistration()
                 .getAcademicRegistration()
-                .getStudent()
-                .getId(),
+                .getStudent().getId(),
+            student.getApogeeCode(),
+            student.getNationalStudentCode(),
+            profile.getCin(),
+            profile.getLastName(),
+            profile.getFirstName(),
             registration.getSubjectModule().getId(),
+            examGroupId,
+            examGroupLabel,
             moduleExam.getExamSchedule().getSessionType(),
             moduleExam.getExamDate(),
             moduleExam.getStartTime(),

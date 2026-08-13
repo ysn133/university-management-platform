@@ -5,6 +5,7 @@ import com.platform.moduleclassresponsibility.presentation.dto.CreateModuleClass
 import com.platform.moduleclassresponsibility.presentation.dto.ModuleClassResponsibilityResponse;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.shared.presentation.ActionResponse;
+import com.platform.teachingassignment.presentation.dto.TeachingAssignmentStudentResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -76,6 +77,20 @@ public class ModuleClassResponsibilityController {
         @AuthenticationPrincipal AuthenticatedUserPrincipal principal
     ) {
         return responsibilityService.getMyResponsibilities(principal);
+    }
+
+    @GetMapping("/me/modules/{subjectModuleId}/classes/{classGroupId}/students")
+    @PreAuthorize("hasRole('PROFESSOR')")
+    public List<TeachingAssignmentStudentResponse> getMyClassStudents(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+        @PathVariable UUID subjectModuleId,
+        @PathVariable UUID classGroupId
+    ) {
+        return responsibilityService.getMyClassStudents(
+            principal,
+            subjectModuleId,
+            classGroupId
+        );
     }
 
     @DeleteMapping("/module-class-responsibilities/{responsibilityId}")
