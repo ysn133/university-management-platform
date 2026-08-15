@@ -21,6 +21,7 @@ import com.platform.platform.PlatformApplication;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.universitygovernance.academicruleprofile.application.AcademicRuleProfileService;
 import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfileStatus;
+import com.platform.universitygovernance.academicruleprofile.domain.AbsenceExclusionPolicy;
 import com.platform.universitygovernance.academicruleprofile.domain.SessionGradePolicy;
 import com.platform.universitygovernance.academicruleprofile.infrastructure.AcademicRuleProfileRepository;
 import com.platform.universitygovernance.academicruleprofile.presentation.dto.AcademicRuleProfileResponse;
@@ -134,11 +135,19 @@ class AcademicRuleProfileServiceIntegrationTest {
             .extracting(
                 AcademicRuleProfileResponse::moduleValidationThreshold,
                 AcademicRuleProfileResponse::compensationMinimumThreshold,
+                AcademicRuleProfileResponse::minimumIndividuallyValidatedModulesPerSemester,
+                AcademicRuleProfileResponse::maximumNonValidatedModulesPerSemester,
+                AcademicRuleProfileResponse::allowInterSemesterCompensation,
+                AcademicRuleProfileResponse::minimumIndividuallyValidatedModulesPerAcademicLevel,
                 AcademicRuleProfileResponse::maximumCarriedModules
             )
             .containsExactly(
                 new BigDecimal("10.00"),
                 new BigDecimal("7.00"),
+                5,
+                2,
+                true,
+                10,
                 2
             );
 
@@ -206,6 +215,34 @@ class AcademicRuleProfileServiceIntegrationTest {
             root,
             firstEstablishment.getId(),
             invalidProgression
+        ))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("400 BAD_REQUEST")
+            .hasMessageContaining("must be zero");
+
+        CreateAcademicRuleProfileRequest invalidInterSemesterRule =
+            new CreateAcademicRuleProfileRequest(
+                "Invalid inter-semester compensation",
+                new BigDecimal("10.00"),
+                new BigDecimal("7.00"),
+                new BigDecimal("10.00"),
+                new BigDecimal("10.00"),
+                5,
+                2,
+                false,
+                10,
+                2,
+                SessionGradePolicy.BEST_GRADE,
+                true,
+                2,
+                0,
+                AbsenceExclusionPolicy.NORMAL_AND_RATTRAPAGE,
+                AcademicRuleProfileStatus.ACTIVE
+            );
+        assertThatThrownBy(() -> academicRuleProfileService.createAcademicRuleProfile(
+            root,
+            firstEstablishment.getId(),
+            invalidInterSemesterRule
         ))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("400 BAD_REQUEST")
@@ -279,10 +316,16 @@ class AcademicRuleProfileServiceIntegrationTest {
             new BigDecimal("7.00"),
             new BigDecimal("10.00"),
             new BigDecimal("10.00"),
+            5,
+            2,
+            true,
+            10,
             2,
             SessionGradePolicy.BEST_GRADE,
             true,
             2,
+            0,
+            AbsenceExclusionPolicy.NORMAL_AND_RATTRAPAGE,
             AcademicRuleProfileStatus.ACTIVE
         );
     }
@@ -294,10 +337,16 @@ class AcademicRuleProfileServiceIntegrationTest {
             new BigDecimal("7.00"),
             new BigDecimal("10.00"),
             new BigDecimal("10.00"),
+            5,
+            2,
+            true,
+            10,
             2,
             SessionGradePolicy.BEST_GRADE,
             true,
             3,
+            0,
+            AbsenceExclusionPolicy.NORMAL_AND_RATTRAPAGE,
             AcademicRuleProfileStatus.ACTIVE
         );
     }

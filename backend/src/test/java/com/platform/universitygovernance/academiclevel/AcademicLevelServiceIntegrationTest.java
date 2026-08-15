@@ -162,14 +162,38 @@ class AcademicLevelServiceIntegrationTest {
     void rootCanManageAcademicLevelsAndUniquenessIsEnforcedPerProgram() {
         AuthenticatedUserPrincipal root = principal(AccountRoleType.ROOT_SUPER_ADMIN, UUID.randomUUID(), null);
 
+        assertThatThrownBy(() -> academicLevelService.createAcademicLevel(
+            root,
+            firstProgram.getId(),
+            new CreateAcademicLevelRequest(
+                "M2",
+                2,
+                true,
+                firstYear.getId(),
+                firstRuleProfile.getId()
+            )
+        ))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("final academic level")
+            .hasMessageContaining("progression with debt");
+
+        AcademicRuleProfile terminalRuleProfile = saveRuleProfile(
+            firstEstablishment,
+            "Terminal Master Rules"
+        );
+        terminalRuleProfile.setAllowProgressionWithDebt(false);
+        terminalRuleProfile.setMaximumCarriedModules(0);
+        terminalRuleProfile = academicRuleProfileRepository.save(terminalRuleProfile);
+
         AcademicLevelResponse second = academicLevelService.createAcademicLevel(
             root,
             firstProgram.getId(),
             new CreateAcademicLevelRequest(
                 "  M2  ",
                 2,
+                true,
                 firstYear.getId(),
-                firstRuleProfile.getId()
+                terminalRuleProfile.getId()
             )
         );
         AcademicLevelResponse first = academicLevelService.createAcademicLevel(
@@ -178,12 +202,14 @@ class AcademicLevelServiceIntegrationTest {
             new CreateAcademicLevelRequest(
                 "M1",
                 1,
+                false,
                 firstYear.getId(),
                 firstRuleProfile.getId()
             )
         );
 
         assertThat(second.name()).isEqualTo("M2");
+        assertThat(second.terminalLevel()).isTrue();
         assertThat(second.establishmentId()).isEqualTo(firstEstablishment.getId());
         assertThat(ruleAssignmentRepository.findByAcademicLevelIdAndAcademicYearId(
             second.id(),
@@ -270,6 +296,7 @@ class AcademicLevelServiceIntegrationTest {
             new CreateAcademicLevelRequest(
                 "m1",
                 3,
+                false,
                 firstYear.getId(),
                 firstRuleProfile.getId()
             )
@@ -282,6 +309,7 @@ class AcademicLevelServiceIntegrationTest {
             new CreateAcademicLevelRequest(
                 "M3",
                 2,
+                false,
                 firstYear.getId(),
                 firstRuleProfile.getId()
             )
@@ -292,10 +320,11 @@ class AcademicLevelServiceIntegrationTest {
         AcademicLevelResponse updated = academicLevelService.updateAcademicLevel(
             root,
             second.id(),
-            new UpdateAcademicLevelRequest("Final year", 3)
+            new UpdateAcademicLevelRequest("Final year", 3, true)
         );
         assertThat(updated.name()).isEqualTo("Final year");
         assertThat(updated.levelOrder()).isEqualTo(3);
+        assertThat(updated.terminalLevel()).isTrue();
 
         assertThat(academicLevelService.deleteAcademicLevel(root, updated.id()).success()).isTrue();
         assertThat(academicLevelRepository.findById(updated.id())).isEmpty();
@@ -310,6 +339,7 @@ class AcademicLevelServiceIntegrationTest {
             new CreateAcademicLevelRequest(
                 "M1",
                 1,
+                false,
                 firstYear.getId(),
                 firstRuleProfile.getId()
             )
@@ -320,6 +350,7 @@ class AcademicLevelServiceIntegrationTest {
             new CreateAcademicLevelRequest(
                 "L1",
                 1,
+                false,
                 secondYear.getId(),
                 secondRuleProfile.getId()
             )
@@ -354,7 +385,7 @@ class AcademicLevelServiceIntegrationTest {
         assertThat(academicLevelService.updateAcademicLevel(
             adminPrincipal,
             firstLevel.id(),
-            new UpdateAcademicLevelRequest("Master 1", 1)
+            new UpdateAcademicLevelRequest("Master 1", 1, false)
         ).name()).isEqualTo("Master 1");
         assertThatThrownBy(() -> academicLevelService.getAcademicLevel(adminPrincipal, firstLevel.id()))
             .isInstanceOf(ResponseStatusException.class)
@@ -362,7 +393,7 @@ class AcademicLevelServiceIntegrationTest {
         assertThatThrownBy(() -> academicLevelService.updateAcademicLevel(
             adminPrincipal,
             secondLevel.id(),
-            new UpdateAcademicLevelRequest("Denied", 2)
+            new UpdateAcademicLevelRequest("Denied", 2, false)
         ))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("403 FORBIDDEN");

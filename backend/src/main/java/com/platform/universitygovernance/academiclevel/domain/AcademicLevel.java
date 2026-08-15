@@ -29,6 +29,9 @@ public class AcademicLevel {
     @Column(name = "level_order", nullable = false)
     private int levelOrder;
 
+    @Column(name = "terminal_level", nullable = false)
+    private boolean terminalLevel;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -79,6 +82,14 @@ public class AcademicLevel {
 
     public void setLevelOrder(int levelOrder) {
         this.levelOrder = levelOrder;
+    }
+
+    public boolean isTerminalLevel() {
+        return terminalLevel;
+    }
+
+    public void setTerminalLevel(boolean terminalLevel) {
+        this.terminalLevel = terminalLevel;
     }
 
     public Instant getCreatedAt() {

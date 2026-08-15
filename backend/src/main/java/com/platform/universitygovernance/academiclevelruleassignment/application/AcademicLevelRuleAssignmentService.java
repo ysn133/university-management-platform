@@ -10,6 +10,7 @@ import com.platform.universitygovernance.academiclevelruleassignment.domain.Acad
 import com.platform.universitygovernance.academiclevelruleassignment.infrastructure.AcademicLevelRuleAssignmentRepository;
 import com.platform.universitygovernance.academiclevelruleassignment.presentation.dto.AcademicLevelRuleAssignmentResponse;
 import com.platform.universitygovernance.academiclevelruleassignment.presentation.dto.CreateAcademicLevelRuleAssignmentRequest;
+import com.platform.universitygovernance.academiclevelruleassignment.presentation.dto.UpdateAcademicLevelRuleAssignmentRequest;
 import com.platform.universitygovernance.academicyear.domain.AcademicYear;
 import com.platform.universitygovernance.academicyear.infrastructure.AcademicYearRepository;
 import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfile;
@@ -107,6 +108,38 @@ public class AcademicLevelRuleAssignmentService {
         return toResponse(assignment);
     }
 
+    @Transactional
+    public AcademicLevelRuleAssignmentResponse updateAssignment(
+        AuthenticatedUserPrincipal principal,
+        UUID assignmentId,
+        UpdateAcademicLevelRuleAssignmentRequest request
+    ) {
+        AcademicLevelRuleAssignment assignment = findAssignment(assignmentId);
+        UUID establishmentId = establishmentId(assignment.getAcademicLevel());
+        permissionAuthorizationService.requirePermission(
+            principal,
+            establishmentId,
+            PermissionCode.ACADEMIC_RULE_ASSIGNMENT_CREATE
+        );
+        AcademicRuleProfile profile = findAcademicRuleProfile(
+            request.academicRuleProfileId()
+        );
+        ensureSameEstablishment(
+            establishmentId,
+            assignment.getAcademicYear(),
+            profile
+        );
+        if (profile.getStatus() != AcademicRuleProfileStatus.ACTIVE) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Only an active academic rule profile can be assigned"
+            );
+        }
+        ensureTerminalLevelCompatibility(assignment.getAcademicLevel(), profile);
+        assignment.setAcademicRuleProfile(profile);
+        return toResponse(assignmentRepository.save(assignment));
+    }
+
     private AcademicLevelRuleAssignmentResponse createAssignment(
         AuthenticatedUserPrincipal principal,
         AcademicLevel academicLevel,
@@ -128,6 +161,7 @@ public class AcademicLevelRuleAssignmentService {
                 "Only an active academic rule profile can be assigned"
             );
         }
+        ensureTerminalLevelCompatibility(academicLevel, profile);
         if (assignmentRepository.existsByAcademicLevelIdAndAcademicYearId(
             academicLevel.getId(),
             academicYearId
@@ -144,6 +178,33 @@ public class AcademicLevelRuleAssignmentService {
         assignment.setAcademicRuleProfile(profile);
         assignment.setStatus(AcademicLevelRuleAssignmentStatus.ACTIVE);
         return toResponse(assignmentRepository.save(assignment));
+    }
+
+    @Transactional(readOnly = true)
+    public void ensureTerminalLevelCompatibility(AcademicLevel academicLevel) {
+        if (!academicLevel.isTerminalLevel()) {
+            return;
+        }
+        assignmentRepository
+            .findByAcademicLevelIdOrderByAcademicYearStartYearDesc(academicLevel.getId())
+            .stream()
+            .filter(assignment -> assignment.getStatus() == AcademicLevelRuleAssignmentStatus.ACTIVE)
+            .forEach(assignment -> ensureTerminalLevelCompatibility(
+                academicLevel,
+                assignment.getAcademicRuleProfile()
+            ));
+    }
+
+    private void ensureTerminalLevelCompatibility(
+        AcademicLevel academicLevel,
+        AcademicRuleProfile profile
+    ) {
+        if (academicLevel.isTerminalLevel() && profile.isAllowProgressionWithDebt()) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "A final academic level cannot use a rule profile that allows progression with debt"
+            );
+        }
     }
 
     private AcademicLevel findAcademicLevel(UUID academicLevelId) {

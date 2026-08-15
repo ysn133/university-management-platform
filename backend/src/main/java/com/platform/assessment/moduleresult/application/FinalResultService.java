@@ -6,6 +6,8 @@ import com.platform.academicregistration.moduleregistration.infrastructure.Modul
 import com.platform.assessment.moduleresult.domain.ModuleResult;
 import com.platform.assessment.moduleresult.infrastructure.ModuleResultRepository;
 import com.platform.assessment.moduleresult.presentation.dto.FinalResultResponse;
+import com.platform.assessment.progressiondecision.infrastructure.ProgressionDecisionRepository;
+import com.platform.assessment.semesterresult.infrastructure.SemesterResultRepository;
 import com.platform.identityaccess.application.AdminPermissionAuthorizationService;
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.PermissionCode;
@@ -30,6 +32,8 @@ public class FinalResultService {
     private final AdminPermissionAuthorizationService authorizationService;
     private final ModuleClassResponsibilityRepository responsibilityRepository;
     private final UserProfileRepository profileRepository;
+    private final SemesterResultRepository semesterResultRepository;
+    private final ProgressionDecisionRepository progressionDecisionRepository;
 
     public FinalResultService(
         ModuleRegistrationRepository registrationRepository,
@@ -37,7 +41,9 @@ public class FinalResultService {
         ModuleResultService moduleResultService,
         AdminPermissionAuthorizationService authorizationService,
         ModuleClassResponsibilityRepository responsibilityRepository,
-        UserProfileRepository profileRepository
+        UserProfileRepository profileRepository,
+        SemesterResultRepository semesterResultRepository,
+        ProgressionDecisionRepository progressionDecisionRepository
     ) {
         this.registrationRepository = registrationRepository;
         this.resultRepository = resultRepository;
@@ -45,6 +51,8 @@ public class FinalResultService {
         this.authorizationService = authorizationService;
         this.responsibilityRepository = responsibilityRepository;
         this.profileRepository = profileRepository;
+        this.semesterResultRepository = semesterResultRepository;
+        this.progressionDecisionRepository = progressionDecisionRepository;
     }
 
     @Transactional
@@ -61,6 +69,46 @@ public class FinalResultService {
         );
         registrations.forEach(moduleResultService::recalculate);
         return responses(registrations, null);
+    }
+
+    @Transactional
+    public void clear(
+        AuthenticatedUserPrincipal principal,
+        UUID semesterId,
+        UUID classGroupId
+    ) {
+        List<ModuleRegistration> registrations = registrations(
+            semesterId,
+            classGroupId
+        );
+        authorizationService.requirePermission(
+            principal,
+            establishmentId(registrations),
+            PermissionCode.GRADE_PUBLISH
+        );
+        List<UUID> semesterRegistrationIds = registrations.stream()
+            .map(item -> item.getSemesterRegistration().getId())
+            .distinct()
+            .toList();
+        List<UUID> academicRegistrationIds = registrations.stream()
+            .map(item -> item.getSemesterRegistration()
+                .getAcademicRegistration().getId())
+            .distinct()
+            .toList();
+
+        progressionDecisionRepository.deleteByAcademicRegistrationIdIn(
+            academicRegistrationIds
+        );
+        semesterResultRepository.deleteAll(
+            semesterResultRepository.findBySemesterRegistrationIdIn(
+                semesterRegistrationIds
+            )
+        );
+        resultRepository.deleteAll(
+            resultRepository.findByModuleRegistrationIdIn(
+                registrations.stream().map(ModuleRegistration::getId).toList()
+            )
+        );
     }
 
     @Transactional(readOnly = true)

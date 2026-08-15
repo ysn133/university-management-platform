@@ -11,10 +11,18 @@ import com.platform.assessment.semesterresult.domain.SemesterResult;
 import com.platform.assessment.semesterresult.domain.SemesterResultStatus;
 import com.platform.assessment.semesterresult.infrastructure.SemesterResultRepository;
 import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfile;
+import com.platform.universitygovernance.academicruleprofile.application.AcademicRuleProfileResolver;
+import com.platform.universitygovernance.academicruleprofile.application.AcademicRuleEvaluator;
+import com.platform.universitygovernance.academicruleprofile.domain.rules.AcademicMetric;
+import com.platform.universitygovernance.academicruleprofile.domain.rules.AcademicRuleOutcome;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
+import java.util.EnumMap;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,24 +33,30 @@ public class SemesterResultService {
     private final ModuleResultRepository moduleResultRepository;
     private final ModuleRegistrationRepository moduleRegistrationRepository;
     private final ProgressionDecisionService progressionDecisionService;
+    private final AcademicRuleEvaluator ruleEvaluator;
+    private final AcademicRuleProfileResolver ruleProfileResolver;
 
     public SemesterResultService(
         SemesterResultRepository semesterResultRepository,
         ModuleResultRepository moduleResultRepository,
         ModuleRegistrationRepository moduleRegistrationRepository,
-        ProgressionDecisionService progressionDecisionService
+        ProgressionDecisionService progressionDecisionService,
+        AcademicRuleEvaluator ruleEvaluator,
+        AcademicRuleProfileResolver ruleProfileResolver
     ) {
         this.semesterResultRepository = semesterResultRepository;
         this.moduleResultRepository = moduleResultRepository;
         this.moduleRegistrationRepository = moduleRegistrationRepository;
         this.progressionDecisionService = progressionDecisionService;
+        this.ruleEvaluator = ruleEvaluator;
+        this.ruleProfileResolver = ruleProfileResolver;
     }
 
     @Transactional
-    public void recalculateIfComplete(
-        SemesterRegistration semesterRegistration,
-        AcademicRuleProfile ruleProfile
-    ) {
+    public void recalculateIfComplete(SemesterRegistration semesterRegistration) {
+        AcademicRuleProfile ruleProfile = ruleProfileResolver.resolveForSemester(
+            semesterRegistration.getSemester()
+        );
         int requiredModuleCount = moduleRegistrationRepository
             .findBySemesterRegistrationIdAndStatus(
                 semesterRegistration.getId(),
@@ -58,9 +72,44 @@ public class SemesterResultService {
         }
 
         BigDecimal semesterAverage = average(moduleResults);
-        boolean compensationAllowed = semesterAverage.compareTo(
-            ruleProfile.getSemesterValidationAverage()
-        ) >= 0;
+        long individuallyValidated = moduleResults.stream().filter(result ->
+            result.getFinalGradeValue().compareTo(
+                ruleProfile.getModuleValidationThreshold()
+            ) >= 0
+        ).count();
+        List<ModuleResult> nonValidated = moduleResults.stream().filter(result ->
+            result.getFinalGradeValue().compareTo(
+                ruleProfile.getModuleValidationThreshold()
+            ) < 0
+        ).toList();
+        Map<AcademicMetric, BigDecimal> metrics = new EnumMap<>(AcademicMetric.class);
+        metrics.put(AcademicMetric.SEMESTER_AVERAGE, semesterAverage);
+        metrics.put(
+            AcademicMetric.INDIVIDUALLY_VALIDATED_MODULE_COUNT,
+            BigDecimal.valueOf(individuallyValidated)
+        );
+        metrics.put(
+            AcademicMetric.NON_VALIDATED_MODULE_COUNT,
+            BigDecimal.valueOf(nonValidated.size())
+        );
+        metrics.put(
+            AcademicMetric.MINIMUM_NON_VALIDATED_MODULE_GRADE,
+            minimumGradeOrMaximum(nonValidated)
+        );
+        AcademicRuleOutcome semesterOutcome = ruleEvaluator.evaluate(
+            ruleProfile.getRuleDefinition().semesterRulesFor(
+                semesterRegistration.getSemester().getTermType()
+            ),
+            metrics,
+            ruleProfile
+        ).orElseThrow(() -> new ResponseStatusException(
+            HttpStatus.CONFLICT,
+            "No semester result rule matched the calculated results"
+        ));
+        boolean semesterValidated = semesterOutcome
+            == AcademicRuleOutcome.SEMESTER_VALIDATED
+            || semesterOutcome == AcademicRuleOutcome.SEMESTER_VALIDATED_BY_COMPENSATION;
+        boolean compensationAllowed = semesterValidated && !nonValidated.isEmpty();
         moduleResults.forEach(result -> result.setResultStatus(resolveModuleStatus(
             result.getFinalGradeValue(),
             compensationAllowed,
@@ -74,15 +123,24 @@ public class SemesterResultService {
         semesterResult.setSemesterRegistration(semesterRegistration);
         semesterResult.setAcademicRuleProfile(ruleProfile);
         semesterResult.setSemesterAverage(semesterAverage);
-        semesterResult.setResultStatus(moduleResults.stream().allMatch(result ->
-            result.getResultStatus() != ModuleResultStatus.NV
-        ) ? SemesterResultStatus.VALIDATED : SemesterResultStatus.NON_VALIDATED);
+        semesterResult.setResultStatus(switch (semesterOutcome) {
+            case SEMESTER_VALIDATED, SEMESTER_VALIDATED_BY_COMPENSATION ->
+                SemesterResultStatus.VALIDATED;
+            case SEMESTER_NON_VALIDATED -> SemesterResultStatus.NON_VALIDATED;
+            default -> throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "The matched semester rule returned an invalid outcome"
+            );
+        });
         semesterResult.setEvaluatedAt(Instant.now());
         semesterResultRepository.save(semesterResult);
 
         progressionDecisionService.recalculateIfComplete(
             semesterRegistration.getAcademicRegistration(),
-            ruleProfile
+            ruleProfileResolver.resolveForAcademicLevel(
+                semesterRegistration.getAcademicRegistration().getAcademicLevel().getId(),
+                semesterRegistration.getAcademicRegistration().getAcademicYear().getId()
+            )
         );
     }
 
@@ -111,5 +169,12 @@ public class SemesterResultService {
             2,
             RoundingMode.HALF_UP
         );
+    }
+
+    private BigDecimal minimumGradeOrMaximum(List<ModuleResult> results) {
+        return results.stream()
+            .map(ModuleResult::getFinalGradeValue)
+            .min(BigDecimal::compareTo)
+            .orElse(new BigDecimal("20.00"));
     }
 }

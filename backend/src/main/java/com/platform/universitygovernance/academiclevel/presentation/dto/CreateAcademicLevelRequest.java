@@ -10,6 +10,7 @@ import java.util.UUID;
 public record CreateAcademicLevelRequest(
     @NotBlank @Size(max = 100) String name,
     @Positive @Max(32767) int levelOrder,
+    boolean terminalLevel,
     @NotNull UUID initialAcademicYearId,
     @NotNull UUID academicRuleProfileId
 ) {
