@@ -463,6 +463,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/academic-level-rule-assignments/{assignmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAssignment"];
+        put: operations["updateAssignment"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/academic-domains/{academicDomainId}": {
         parameters: {
             query?: never;
@@ -1647,6 +1663,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/academic-levels/{academicLevelId}/academic-years/{academicYearId}/progression-decisions/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["generate_5"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic-levels/{academicLevelId}/academic-years/{academicYearId}/graduation-decisions/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["generate_6"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/program-paths/{programPathId}": {
         parameters: {
             query?: never;
@@ -1881,7 +1929,7 @@ export interface paths {
         get: operations["get_2"];
         put?: never;
         post?: never;
-        delete?: never;
+        delete: operations["clear"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2239,14 +2287,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/academic-level-rule-assignments/{assignmentId}": {
+    "/api/v1/academic-levels/{academicLevelId}/academic-years/{academicYearId}/progression-decisions": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getAssignment"];
+        get: operations["get_4"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic-levels/{academicLevelId}/academic-years/{academicYearId}/graduation-decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2898,12 +2962,58 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        AcademicDecisionRule: {
+            name?: string;
+            /** Format: int32 */
+            priority?: number;
+            /** @enum {string} */
+            outcome?: "MODULE_VALIDATED" | "MODULE_NON_VALIDATED" | "SEMESTER_VALIDATED" | "SEMESTER_VALIDATED_BY_COMPENSATION" | "SEMESTER_NON_VALIDATED" | "ACADEMIC_LEVEL_VALIDATED" | "ACADEMIC_LEVEL_VALIDATED_BY_COMPENSATION" | "ACADEMIC_LEVEL_NON_VALIDATED" | "PROMOTED" | "PROMOTED_WITH_DEBT" | "REPEAT" | "FAILED";
+            enabled?: boolean;
+            expression?: components["schemas"]["ComparisonExpression"] | components["schemas"]["LogicalExpression"];
+        };
+        AcademicRuleSet: {
+            moduleRules?: components["schemas"]["AcademicDecisionRule"][];
+            semesterRules?: components["schemas"]["AcademicDecisionRule"][];
+            academicLevelRules?: components["schemas"]["AcademicDecisionRule"][];
+            progressionRules?: components["schemas"]["AcademicDecisionRule"][];
+            useSharedSemesterRules?: boolean;
+            autumnSemesterRules?: components["schemas"]["AcademicDecisionRule"][];
+            springSemesterRules?: components["schemas"]["AcademicDecisionRule"][];
+        };
+        ComparisonExpression: {
+            type: "ComparisonExpression";
+        } & (Omit<components["schemas"]["RuleExpression"], "type"> & {
+            /** @enum {string} */
+            left?: "MODULE_FINAL_GRADE" | "MODULE_INSCRIPTION_NUMBER" | "SEMESTER_AVERAGE" | "INDIVIDUALLY_VALIDATED_MODULE_COUNT" | "NON_VALIDATED_MODULE_COUNT" | "MINIMUM_NON_VALIDATED_MODULE_GRADE" | "ANNUAL_AVERAGE" | "NON_VALIDATED_SEMESTER_COUNT" | "ACADEMIC_LEVEL_VALIDATED" | "OUTSTANDING_MODULE_COUNT" | "EXHAUSTED_MODULE_INSCRIPTION_COUNT";
+            /** @enum {string} */
+            operator?: "GREATER_THAN" | "GREATER_THAN_OR_EQUAL" | "LESS_THAN" | "LESS_THAN_OR_EQUAL" | "EQUAL" | "NOT_EQUAL";
+            /** @enum {string} */
+            rightProfileVariable?: "MODULE_VALIDATION_THRESHOLD" | "COMPENSATION_MINIMUM_THRESHOLD" | "SEMESTER_VALIDATION_AVERAGE" | "ANNUAL_VALIDATION_AVERAGE" | "MINIMUM_INDIVIDUALLY_VALIDATED_MODULES_PER_SEMESTER" | "MAXIMUM_NON_VALIDATED_MODULES_PER_SEMESTER" | "MINIMUM_INDIVIDUALLY_VALIDATED_MODULES_PER_ACADEMIC_LEVEL" | "MAXIMUM_MODULE_INSCRIPTIONS" | "MAXIMUM_CARRIED_MODULES";
+            literalValue?: number;
+        });
+        LogicalExpression: {
+            type: "LogicalExpression";
+        } & (Omit<components["schemas"]["RuleExpression"], "type"> & {
+            /** @enum {string} */
+            operator?: "AND" | "OR";
+            children?: (components["schemas"]["ComparisonExpression"] | components["schemas"]["LogicalExpression"])[];
+        });
+        RuleExpression: {
+            type: string;
+        };
         UpdateAcademicRuleProfileRequest: {
             name: string;
             moduleValidationThreshold: number;
             compensationMinimumThreshold: number;
             semesterValidationAverage: number;
             annualValidationAverage?: number;
+            /** Format: int32 */
+            minimumIndividuallyValidatedModulesPerSemester: number;
+            /** Format: int32 */
+            maximumNonValidatedModulesPerSemester: number;
+            allowInterSemesterCompensation: boolean;
+            /** Format: int32 */
+            minimumIndividuallyValidatedModulesPerAcademicLevel: number;
             /** Format: int32 */
             maximumModuleInscriptions: number;
             /** @enum {string} */
@@ -2917,6 +3027,7 @@ export interface components {
             absenceExclusionPolicy: "NORMAL_ONLY" | "NORMAL_AND_RATTRAPAGE";
             /** @enum {string} */
             status: "ACTIVE" | "INACTIVE";
+            ruleDefinition?: components["schemas"]["AcademicRuleSet"];
         };
         AcademicRuleProfileResponse: {
             /** Format: uuid */
@@ -2930,6 +3041,13 @@ export interface components {
             compensationMinimumThreshold?: number;
             semesterValidationAverage?: number;
             annualValidationAverage?: number;
+            /** Format: int32 */
+            minimumIndividuallyValidatedModulesPerSemester?: number;
+            /** Format: int32 */
+            maximumNonValidatedModulesPerSemester?: number;
+            allowInterSemesterCompensation?: boolean;
+            /** Format: int32 */
+            minimumIndividuallyValidatedModulesPerAcademicLevel?: number;
             /** Format: int32 */
             maximumModuleInscriptions?: number;
             /** @enum {string} */
@@ -2947,6 +3065,7 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            ruleDefinition?: components["schemas"]["AcademicRuleSet"];
         };
         AssignStudentClassRequest: {
             /** Format: uuid */
@@ -3018,6 +3137,7 @@ export interface components {
             name: string;
             /** Format: int32 */
             levelOrder?: number;
+            terminalLevel?: boolean;
         };
         AcademicLevelResponse: {
             /** Format: uuid */
@@ -3029,6 +3149,7 @@ export interface components {
             name?: string;
             /** Format: int32 */
             levelOrder?: number;
+            terminalLevel?: boolean;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -3105,6 +3226,26 @@ export interface components {
             studentsProcessed?: number;
             /** Format: int32 */
             semesterAssignmentsCreated?: number;
+        };
+        UpdateAcademicLevelRuleAssignmentRequest: {
+            /** Format: uuid */
+            academicRuleProfileId: string;
+        };
+        AcademicLevelRuleAssignmentResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            academicLevelId?: string;
+            /** Format: uuid */
+            academicYearId?: string;
+            /** Format: uuid */
+            academicRuleProfileId?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "INACTIVE";
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
         };
         UpdateAcademicDomainRequest: {
             code: string;
@@ -3286,6 +3427,18 @@ export interface components {
             nonValidatedModuleCount?: number;
             /** Format: date-time */
             evaluatedAt?: string;
+            secondInscriptionOnly?: boolean;
+            /** Format: uuid */
+            originalAcademicYearId?: string;
+            /** Format: uuid */
+            originalAcademicLevelId?: string;
+            /** Format: uuid */
+            originalSemesterId?: string;
+            /** Format: uuid */
+            originalClassGroupId?: string;
+            originalAcademicYearLabel?: string;
+            originalAcademicLevelName?: string;
+            originalSemesterName?: string;
         };
         FinalResultResponse: {
             /** Format: uuid */
@@ -3337,6 +3490,7 @@ export interface components {
             name: string;
             /** Format: int32 */
             levelOrder?: number;
+            terminalLevel?: boolean;
             /** Format: uuid */
             initialAcademicYearId: string;
             /** Format: uuid */
@@ -3663,6 +3817,13 @@ export interface components {
             semesterValidationAverage: number;
             annualValidationAverage?: number;
             /** Format: int32 */
+            minimumIndividuallyValidatedModulesPerSemester: number;
+            /** Format: int32 */
+            maximumNonValidatedModulesPerSemester: number;
+            allowInterSemesterCompensation: boolean;
+            /** Format: int32 */
+            minimumIndividuallyValidatedModulesPerAcademicLevel: number;
+            /** Format: int32 */
             maximumModuleInscriptions: number;
             /** @enum {string} */
             sessionGradePolicy: "BEST_GRADE" | "RATTRAPAGE_REPLACES_NORMAL" | "RATTRAPAGE_CAPPED_AT_VALIDATION_THRESHOLD";
@@ -3675,6 +3836,7 @@ export interface components {
             absenceExclusionPolicy: "NORMAL_ONLY" | "NORMAL_AND_RATTRAPAGE";
             /** @enum {string} */
             status: "ACTIVE" | "INACTIVE";
+            ruleDefinition?: components["schemas"]["AcademicRuleSet"];
         };
         CreateAcademicRegistrationRequest: {
             /** Format: uuid */
@@ -3763,22 +3925,6 @@ export interface components {
             /** Format: uuid */
             academicRuleProfileId: string;
         };
-        AcademicLevelRuleAssignmentResponse: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: uuid */
-            academicLevelId?: string;
-            /** Format: uuid */
-            academicYearId?: string;
-            /** Format: uuid */
-            academicRuleProfileId?: string;
-            /** @enum {string} */
-            status?: "ACTIVE" | "INACTIVE";
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
         CreateClassGroupRequest: {
             name: string;
             /** @enum {string} */
@@ -3794,6 +3940,74 @@ export interface components {
             /** Format: int32 */
             semesterAssignmentsCreated?: number;
             groups?: components["schemas"]["GeneratedClassGroupResponse"][];
+        };
+        AcademicYearModuleResultResponse: {
+            /** Format: uuid */
+            subjectModuleId?: string;
+            subjectModuleCode?: string;
+            subjectModuleTitle?: string;
+            finalGrade?: number;
+            /** @enum {string} */
+            resultStatus?: "V" | "AV" | "NV";
+            /** Format: int32 */
+            inscriptionNumber?: number;
+        };
+        AcademicYearSemesterResultResponse: {
+            /** Format: uuid */
+            semesterId?: string;
+            semesterName?: string;
+            /** Format: int32 */
+            semesterOrder?: number;
+            semesterAverage?: number;
+            /** @enum {string} */
+            resultStatus?: "VALIDATED" | "NON_VALIDATED";
+            moduleResults?: components["schemas"]["AcademicYearModuleResultResponse"][];
+        };
+        ManagedProgressionDecisionResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            academicRegistrationId?: string;
+            /** Format: uuid */
+            studentId?: string;
+            firstName?: string;
+            lastName?: string;
+            apogeeCode?: string;
+            nationalStudentCode?: string;
+            cin?: string;
+            programName?: string;
+            programPathName?: string;
+            academicLevelName?: string;
+            academicYearLabel?: string;
+            semesterResults?: components["schemas"]["AcademicYearSemesterResultResponse"][];
+            /** @enum {string} */
+            decisionStatus?: "PROMOTED" | "PROMOTED_BY_COMPENSATION" | "PROMOTED_WITH_DEBT" | "LEVEL_VALIDATED" | "REPEAT" | "FAILED";
+            annualAverage?: number;
+            /** Format: int32 */
+            outstandingModuleCount?: number;
+            /** Format: date-time */
+            decidedAt?: string;
+        };
+        GraduationDecisionResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            studentId?: string;
+            firstName?: string;
+            lastName?: string;
+            apogeeCode?: string;
+            nationalStudentCode?: string;
+            cin?: string;
+            programName?: string;
+            programPathName?: string;
+            degreeCycleName?: string;
+            terminalAcademicLevelName?: string;
+            academicYearLabel?: string;
+            /** @enum {string} */
+            decisionStatus?: "GRADUATED";
+            graduationAverage?: number;
+            /** Format: date-time */
+            decidedAt?: string;
         };
         UpdateProgramPathRequest: {
             name: string;
@@ -3967,7 +4181,7 @@ export interface components {
             /** Format: uuid */
             academicRuleProfileId?: string;
             /** @enum {string} */
-            decisionStatus?: "PROMOTED" | "PROMOTED_WITH_DEBT" | "REPEAT" | "FAILED";
+            decisionStatus?: "PROMOTED" | "PROMOTED_BY_COMPENSATION" | "PROMOTED_WITH_DEBT" | "LEVEL_VALIDATED" | "REPEAT" | "FAILED";
             annualAverage?: number;
             /** Format: int32 */
             outstandingModuleCount?: number;
@@ -5507,6 +5721,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["BulkClassAssignmentResponse"];
+                };
+            };
+        };
+    };
+    getAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AcademicLevelRuleAssignmentResponse"];
+                };
+            };
+        };
+    };
+    updateAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAcademicLevelRuleAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AcademicLevelRuleAssignmentResponse"];
                 };
             };
         };
@@ -7940,6 +8202,52 @@ export interface operations {
             };
         };
     };
+    generate_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                academicLevelId: string;
+                academicYearId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ManagedProgressionDecisionResponse"][];
+                };
+            };
+        };
+    };
+    generate_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                academicLevelId: string;
+                academicYearId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GraduationDecisionResponse"][];
+                };
+            };
+        };
+    };
     getProgramPath: {
         parameters: {
             query?: never;
@@ -8494,6 +8802,27 @@ export interface operations {
             };
         };
     };
+    clear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                semesterId: string;
+                classGroupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getSemesterSchedule: {
         parameters: {
             query?: never;
@@ -9000,12 +9329,13 @@ export interface operations {
             };
         };
     };
-    getAssignment: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                assignmentId: string;
+                academicLevelId: string;
+                academicYearId: string;
             };
             cookie?: never;
         };
@@ -9017,7 +9347,30 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["AcademicLevelRuleAssignmentResponse"];
+                    "*/*": components["schemas"]["ManagedProgressionDecisionResponse"][];
+                };
+            };
+        };
+    };
+    get_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                academicLevelId: string;
+                academicYearId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GraduationDecisionResponse"][];
                 };
             };
         };

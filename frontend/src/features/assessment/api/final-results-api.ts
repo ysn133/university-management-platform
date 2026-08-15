@@ -1,5 +1,8 @@
 import { z } from "zod";
 import { apiClient } from "@/shared/api/client/api-client";
+import { authenticatedFetch } from "@/shared/api/client/authenticated-fetch";
+import { apiRequestError } from "@/shared/api/client/ApiRequestError";
+import { env } from "@/shared/config/env";
 
 const finalResultSchema = z.object({
   moduleRegistrationId: z.string().uuid(),
@@ -29,4 +32,12 @@ export async function generateFinalResults(semesterId: string, classGroupId: str
     params: { path: { semesterId, classGroupId } },
   });
   return z.array(finalResultSchema).parse(result.data);
+}
+
+export async function clearFinalResults(semesterId: string, classGroupId: string): Promise<void> {
+  const response = await authenticatedFetch(`${env.apiBaseUrl}/api/v1/semesters/${semesterId}/class-groups/${classGroupId}/final-results`, { method: "DELETE" });
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => null);
+    throw apiRequestError(response, body);
+  }
 }
