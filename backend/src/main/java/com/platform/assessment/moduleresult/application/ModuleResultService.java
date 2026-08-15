@@ -1,6 +1,5 @@
 package com.platform.assessment.moduleresult.application;
 
-import com.platform.academicregistration.registration.domain.AcademicRegistration;
 import com.platform.academicregistration.moduleregistration.domain.ModuleRegistration;
 import com.platform.assessment.graderecord.domain.GradeRecord;
 import com.platform.assessment.graderecord.domain.GradeWorkflowStatus;
@@ -10,10 +9,12 @@ import com.platform.assessment.moduleresult.domain.ModuleResultStatus;
 import com.platform.assessment.moduleresult.infrastructure.ModuleResultRepository;
 import com.platform.assessment.semesterresult.application.SemesterResultService;
 import com.platform.scheduling.examschedule.domain.ExamSessionType;
-import com.platform.universitygovernance.academiclevelruleassignment.domain.AcademicLevelRuleAssignment;
-import com.platform.universitygovernance.academiclevelruleassignment.infrastructure.AcademicLevelRuleAssignmentRepository;
 import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfile;
+import com.platform.universitygovernance.academicruleprofile.application.AcademicRuleProfileResolver;
 import com.platform.universitygovernance.academicruleprofile.domain.SessionGradePolicy;
+import com.platform.universitygovernance.academicruleprofile.application.AcademicRuleEvaluator;
+import com.platform.universitygovernance.academicruleprofile.domain.rules.AcademicMetric;
+import com.platform.universitygovernance.academicruleprofile.domain.rules.AcademicRuleOutcome;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -32,19 +33,22 @@ public class ModuleResultService {
 
     private final ModuleResultRepository moduleResultRepository;
     private final GradeRecordRepository gradeRecordRepository;
-    private final AcademicLevelRuleAssignmentRepository ruleAssignmentRepository;
+    private final AcademicRuleProfileResolver ruleProfileResolver;
     private final SemesterResultService semesterResultService;
+    private final AcademicRuleEvaluator ruleEvaluator;
 
     public ModuleResultService(
         ModuleResultRepository moduleResultRepository,
         GradeRecordRepository gradeRecordRepository,
-        AcademicLevelRuleAssignmentRepository ruleAssignmentRepository,
-        SemesterResultService semesterResultService
+        AcademicRuleProfileResolver ruleProfileResolver,
+        SemesterResultService semesterResultService,
+        AcademicRuleEvaluator ruleEvaluator
     ) {
         this.moduleResultRepository = moduleResultRepository;
         this.gradeRecordRepository = gradeRecordRepository;
-        this.ruleAssignmentRepository = ruleAssignmentRepository;
+        this.ruleProfileResolver = ruleProfileResolver;
         this.semesterResultService = semesterResultService;
+        this.ruleEvaluator = ruleEvaluator;
     }
 
     @Transactional
@@ -58,19 +62,6 @@ public class ModuleResultService {
     }
 
     public void recalculate(ModuleRegistration moduleRegistration) {
-        AcademicRegistration academicRegistration = moduleRegistration
-            .getSemesterRegistration()
-            .getAcademicRegistration();
-        AcademicLevelRuleAssignment assignment = ruleAssignmentRepository
-            .findByAcademicLevelIdAndAcademicYearId(
-                academicRegistration.getAcademicLevel().getId(),
-                academicRegistration.getAcademicYear().getId()
-            )
-            .orElseThrow(() -> new ResponseStatusException(
-                HttpStatus.CONFLICT,
-                "No academic rule profile is assigned to this level and academic year"
-            ));
-
         Map<ExamSessionType, GradeRecord> gradesBySession = publishedGradesBySession(
             moduleRegistration.getId()
         );
@@ -82,7 +73,9 @@ public class ModuleResultService {
             );
         }
 
-        AcademicRuleProfile ruleProfile = assignment.getAcademicRuleProfile();
+        AcademicRuleProfile ruleProfile = ruleProfileResolver.resolveForSemester(
+            moduleRegistration.getSemesterRegistration().getSemester()
+        );
         BigDecimal finalValue = resolveFinalValue(
             normalGrade.getGradeValue(),
             gradeValue(gradesBySession.get(ExamSessionType.RATTRAPAGE)),
@@ -95,16 +88,31 @@ public class ModuleResultService {
         moduleResult.setModuleRegistration(moduleRegistration);
         moduleResult.setAcademicRuleProfile(ruleProfile);
         moduleResult.setFinalGradeValue(finalValue);
-        moduleResult.setResultStatus(resolveDirectStatus(
-            finalValue,
-            ruleProfile.getModuleValidationThreshold()
+        AcademicRuleOutcome moduleOutcome = ruleEvaluator.evaluate(
+            ruleProfile.getRuleDefinition().moduleRules(),
+            Map.of(
+                AcademicMetric.MODULE_FINAL_GRADE, finalValue,
+                AcademicMetric.MODULE_INSCRIPTION_NUMBER,
+                    BigDecimal.valueOf(moduleRegistration.getInscriptionNumber())
+            ),
+            ruleProfile
+        ).orElseThrow(() -> new ResponseStatusException(
+            HttpStatus.CONFLICT,
+            "No module result rule matched the calculated grade"
         ));
+        moduleResult.setResultStatus(switch (moduleOutcome) {
+            case MODULE_VALIDATED -> ModuleResultStatus.V;
+            case MODULE_NON_VALIDATED -> ModuleResultStatus.NV;
+            default -> throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "The matched module rule returned an invalid outcome"
+            );
+        });
         moduleResult.setCalculatedAt(Instant.now());
         moduleResultRepository.save(moduleResult);
 
         semesterResultService.recalculateIfComplete(
-            moduleRegistration.getSemesterRegistration(),
-            ruleProfile
+            moduleRegistration.getSemesterRegistration()
         );
     }
 
@@ -148,15 +156,6 @@ public class ModuleResultService {
                 rattrapageGrade.min(ruleProfile.getModuleValidationThreshold())
             );
         };
-    }
-
-    private ModuleResultStatus resolveDirectStatus(
-        BigDecimal finalValue,
-        BigDecimal validationThreshold
-    ) {
-        return finalValue.compareTo(validationThreshold) >= 0
-            ? ModuleResultStatus.V
-            : ModuleResultStatus.NV;
     }
 
     private BigDecimal gradeValue(GradeRecord gradeRecord) {

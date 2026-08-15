@@ -16,6 +16,11 @@ public interface AcademicRegistrationRepository extends JpaRepository<AcademicRe
 
     List<AcademicRegistration> findByStudentIdOrderByAcademicYearStartYearDesc(UUID studentId);
 
+    List<AcademicRegistration> findByStudentIdAndProgramFiliereIdOrderByAcademicYearStartYearDesc(
+        UUID studentId,
+        UUID programFiliereId
+    );
+
     List<AcademicRegistration> findByAcademicLevelIdAndAcademicYearIdAndStatusOrderByStudentApogeeCodeAsc(
         UUID academicLevelId,
         UUID academicYearId,

@@ -2,6 +2,8 @@ import { z } from "zod";
 import type { components } from "@/shared/api/generated/schema";
 import { apiClient } from "@/shared/api/client/api-client";
 import { apiRequestError } from "@/shared/api/client/ApiRequestError";
+import { authenticatedFetch } from "@/shared/api/client/authenticated-fetch";
+import { env } from "@/shared/config/env";
 
 const namedResourceSchema = z.object({
   id: z.string().uuid(),
@@ -40,6 +42,7 @@ const academicLevelSchema = z.object({
   establishmentId: z.string().uuid(),
   name: z.string(),
   levelOrder: z.number().int(),
+  terminalLevel: z.boolean(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });
@@ -90,6 +93,37 @@ const moduleTeachingComponentSchema = z.object({
   updatedAt: z.string().optional(),
 });
 
+export type AcademicMetric = "MODULE_FINAL_GRADE" | "MODULE_INSCRIPTION_NUMBER" | "SEMESTER_AVERAGE" | "INDIVIDUALLY_VALIDATED_MODULE_COUNT" | "NON_VALIDATED_MODULE_COUNT" | "MINIMUM_NON_VALIDATED_MODULE_GRADE" | "ANNUAL_AVERAGE" | "NON_VALIDATED_SEMESTER_COUNT" | "ACADEMIC_LEVEL_VALIDATED" | "OUTSTANDING_MODULE_COUNT" | "EXHAUSTED_MODULE_INSCRIPTION_COUNT";
+export type ProfileVariable = "MODULE_VALIDATION_THRESHOLD" | "COMPENSATION_MINIMUM_THRESHOLD" | "SEMESTER_VALIDATION_AVERAGE" | "ANNUAL_VALIDATION_AVERAGE" | "MINIMUM_INDIVIDUALLY_VALIDATED_MODULES_PER_SEMESTER" | "MAXIMUM_NON_VALIDATED_MODULES_PER_SEMESTER" | "MINIMUM_INDIVIDUALLY_VALIDATED_MODULES_PER_ACADEMIC_LEVEL" | "MAXIMUM_MODULE_INSCRIPTIONS" | "MAXIMUM_CARRIED_MODULES";
+export type ComparisonOperator = "GREATER_THAN" | "GREATER_THAN_OR_EQUAL" | "LESS_THAN" | "LESS_THAN_OR_EQUAL" | "EQUAL" | "NOT_EQUAL";
+export type AcademicRuleOutcome = "MODULE_VALIDATED" | "MODULE_NON_VALIDATED" | "SEMESTER_VALIDATED" | "SEMESTER_VALIDATED_BY_COMPENSATION" | "SEMESTER_NON_VALIDATED" | "ACADEMIC_LEVEL_VALIDATED" | "ACADEMIC_LEVEL_VALIDATED_BY_COMPENSATION" | "ACADEMIC_LEVEL_NON_VALIDATED" | "PROMOTED" | "PROMOTED_WITH_DEBT" | "REPEAT" | "FAILED";
+export type RuleExpression = { type: "COMPARISON"; left: AcademicMetric; operator: ComparisonOperator; rightProfileVariable?: ProfileVariable | null; literalValue?: number | null } | { type: "LOGICAL"; operator: "AND" | "OR"; children: RuleExpression[] };
+export interface AcademicDecisionRule { name: string; priority: number; outcome: AcademicRuleOutcome; enabled: boolean; expression: RuleExpression; }
+export interface AcademicRuleSet {
+  moduleRules: AcademicDecisionRule[];
+  semesterRules: AcademicDecisionRule[];
+  academicLevelRules: AcademicDecisionRule[];
+  progressionRules: AcademicDecisionRule[];
+  useSharedSemesterRules: boolean;
+  autumnSemesterRules: AcademicDecisionRule[];
+  springSemesterRules: AcademicDecisionRule[];
+}
+
+const comparisonExpressionSchema: z.ZodType<RuleExpression> = z.lazy(() => z.union([
+  z.object({ type: z.literal("COMPARISON"), left: z.string() as z.ZodType<AcademicMetric>, operator: z.string() as z.ZodType<ComparisonOperator>, rightProfileVariable: (z.string() as z.ZodType<ProfileVariable>).nullable().optional(), literalValue: z.number().nullable().optional() }),
+  z.object({ type: z.literal("LOGICAL"), operator: z.enum(["AND", "OR"]), children: z.array(comparisonExpressionSchema) }),
+]));
+const academicDecisionRuleSchema = z.object({ name: z.string(), priority: z.number().int(), outcome: z.string() as z.ZodType<AcademicRuleOutcome>, enabled: z.boolean(), expression: comparisonExpressionSchema });
+const academicRuleSetSchema = z.object({
+  moduleRules: z.array(academicDecisionRuleSchema),
+  semesterRules: z.array(academicDecisionRuleSchema),
+  academicLevelRules: z.array(academicDecisionRuleSchema),
+  progressionRules: z.array(academicDecisionRuleSchema),
+  useSharedSemesterRules: z.boolean(),
+  autumnSemesterRules: z.array(academicDecisionRuleSchema),
+  springSemesterRules: z.array(academicDecisionRuleSchema),
+});
+
 const academicRuleProfileSchema = z.object({
   id: z.string().uuid(),
   establishmentId: z.string().uuid(),
@@ -99,6 +133,10 @@ const academicRuleProfileSchema = z.object({
   compensationMinimumThreshold: z.number(),
   semesterValidationAverage: z.number(),
   annualValidationAverage: z.number().nullable().optional(),
+  minimumIndividuallyValidatedModulesPerSemester: z.number().int(),
+  maximumNonValidatedModulesPerSemester: z.number().int(),
+  allowInterSemesterCompensation: z.boolean(),
+  minimumIndividuallyValidatedModulesPerAcademicLevel: z.number().int(),
   maximumModuleInscriptions: z.number().int(),
   sessionGradePolicy: z.enum(["BEST_GRADE", "RATTRAPAGE_REPLACES_NORMAL", "RATTRAPAGE_CAPPED_AT_VALIDATION_THRESHOLD"]),
   allowProgressionWithDebt: z.boolean(),
@@ -108,6 +146,7 @@ const academicRuleProfileSchema = z.object({
   status: z.enum(["ACTIVE", "INACTIVE"]),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
+  ruleDefinition: academicRuleSetSchema,
 });
 
 const academicLevelRuleAssignmentSchema = z.object({
@@ -119,6 +158,7 @@ const academicLevelRuleAssignmentSchema = z.object({
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });
+
 
 const academicDomainSchema = z.object({
   id: z.string().uuid(),
@@ -171,8 +211,26 @@ export type CreateProgramFiliereRequest = components["schemas"]["CreateProgramFi
 export type UpdateProgramFiliereRequest = components["schemas"]["UpdateProgramFiliereRequest"];
 export type CreateAcademicLevelRequest = components["schemas"]["CreateAcademicLevelRequest"];
 export type UpdateAcademicLevelRequest = components["schemas"]["UpdateAcademicLevelRequest"];
-export type CreateAcademicRuleProfileRequest = components["schemas"]["CreateAcademicRuleProfileRequest"];
-export type UpdateAcademicRuleProfileRequest = components["schemas"]["UpdateAcademicRuleProfileRequest"];
+export interface CreateAcademicRuleProfileRequest {
+  name: string;
+  moduleValidationThreshold: number;
+  compensationMinimumThreshold: number;
+  semesterValidationAverage: number;
+  annualValidationAverage?: number;
+  minimumIndividuallyValidatedModulesPerSemester: number;
+  maximumNonValidatedModulesPerSemester: number;
+  allowInterSemesterCompensation: boolean;
+  minimumIndividuallyValidatedModulesPerAcademicLevel: number;
+  maximumModuleInscriptions: number;
+  sessionGradePolicy: AcademicRuleProfile["sessionGradePolicy"];
+  allowProgressionWithDebt: boolean;
+  maximumCarriedModules: number;
+  maximumUnjustifiedAbsences: number;
+  absenceExclusionPolicy: AcademicRuleProfile["absenceExclusionPolicy"];
+  status: AcademicRuleProfile["status"];
+  ruleDefinition?: AcademicRuleSet;
+}
+export type UpdateAcademicRuleProfileRequest = CreateAcademicRuleProfileRequest;
 export type CreateAcademicDomainRequest = components["schemas"]["CreateAcademicDomainRequest"];
 export type UpdateAcademicDomainRequest = components["schemas"]["UpdateAcademicDomainRequest"];
 export type CreateSemesterRequest = components["schemas"]["CreateSemesterRequest"];
@@ -394,8 +452,19 @@ export async function getAcademicLevelRuleAssignments(academicLevelId: string): 
   return parseResponse(await apiClient.GET("/api/v1/academic-levels/{academicLevelId}/rule-assignments", { params: { path: { academicLevelId } } }), z.array(academicLevelRuleAssignmentSchema));
 }
 
+export async function updateAcademicLevelRuleAssignment(assignmentId: string, academicRuleProfileId: string): Promise<AcademicLevelRuleAssignment> {
+  const response = await authenticatedFetch(`${env.apiBaseUrl}/api/v1/academic-level-rule-assignments/${assignmentId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ academicRuleProfileId }),
+  });
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok) throw apiRequestError(response, body);
+  return academicLevelRuleAssignmentSchema.parse(body);
+}
+
 export async function createAcademicRuleProfile(establishmentId: string, request: CreateAcademicRuleProfileRequest): Promise<AcademicRuleProfile> {
-  return parseResponse(await apiClient.POST("/api/v1/establishments/{establishmentId}/academic-rule-profiles", { params: { path: { establishmentId } }, body: request }), academicRuleProfileSchema);
+  return parseResponse(await apiClient.POST("/api/v1/establishments/{establishmentId}/academic-rule-profiles", { params: { path: { establishmentId } }, body: request as unknown as components["schemas"]["CreateAcademicRuleProfileRequest"] }), academicRuleProfileSchema);
 }
 
 export async function getAcademicRuleProfile(academicRuleProfileId: string): Promise<AcademicRuleProfile> {
@@ -403,7 +472,7 @@ export async function getAcademicRuleProfile(academicRuleProfileId: string): Pro
 }
 
 export async function updateAcademicRuleProfile(academicRuleProfileId: string, request: UpdateAcademicRuleProfileRequest): Promise<AcademicRuleProfile> {
-  return parseResponse(await apiClient.PUT("/api/v1/academic-rule-profiles/{academicRuleProfileId}", { params: { path: { academicRuleProfileId } }, body: request }), academicRuleProfileSchema);
+  return parseResponse(await apiClient.PUT("/api/v1/academic-rule-profiles/{academicRuleProfileId}", { params: { path: { academicRuleProfileId } }, body: request as unknown as components["schemas"]["UpdateAcademicRuleProfileRequest"] }), academicRuleProfileSchema);
 }
 
 export async function getAcademicRanks(establishmentId: string): Promise<AcademicRank[]> {

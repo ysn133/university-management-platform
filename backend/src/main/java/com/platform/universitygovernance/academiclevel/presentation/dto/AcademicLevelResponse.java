@@ -9,6 +9,7 @@ public record AcademicLevelResponse(
     UUID establishmentId,
     String name,
     int levelOrder,
+    boolean terminalLevel,
     Instant createdAt,
     Instant updatedAt
 ) {

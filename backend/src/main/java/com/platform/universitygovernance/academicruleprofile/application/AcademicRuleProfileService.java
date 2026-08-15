@@ -7,6 +7,7 @@ import com.platform.universitygovernance.academicruleprofile.domain.AcademicRule
 import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfileStatus;
 import com.platform.universitygovernance.academicruleprofile.domain.AbsenceExclusionPolicy;
 import com.platform.universitygovernance.academicruleprofile.domain.SessionGradePolicy;
+import com.platform.universitygovernance.academicruleprofile.domain.rules.DefaultAcademicRuleSets;
 import com.platform.universitygovernance.academicruleprofile.infrastructure.AcademicRuleProfileRepository;
 import com.platform.universitygovernance.academicruleprofile.presentation.dto.AcademicRuleProfileResponse;
 import com.platform.universitygovernance.academicruleprofile.presentation.dto.CreateAcademicRuleProfileRequest;
@@ -17,6 +18,7 @@ import com.platform.universitygovernance.establishment.infrastructure.Establishm
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -33,17 +35,20 @@ public class AcademicRuleProfileService {
     private final EstablishmentRepository establishmentRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
     private final AcademicLevelRuleAssignmentRepository ruleAssignmentRepository;
+    private final AcademicRuleDefinitionValidator ruleDefinitionValidator;
 
     public AcademicRuleProfileService(
         AcademicRuleProfileRepository academicRuleProfileRepository,
         EstablishmentRepository establishmentRepository,
         AdminPermissionAuthorizationService permissionAuthorizationService,
-        AcademicLevelRuleAssignmentRepository ruleAssignmentRepository
+        AcademicLevelRuleAssignmentRepository ruleAssignmentRepository,
+        AcademicRuleDefinitionValidator ruleDefinitionValidator
     ) {
         this.academicRuleProfileRepository = academicRuleProfileRepository;
         this.establishmentRepository = establishmentRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
         this.ruleAssignmentRepository = ruleAssignmentRepository;
+        this.ruleDefinitionValidator = ruleDefinitionValidator;
     }
 
     @Transactional
@@ -63,6 +68,10 @@ public class AcademicRuleProfileService {
             request.compensationMinimumThreshold(),
             request.semesterValidationAverage(),
             request.annualValidationAverage(),
+            request.minimumIndividuallyValidatedModulesPerSemester(),
+            request.maximumNonValidatedModulesPerSemester(),
+            request.allowInterSemesterCompensation(),
+            request.minimumIndividuallyValidatedModulesPerAcademicLevel(),
             request.maximumModuleInscriptions(),
             request.sessionGradePolicy(),
             request.allowProgressionWithDebt(),
@@ -83,6 +92,7 @@ public class AcademicRuleProfileService {
         profile.setName(profileName);
         profile.setVersion(version);
         applyRules(profile, request);
+        ruleDefinitionValidator.validate(profile.getRuleDefinition());
         return toResponse(academicRuleProfileRepository.save(profile));
     }
 
@@ -136,6 +146,10 @@ public class AcademicRuleProfileService {
             request.compensationMinimumThreshold(),
             request.semesterValidationAverage(),
             request.annualValidationAverage(),
+            request.minimumIndividuallyValidatedModulesPerSemester(),
+            request.maximumNonValidatedModulesPerSemester(),
+            request.allowInterSemesterCompensation(),
+            request.minimumIndividuallyValidatedModulesPerAcademicLevel(),
             request.maximumModuleInscriptions(),
             request.sessionGradePolicy(),
             request.allowProgressionWithDebt(),
@@ -168,6 +182,7 @@ public class AcademicRuleProfileService {
 
         profile.setName(name);
         applyRules(profile, request);
+        ruleDefinitionValidator.validate(profile.getRuleDefinition());
         return toResponse(academicRuleProfileRepository.save(profile));
     }
 
@@ -192,6 +207,10 @@ public class AcademicRuleProfileService {
         BigDecimal compensationMinimumThreshold,
         BigDecimal semesterValidationAverage,
         BigDecimal annualValidationAverage,
+        Integer minimumIndividuallyValidatedModulesPerSemester,
+        Integer maximumNonValidatedModulesPerSemester,
+        Boolean allowInterSemesterCompensation,
+        Integer minimumIndividuallyValidatedModulesPerAcademicLevel,
         Integer maximumModuleInscriptions,
         SessionGradePolicy sessionGradePolicy,
         Boolean allowProgressionWithDebt,
@@ -208,6 +227,27 @@ public class AcademicRuleProfileService {
         }
         if (compensationMinimumThreshold.compareTo(moduleValidationThreshold) > 0) {
             throw badRequest("Compensation minimum threshold cannot exceed module validation threshold");
+        }
+        if (minimumIndividuallyValidatedModulesPerSemester == null
+            || minimumIndividuallyValidatedModulesPerSemester < 0) {
+            throw badRequest("Minimum validated modules per semester cannot be negative");
+        }
+        if (maximumNonValidatedModulesPerSemester == null
+            || maximumNonValidatedModulesPerSemester < 0) {
+            throw badRequest("Maximum non-validated modules per semester cannot be negative");
+        }
+        if (allowInterSemesterCompensation == null) {
+            throw badRequest("Inter-semester compensation setting is required");
+        }
+        if (minimumIndividuallyValidatedModulesPerAcademicLevel == null
+            || minimumIndividuallyValidatedModulesPerAcademicLevel < 0) {
+            throw badRequest("Minimum validated modules per academic level cannot be negative");
+        }
+        if (!allowInterSemesterCompensation
+            && minimumIndividuallyValidatedModulesPerAcademicLevel != 0) {
+            throw badRequest(
+                "Minimum validated modules per academic level must be zero when inter-semester compensation is disabled"
+            );
         }
         if (maximumModuleInscriptions == null || maximumModuleInscriptions <= 0) {
             throw badRequest("Maximum module inscriptions must be positive");
@@ -254,6 +294,23 @@ public class AcademicRuleProfileService {
         profile.setCompensationMinimumThreshold(request.compensationMinimumThreshold());
         profile.setSemesterValidationAverage(request.semesterValidationAverage());
         profile.setAnnualValidationAverage(request.annualValidationAverage());
+        profile.setMinimumIndividuallyValidatedModulesPerSemester(
+            request.minimumIndividuallyValidatedModulesPerSemester()
+        );
+        profile.setMaximumNonValidatedModulesPerSemester(
+            request.maximumNonValidatedModulesPerSemester()
+        );
+        profile.setAllowInterSemesterCompensation(
+            request.allowInterSemesterCompensation()
+        );
+        profile.setMinimumIndividuallyValidatedModulesPerAcademicLevel(
+            request.minimumIndividuallyValidatedModulesPerAcademicLevel()
+        );
+        profile.setRuleDefinition(
+            request.ruleDefinition() == null
+                ? DefaultAcademicRuleSets.standard()
+                : request.ruleDefinition()
+        );
         profile.setMaximumModuleInscriptions(request.maximumModuleInscriptions());
         profile.setSessionGradePolicy(request.sessionGradePolicy());
         profile.setAllowProgressionWithDebt(request.allowProgressionWithDebt());
@@ -282,6 +339,14 @@ public class AcademicRuleProfileService {
                 profile.getAnnualValidationAverage(),
                 request.annualValidationAverage()
             )
+            || profile.getMinimumIndividuallyValidatedModulesPerSemester()
+                != request.minimumIndividuallyValidatedModulesPerSemester()
+            || profile.getMaximumNonValidatedModulesPerSemester()
+                != request.maximumNonValidatedModulesPerSemester()
+            || profile.isAllowInterSemesterCompensation()
+                != request.allowInterSemesterCompensation()
+            || profile.getMinimumIndividuallyValidatedModulesPerAcademicLevel()
+                != request.minimumIndividuallyValidatedModulesPerAcademicLevel()
             || profile.getMaximumModuleInscriptions()
                 != request.maximumModuleInscriptions()
             || profile.getSessionGradePolicy() != request.sessionGradePolicy()
@@ -291,7 +356,9 @@ public class AcademicRuleProfileService {
             || profile.getMaximumUnjustifiedAbsences()
                 != request.maximumUnjustifiedAbsences()
             || profile.getAbsenceExclusionPolicy()
-                != request.absenceExclusionPolicy();
+                != request.absenceExclusionPolicy()
+            || (request.ruleDefinition() != null
+                && !Objects.equals(profile.getRuleDefinition(), request.ruleDefinition()));
     }
 
     private boolean sameGrade(BigDecimal first, BigDecimal second) {
@@ -309,6 +376,21 @@ public class AcademicRuleProfileService {
         profile.setCompensationMinimumThreshold(request.compensationMinimumThreshold());
         profile.setSemesterValidationAverage(request.semesterValidationAverage());
         profile.setAnnualValidationAverage(request.annualValidationAverage());
+        profile.setMinimumIndividuallyValidatedModulesPerSemester(
+            request.minimumIndividuallyValidatedModulesPerSemester()
+        );
+        profile.setMaximumNonValidatedModulesPerSemester(
+            request.maximumNonValidatedModulesPerSemester()
+        );
+        profile.setAllowInterSemesterCompensation(
+            request.allowInterSemesterCompensation()
+        );
+        profile.setMinimumIndividuallyValidatedModulesPerAcademicLevel(
+            request.minimumIndividuallyValidatedModulesPerAcademicLevel()
+        );
+        if (request.ruleDefinition() != null) {
+            profile.setRuleDefinition(request.ruleDefinition());
+        }
         profile.setMaximumModuleInscriptions(request.maximumModuleInscriptions());
         profile.setSessionGradePolicy(request.sessionGradePolicy());
         profile.setAllowProgressionWithDebt(request.allowProgressionWithDebt());
@@ -339,6 +421,10 @@ public class AcademicRuleProfileService {
             profile.getCompensationMinimumThreshold(),
             profile.getSemesterValidationAverage(),
             profile.getAnnualValidationAverage(),
+            profile.getMinimumIndividuallyValidatedModulesPerSemester(),
+            profile.getMaximumNonValidatedModulesPerSemester(),
+            profile.isAllowInterSemesterCompensation(),
+            profile.getMinimumIndividuallyValidatedModulesPerAcademicLevel(),
             profile.getMaximumModuleInscriptions(),
             profile.getSessionGradePolicy(),
             profile.isAllowProgressionWithDebt(),
@@ -347,7 +433,8 @@ public class AcademicRuleProfileService {
             profile.getAbsenceExclusionPolicy(),
             profile.getStatus(),
             profile.getCreatedAt(),
-            profile.getUpdatedAt()
+            profile.getUpdatedAt(),
+            profile.getRuleDefinition()
         );
     }
 }

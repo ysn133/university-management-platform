@@ -55,6 +55,7 @@ public class AcademicLevelService {
         academicLevel.setProgramFiliere(programFiliere);
         academicLevel.setName(name);
         academicLevel.setLevelOrder(request.levelOrder());
+        academicLevel.setTerminalLevel(request.terminalLevel());
         AcademicLevel savedAcademicLevel = academicLevelRepository.save(academicLevel);
         ruleAssignmentService.createInitialAssignment(
             principal,
@@ -107,6 +108,8 @@ public class AcademicLevelService {
 
         academicLevel.setName(name);
         academicLevel.setLevelOrder(request.levelOrder());
+        academicLevel.setTerminalLevel(request.terminalLevel());
+        ruleAssignmentService.ensureTerminalLevelCompatibility(academicLevel);
         return toResponse(academicLevelRepository.save(academicLevel));
     }
 
@@ -199,6 +202,7 @@ public class AcademicLevelService {
             academicLevel.getProgramFiliere().getDepartment().getEstablishment().getId(),
             academicLevel.getName(),
             academicLevel.getLevelOrder(),
+            academicLevel.isTerminalLevel(),
             academicLevel.getCreatedAt(),
             academicLevel.getUpdatedAt()
         );

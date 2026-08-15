@@ -13,10 +13,18 @@ import com.platform.assessment.semesterresult.domain.SemesterResult;
 import com.platform.assessment.semesterresult.domain.SemesterResultStatus;
 import com.platform.assessment.semesterresult.infrastructure.SemesterResultRepository;
 import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfile;
+import com.platform.universitygovernance.academicruleprofile.application.AcademicRuleEvaluator;
+import com.platform.universitygovernance.academicruleprofile.domain.rules.AcademicDecisionRule;
+import com.platform.universitygovernance.academicruleprofile.domain.rules.AcademicMetric;
+import com.platform.universitygovernance.academicruleprofile.domain.rules.AcademicRuleOutcome;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
+import java.util.EnumMap;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,17 +35,20 @@ public class ProgressionDecisionService {
     private final SemesterRegistrationRepository semesterRegistrationRepository;
     private final SemesterResultRepository semesterResultRepository;
     private final ModuleResultRepository moduleResultRepository;
+    private final AcademicRuleEvaluator ruleEvaluator;
 
     public ProgressionDecisionService(
         ProgressionDecisionRepository progressionDecisionRepository,
         SemesterRegistrationRepository semesterRegistrationRepository,
         SemesterResultRepository semesterResultRepository,
-        ModuleResultRepository moduleResultRepository
+        ModuleResultRepository moduleResultRepository,
+        AcademicRuleEvaluator ruleEvaluator
     ) {
         this.progressionDecisionRepository = progressionDecisionRepository;
         this.semesterRegistrationRepository = semesterRegistrationRepository;
         this.semesterResultRepository = semesterResultRepository;
         this.moduleResultRepository = moduleResultRepository;
+        this.ruleEvaluator = ruleEvaluator;
     }
 
     @Transactional
@@ -69,9 +80,11 @@ public class ProgressionDecisionService {
             .toList();
         ProgressionDecisionStatus decisionStatus = resolveDecision(
             semesterResults,
+            moduleResults,
             outstanding,
             annualAverage,
-            ruleProfile
+            ruleProfile,
+            academicRegistration.getAcademicLevel().isTerminalLevel()
         );
 
         ProgressionDecision decision = progressionDecisionRepository
@@ -88,33 +101,103 @@ public class ProgressionDecisionService {
 
     private ProgressionDecisionStatus resolveDecision(
         List<SemesterResult> semesterResults,
+        List<ModuleResult> moduleResults,
         List<ModuleResult> outstanding,
         BigDecimal annualAverage,
-        AcademicRuleProfile ruleProfile
+        AcademicRuleProfile ruleProfile,
+        boolean terminalLevel
     ) {
-        boolean allSemestersValidated = semesterResults.stream().allMatch(result ->
-            result.getResultStatus() == SemesterResultStatus.VALIDATED
-        );
-        if (allSemestersValidated) {
-            return ProgressionDecisionStatus.PROMOTED;
-        }
-
-        boolean attemptsExhausted = outstanding.stream().anyMatch(result ->
+        long individuallyValidated = moduleResults.stream().filter(result ->
+            result.getFinalGradeValue().compareTo(
+                ruleProfile.getModuleValidationThreshold()
+            ) >= 0
+        ).count();
+        long exhausted = outstanding.stream().filter(result ->
             result.getModuleRegistration().getInscriptionNumber()
                 >= ruleProfile.getMaximumModuleInscriptions()
-        );
-        if (attemptsExhausted) {
-            return ProgressionDecisionStatus.FAILED;
-        }
+        ).count();
+        long nonValidatedSemesters = semesterResults.stream().filter(result ->
+            result.getResultStatus() != SemesterResultStatus.VALIDATED
+        ).count();
 
-        boolean annualAverageAllowsDebt = ruleProfile.getAnnualValidationAverage() == null
-            || annualAverage.compareTo(ruleProfile.getAnnualValidationAverage()) >= 0;
-        if (ruleProfile.isAllowProgressionWithDebt()
-            && outstanding.size() <= ruleProfile.getMaximumCarriedModules()
-            && annualAverageAllowsDebt) {
-            return ProgressionDecisionStatus.PROMOTED_WITH_DEBT;
-        }
-        return ProgressionDecisionStatus.REPEAT;
+        Map<AcademicMetric, BigDecimal> metrics = new EnumMap<>(AcademicMetric.class);
+        metrics.put(AcademicMetric.ANNUAL_AVERAGE, annualAverage);
+        metrics.put(
+            AcademicMetric.INDIVIDUALLY_VALIDATED_MODULE_COUNT,
+            BigDecimal.valueOf(individuallyValidated)
+        );
+        metrics.put(
+            AcademicMetric.MINIMUM_NON_VALIDATED_MODULE_GRADE,
+            minimumGradeOrMaximum(outstanding)
+        );
+        metrics.put(
+            AcademicMetric.NON_VALIDATED_SEMESTER_COUNT,
+            BigDecimal.valueOf(nonValidatedSemesters)
+        );
+        metrics.put(
+            AcademicMetric.OUTSTANDING_MODULE_COUNT,
+            BigDecimal.valueOf(outstanding.size())
+        );
+        metrics.put(
+            AcademicMetric.EXHAUSTED_MODULE_INSCRIPTION_COUNT,
+            BigDecimal.valueOf(exhausted)
+        );
+
+        List<AcademicDecisionRule> academicLevelRules = ruleProfile
+            .getRuleDefinition()
+            .academicLevelRules()
+            .stream()
+            .filter(rule -> ruleProfile.isAllowInterSemesterCompensation()
+                || rule.outcome()
+                    != AcademicRuleOutcome.ACADEMIC_LEVEL_VALIDATED_BY_COMPENSATION)
+            .toList();
+        AcademicRuleOutcome academicLevelOutcome = ruleEvaluator.evaluate(
+            academicLevelRules,
+            metrics,
+            ruleProfile
+        ).orElseThrow(() -> new ResponseStatusException(
+            HttpStatus.CONFLICT,
+            "No academic-level validation rule matched the calculated results"
+        ));
+        boolean academicLevelValidated = academicLevelOutcome
+            == AcademicRuleOutcome.ACADEMIC_LEVEL_VALIDATED
+            || academicLevelOutcome
+                == AcademicRuleOutcome.ACADEMIC_LEVEL_VALIDATED_BY_COMPENSATION;
+        metrics.put(
+            AcademicMetric.ACADEMIC_LEVEL_VALIDATED,
+            academicLevelValidated ? BigDecimal.ONE : BigDecimal.ZERO
+        );
+
+        List<AcademicDecisionRule> progressionRules = ruleProfile
+            .getRuleDefinition()
+            .progressionRules()
+            .stream()
+            .filter(rule -> ruleProfile.isAllowProgressionWithDebt()
+                || rule.outcome() != AcademicRuleOutcome.PROMOTED_WITH_DEBT)
+            .toList();
+        AcademicRuleOutcome outcome = ruleEvaluator.evaluate(
+            progressionRules,
+            metrics,
+            ruleProfile
+        ).orElseThrow(() -> new ResponseStatusException(
+            HttpStatus.CONFLICT,
+            "No progression rule matched the calculated results"
+        ));
+        return switch (outcome) {
+            case PROMOTED -> terminalLevel
+                ? ProgressionDecisionStatus.LEVEL_VALIDATED
+                : academicLevelOutcome
+                    == AcademicRuleOutcome.ACADEMIC_LEVEL_VALIDATED_BY_COMPENSATION
+                        ? ProgressionDecisionStatus.PROMOTED_BY_COMPENSATION
+                        : ProgressionDecisionStatus.PROMOTED;
+            case PROMOTED_WITH_DEBT -> ProgressionDecisionStatus.PROMOTED_WITH_DEBT;
+            case REPEAT -> ProgressionDecisionStatus.REPEAT;
+            case FAILED -> ProgressionDecisionStatus.FAILED;
+            default -> throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "The matched progression rule returned an invalid outcome"
+            );
+        };
     }
 
     private BigDecimal average(List<ModuleResult> moduleResults) {
@@ -127,4 +210,12 @@ public class ProgressionDecisionService {
             RoundingMode.HALF_UP
         );
     }
+
+    private BigDecimal minimumGradeOrMaximum(List<ModuleResult> results) {
+        return results.stream()
+            .map(ModuleResult::getFinalGradeValue)
+            .min(BigDecimal::compareTo)
+            .orElse(new BigDecimal("20.00"));
+    }
+
 }

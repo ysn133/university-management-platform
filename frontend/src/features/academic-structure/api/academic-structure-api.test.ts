@@ -70,6 +70,7 @@ describe("academic structure API", () => {
       establishmentId,
       name: "M1",
       levelOrder: 1,
+      terminalLevel: false,
     }]), { status: 200, headers: { "Content-Type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -134,6 +135,10 @@ describe("academic structure API", () => {
       compensationMinimumThreshold: 7,
       semesterValidationAverage: 10,
       annualValidationAverage: 10,
+      minimumIndividuallyValidatedModulesPerSemester: 5,
+      maximumNonValidatedModulesPerSemester: 2,
+      allowInterSemesterCompensation: true,
+      minimumIndividuallyValidatedModulesPerAcademicLevel: 10,
       maximumModuleInscriptions: 2,
       sessionGradePolicy: "RATTRAPAGE_CAPPED_AT_VALIDATION_THRESHOLD" as const,
       allowProgressionWithDebt: true,
@@ -141,6 +146,7 @@ describe("academic structure API", () => {
       maximumUnjustifiedAbsences: 3,
       absenceExclusionPolicy: "NORMAL_AND_RATTRAPAGE" as const,
       status: "ACTIVE" as const,
+      ruleDefinition: { moduleRules: [], semesterRules: [], academicLevelRules: [], progressionRules: [], useSharedSemesterRules: true, autumnSemesterRules: [], springSemesterRules: [] },
     };
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       id: "00000000-0000-4000-8000-000000000012",
@@ -165,6 +171,10 @@ describe("academic structure API", () => {
       compensationMinimumThreshold: 7,
       semesterValidationAverage: 10,
       annualValidationAverage: 10,
+      minimumIndividuallyValidatedModulesPerSemester: 5,
+      maximumNonValidatedModulesPerSemester: 2,
+      allowInterSemesterCompensation: true,
+      minimumIndividuallyValidatedModulesPerAcademicLevel: 10,
       maximumModuleInscriptions: 2,
       sessionGradePolicy: "BEST_GRADE" as const,
       allowProgressionWithDebt: true,
@@ -172,6 +182,7 @@ describe("academic structure API", () => {
       maximumUnjustifiedAbsences: 3,
       absenceExclusionPolicy: "NORMAL_AND_RATTRAPAGE" as const,
       status: "INACTIVE" as const,
+      ruleDefinition: { moduleRules: [], semesterRules: [], academicLevelRules: [], progressionRules: [], useSharedSemesterRules: true, autumnSemesterRules: [], springSemesterRules: [] },
     };
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       id: academicRuleProfileId,

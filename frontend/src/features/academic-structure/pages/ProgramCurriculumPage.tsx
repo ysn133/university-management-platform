@@ -12,6 +12,8 @@ import { SemesterProfessorsWorkspace } from "@/features/teaching-planning/compon
 import { SemesterTimetableWorkspace } from "@/features/scheduling/components/SemesterTimetableWorkspace";
 import { ExamPlanningWorkspace } from "@/features/scheduling/components/ExamPlanningWorkspace";
 import { GradeManagementWorkspace } from "@/features/assessment/components/GradeManagementWorkspace";
+import { ProgressionWorkspace } from "@/features/assessment/components/ProgressionWorkspace";
+import { GraduationWorkspace } from "@/features/assessment/components/GraduationWorkspace";
 import { TeachingGroupPolicyModal } from "../components/TeachingGroupPolicyModal";
 import {
   academicStructureKeys,
@@ -33,6 +35,7 @@ import {
   getSemesters,
   getSubjectModules,
   updateAcademicLevel,
+  updateAcademicLevelRuleAssignment,
   updateSemester,
   updateSubjectModule,
   type AcademicLevel,
@@ -40,7 +43,7 @@ import {
   type SubjectModule,
 } from "../api/academic-structure-api";
 
-interface LevelForm { name: string; levelOrder: string; initialAcademicYearId: string; academicRuleProfileId: string; }
+interface LevelForm { name: string; levelOrder: string; terminalLevel: boolean; initialAcademicYearId: string; academicRuleProfileId: string; }
 interface SemesterForm { name: string; semesterOrder: string; termType: "AUTUMN" | "SPRING"; startDate: string; endDate: string; }
 interface ModuleForm { code: string; title: string; academicDomainIds: string[]; }
 interface DomainForm { code: string; name: string; }
@@ -57,7 +60,7 @@ interface RuleProfileForm {
   maximumUnjustifiedAbsences: string;
   absenceExclusionPolicy: "NORMAL_ONLY" | "NORMAL_AND_RATTRAPAGE";
 }
-const emptyLevelForm: LevelForm = { name: "", levelOrder: "", initialAcademicYearId: "", academicRuleProfileId: "" };
+const emptyLevelForm: LevelForm = { name: "", levelOrder: "", terminalLevel: false, initialAcademicYearId: "", academicRuleProfileId: "" };
 const emptySemesterForm: SemesterForm = { name: "", semesterOrder: "", termType: "AUTUMN", startDate: "", endDate: "" };
 const emptyModuleForm: ModuleForm = { code: "", title: "", academicDomainIds: [] };
 const emptyDomainForm: DomainForm = { code: "", name: "" };
@@ -90,7 +93,7 @@ export function ProgramCurriculumPage() {
   const [searchParams] = useSearchParams();
   const { establishmentId, workspacePath } = useEstablishmentScope();
   const queryClient = useQueryClient();
-  const [activeSection, setActiveSection] = useState<"curriculum" | "students" | "teaching-groups" | "teaching-plan" | "professors" | "schedule" | "exam-planning" | "grades">(() => searchParams.get("section") === "teaching-plan" ? "teaching-plan" : searchParams.get("section") === "professors" ? "professors" : searchParams.get("section") === "schedule" ? "schedule" : searchParams.get("section") === "exam-planning" ? "exam-planning" : searchParams.get("section") === "grades" ? "grades" : "curriculum");
+  const [activeSection, setActiveSection] = useState<"curriculum" | "students" | "teaching-groups" | "teaching-plan" | "professors" | "schedule" | "exam-planning" | "grades" | "progression" | "graduation">(() => searchParams.get("section") === "teaching-plan" ? "teaching-plan" : searchParams.get("section") === "professors" ? "professors" : searchParams.get("section") === "schedule" ? "schedule" : searchParams.get("section") === "exam-planning" ? "exam-planning" : searchParams.get("section") === "grades" ? "grades" : searchParams.get("section") === "progression" ? "progression" : searchParams.get("section") === "graduation" ? "graduation" : "curriculum");
   const [academicYearId, setAcademicYearId] = useState(() => routeAcademicYearId ?? searchParams.get("academicYearId") ?? "");
   const [academicLevelId, setAcademicLevelId] = useState(() => searchParams.get("academicLevelId") ?? "");
   const [semesterId, setSemesterId] = useState(() => searchParams.get("semesterId") ?? "");
@@ -123,6 +126,8 @@ export function ProgramCurriculumPage() {
   const domainsQuery = useQuery({ queryKey: academicStructureKeys.academicDomains(establishmentId ?? "missing"), queryFn: () => getAcademicDomains(establishmentId!), enabled: Boolean(establishmentId) });
   const semestersQuery = useQuery({ queryKey: academicStructureKeys.semesters(academicLevelId || "missing", academicYearId || "missing"), queryFn: () => getSemesters(academicLevelId, academicYearId), enabled: Boolean(academicLevelId && academicYearId) });
   const modulesQuery = useQuery({ queryKey: academicStructureKeys.subjectModules(semesterId || "missing"), queryFn: () => getSubjectModules(semesterId), enabled: Boolean(semesterId) });
+  const currentRuleAssignment = ruleAssignmentsQuery.data?.find((assignment) => assignment.academicYearId === academicYearId && assignment.status === "ACTIVE");
+  const selectedLevelIsTerminal = levelsQuery.data?.find((level) => level.id === academicLevelId)?.terminalLevel;
 
   useEffect(() => {
     if (!academicYearId && yearsQuery.data?.length) {
@@ -143,6 +148,18 @@ export function ProgramCurriculumPage() {
     }
     if (!semestersQuery.data.some((semester) => semester.id === semesterId)) setSemesterId(semestersQuery.data[0]?.id ?? "");
   }, [pendingSemesterId, semesterId, semestersQuery.data]);
+  useEffect(() => {
+    if (!editingLevel || !currentRuleAssignment) return;
+    setLevelForm((current) => ({
+      ...current,
+      academicRuleProfileId: currentRuleAssignment.academicRuleProfileId,
+    }));
+  }, [currentRuleAssignment, editingLevel]);
+  useEffect(() => {
+    if (activeSection === "graduation" && selectedLevelIsTerminal === false) {
+      setActiveSection("progression");
+    }
+  }, [activeSection, selectedLevelIsTerminal]);
 
   async function refreshLevels() { await queryClient.invalidateQueries({ queryKey: academicStructureKeys.academicLevels(programFiliereId!) }); }
   async function refreshSemesters() { await queryClient.invalidateQueries({ queryKey: academicStructureKeys.semesters(academicLevelId, academicYearId) }); }
@@ -152,10 +169,23 @@ export function ProgramCurriculumPage() {
   function closeModuleForm() { setCreatingModule(false); setEditingModule(null); setCreatingAcademicDomain(false); setModuleForm(emptyModuleForm); setDomainForm(emptyDomainForm); setFormError(null); }
 
   const levelMutation = useMutation({
-    mutationFn: () => editingLevel
-      ? updateAcademicLevel(editingLevel.id, { name: levelForm.name.trim(), levelOrder: Number(levelForm.levelOrder) })
-      : createAcademicLevel(programFiliereId!, { name: levelForm.name.trim(), levelOrder: Number(levelForm.levelOrder), initialAcademicYearId: levelForm.initialAcademicYearId, academicRuleProfileId: levelForm.academicRuleProfileId }),
-    onSuccess: async () => { await refreshLevels(); closeLevelForm(); },
+    mutationFn: async () => {
+      if (!editingLevel) {
+        return createAcademicLevel(programFiliereId!, { name: levelForm.name.trim(), levelOrder: Number(levelForm.levelOrder), terminalLevel: levelForm.terminalLevel, initialAcademicYearId: levelForm.initialAcademicYearId, academicRuleProfileId: levelForm.academicRuleProfileId });
+      }
+      const updatedLevel = await updateAcademicLevel(editingLevel.id, { name: levelForm.name.trim(), levelOrder: Number(levelForm.levelOrder), terminalLevel: levelForm.terminalLevel });
+      if (currentRuleAssignment && levelForm.academicRuleProfileId !== currentRuleAssignment.academicRuleProfileId) {
+        await updateAcademicLevelRuleAssignment(currentRuleAssignment.id, levelForm.academicRuleProfileId);
+      }
+      return updatedLevel;
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        refreshLevels(),
+        queryClient.invalidateQueries({ queryKey: academicStructureKeys.levelRuleAssignments(academicLevelId) }),
+      ]);
+      closeLevelForm();
+    },
   });
   const ruleProfileMutation = useMutation({
     mutationFn: () => createAcademicRuleProfile(establishmentId!, {
@@ -164,6 +194,10 @@ export function ProgramCurriculumPage() {
       compensationMinimumThreshold: Number(ruleProfileForm.compensationMinimumThreshold),
       semesterValidationAverage: Number(ruleProfileForm.semesterValidationAverage),
       annualValidationAverage: ruleProfileForm.annualValidationAverage ? Number(ruleProfileForm.annualValidationAverage) : undefined,
+      minimumIndividuallyValidatedModulesPerSemester: 5,
+      maximumNonValidatedModulesPerSemester: 2,
+      allowInterSemesterCompensation: true,
+      minimumIndividuallyValidatedModulesPerAcademicLevel: 10,
       maximumModuleInscriptions: Number(ruleProfileForm.maximumModuleInscriptions),
       sessionGradePolicy: ruleProfileForm.sessionGradePolicy,
       allowProgressionWithDebt: ruleProfileForm.allowProgressionWithDebt,
@@ -213,10 +247,32 @@ export function ProgramCurriculumPage() {
   const deleteLevelMutation = useMutation({ mutationFn: (id: string) => deleteAcademicLevel(id), onSuccess: async () => { await refreshLevels(); setDeletingLevel(null); } });
   const deleteSemesterMutation = useMutation({ mutationFn: (id: string) => deleteSemester(id), onSuccess: async () => { await refreshSemesters(); setDeletingSemester(null); } });
   const deleteModuleMutation = useMutation({ mutationFn: (id: string) => deleteSubjectModule(id), onSuccess: async () => { await refreshModules(); setDeletingModule(null); } });
-
   function submitLevel() {
-    if (!levelForm.name.trim() || Number(levelForm.levelOrder) < 1 || (!editingLevel && (!levelForm.initialAcademicYearId || !levelForm.academicRuleProfileId))) { setFormError("Complete all required level fields."); return; }
+    if (!levelForm.name.trim() || Number(levelForm.levelOrder) < 1 || !levelForm.academicRuleProfileId || (!editingLevel && !levelForm.initialAcademicYearId)) { setFormError("Complete all required level fields."); return; }
+    const profile = profilesQuery.data?.find((item) => item.id === levelForm.academicRuleProfileId);
+    if (levelForm.terminalLevel && profile?.allowProgressionWithDebt) {
+      setFormError("A final academic level cannot use progression with debt because students must fully validate the level before graduation.");
+      return;
+    }
     levelMutation.mutate();
+  }
+  function selectRuleProfile(academicRuleProfileId: string) {
+    const profile = profilesQuery.data?.find((item) => item.id === academicRuleProfileId);
+    setLevelForm({ ...levelForm, academicRuleProfileId });
+    if (levelForm.terminalLevel && profile?.allowProgressionWithDebt) {
+      setFormError("This profile allows progression with debt. Select a profile without debt progression for a final academic level.");
+      return;
+    }
+    setFormError(null);
+  }
+  function setTerminalLevel(terminalLevel: boolean) {
+    const profile = profilesQuery.data?.find((item) => item.id === levelForm.academicRuleProfileId);
+    setLevelForm({ ...levelForm, terminalLevel });
+    if (terminalLevel && profile?.allowProgressionWithDebt) {
+      setFormError("This level cannot be marked as final while its rule profile allows progression with debt. Choose a compatible profile first.");
+      return;
+    }
+    setFormError(null);
   }
   function submitRuleProfile() {
     const requiredValues = [
@@ -271,9 +327,12 @@ export function ProgramCurriculumPage() {
   const selectedSemester = semesters.find((semester) => semester.id === semesterId);
   const selectedYear = yearsQuery.data?.find((year) => year.id === academicYearId);
   const selectedProgramPath = programPathsQuery.data?.find((path) => path.id === program?.programPathId);
-  const selectedRuleAssignment = ruleAssignmentsQuery.data?.find((assignment) => assignment.academicYearId === academicYearId && assignment.status === "ACTIVE");
+  const selectedRuleAssignment = currentRuleAssignment;
   const selectedRuleProfile = profilesQuery.data?.find((profile) => profile.id === selectedRuleAssignment?.academicRuleProfileId);
   const activeProfiles = profilesQuery.data?.filter((profile) => profile.status === "ACTIVE") ?? [];
+  const hasIncompatibleTerminalRule = levelForm.terminalLevel && activeProfiles.some((profile) =>
+    profile.id === levelForm.academicRuleProfileId && profile.allowProgressionWithDebt
+  );
   const domainNames = new Map(domainsQuery.data?.map((domain) => [domain.id, domain.name]));
   const canCreateLevel = Boolean(yearsQuery.data?.length);
   const programPathId = routeProgramPathId ?? searchParams.get("programPathId");
@@ -310,6 +369,8 @@ export function ProgramCurriculumPage() {
       <button aria-selected={activeSection === "schedule"} onClick={() => setActiveSection("schedule")} role="tab" type="button">Schedule</button>
       <button aria-selected={activeSection === "exam-planning"} onClick={() => setActiveSection("exam-planning")} role="tab" type="button">Exam Planning</button>
       <button aria-selected={activeSection === "grades"} onClick={() => setActiveSection("grades")} role="tab" type="button">Grades</button>
+      <button aria-selected={activeSection === "progression"} onClick={() => setActiveSection("progression")} role="tab" type="button">Progression</button>
+      {selectedLevel?.terminalLevel && <button aria-selected={activeSection === "graduation"} onClick={() => setActiveSection("graduation")} role="tab" type="button">Graduation</button>}
     </nav>
 
     <div className="curriculum-layout">
@@ -320,18 +381,18 @@ export function ProgramCurriculumPage() {
             <h2>Academic Levels</h2>
             <span>{levels.length ? `${levels.length} configured` : "Build the program hierarchy"}</span>
           </div>
-          {activeSection === "curriculum" && <button className="curriculum-level-add" disabled={!canCreateLevel} onClick={() => { setLevelForm({ name: "", levelOrder: String(levels.length + 1), initialAcademicYearId: academicYearId || yearsQuery.data?.[0]?.id || "", academicRuleProfileId: activeProfiles[0]?.id || "" }); setCreatingRuleProfile(false); setCreatingLevel(true); }} type="button">Add level</button>}
+          {activeSection === "curriculum" && <button className="curriculum-level-add" disabled={!canCreateLevel} onClick={() => { setLevelForm({ name: "", levelOrder: String(levels.length + 1), terminalLevel: false, initialAcademicYearId: academicYearId || yearsQuery.data?.[0]?.id || "", academicRuleProfileId: activeProfiles[0]?.id || "" }); setCreatingRuleProfile(false); setCreatingLevel(true); }} type="button">Add level</button>}
         </header>
         {levelsQuery.isPending ? <div className="panel-empty">Loading levels...</div> : levelsQuery.isError ? <div className="panel-empty panel-empty--error">{errorMessage(levelsQuery.error)}</div> : levels.length === 0 ? <div className="panel-empty curriculum-level-empty"><strong>No levels configured</strong><p>{canCreateLevel ? "Add the first level and define its initial academic rules." : "Create an academic year before adding levels."}</p></div> : <div className="curriculum-level-list">{levels.map((level) => {
           const isSelected = level.id === academicLevelId;
           return <article className={isSelected ? "is-active" : ""} key={level.id}>
             <button className="curriculum-level-select" onClick={() => { setAcademicLevelId(level.id); setSemesterId(""); }} type="button">
               <strong>{level.name}</strong>
-              <small>{isSelected ? "Currently viewing" : activeSection === "students" ? "View student cohort" : activeSection === "teaching-groups" ? "View TD and TP groups" : activeSection === "teaching-plan" ? "View required teaching delivery" : activeSection === "professors" ? "View assigned Professors" : activeSection === "schedule" ? "View weekly timetable" : activeSection === "exam-planning" ? "Plan examination periods" : activeSection === "grades" ? "Review and publish grades" : "View semesters and modules"}</small>
+              <small>{isSelected ? "Currently viewing" : activeSection === "students" ? "View student cohort" : activeSection === "teaching-groups" ? "View TD and TP groups" : activeSection === "teaching-plan" ? "View required teaching delivery" : activeSection === "professors" ? "View assigned Professors" : activeSection === "schedule" ? "View weekly timetable" : activeSection === "exam-planning" ? "Plan examination periods" : activeSection === "grades" ? "Review and publish grades" : activeSection === "progression" ? "Review annual decisions" : activeSection === "graduation" ? "Review graduated students" : "View semesters and modules"}</small>
             </button>
             {activeSection === "curriculum" && <div className="row-actions">
               <button disabled={!academicYearId} onClick={() => { setAcademicLevelId(level.id); setConfiguringGroupPolicy(level); }} type="button">Group sizes</button>
-              <button onClick={() => { setEditingLevel(level); setLevelForm({ name: level.name, levelOrder: String(level.levelOrder), initialAcademicYearId: "", academicRuleProfileId: "" }); }} type="button">Edit</button>
+              <button onClick={() => { setAcademicLevelId(level.id); setEditingLevel(level); setLevelForm({ name: level.name, levelOrder: String(level.levelOrder), terminalLevel: level.terminalLevel, initialAcademicYearId: "", academicRuleProfileId: level.id === academicLevelId ? currentRuleAssignment?.academicRuleProfileId ?? "" : "" }); }} type="button">Edit</button>
               <button className="danger-text" onClick={() => setDeletingLevel(level)} type="button">Delete</button>
             </div>}
           </article>;
@@ -340,7 +401,7 @@ export function ProgramCurriculumPage() {
 
       <main className="curriculum-main">
         {activeSection === "curriculum" ? <>
-          <section className="management-panel curriculum-semesters"><header className="panel-header panel-header--bordered"><div><p className="management-kicker">{selectedYear?.label ?? "Academic year required"}</p><h2>{selectedLevel ? `${selectedLevel.name} Semesters` : "Select an Academic Level"}</h2><p>Each academic year has its own semester structure and modules.</p></div><button className="management-primary-button" disabled={!academicLevelId || !academicYearId} onClick={() => { const order = semesters.length + 1; const autumn = order % 2 === 1; setSemesterForm({ name: "", semesterOrder: String(order), termType: autumn ? "AUTUMN" : "SPRING", startDate: selectedYear ? `${autumn ? selectedYear.startYear : selectedYear.endYear}-${autumn ? "09-01" : "02-01"}` : "", endDate: selectedYear ? `${selectedYear.endYear}-${autumn ? "01-31" : "06-30"}` : "" }); setCreatingSemester(true); }} type="button">New Semester</button></header>{!academicYearId ? <div className="panel-empty"><strong>Select an academic year.</strong><p>The year determines which semesters and modules are displayed.</p></div> : !academicLevelId ? <div className="panel-empty"><strong>Select an academic level.</strong></div> : semestersQuery.isPending ? <div className="panel-empty">Loading semesters...</div> : semestersQuery.isError ? <div className="panel-empty panel-empty--error">{errorMessage(semestersQuery.error)}</div> : semesters.length === 0 ? <div className="panel-empty"><strong>No semesters configured.</strong><p>Create the first semester for this level and academic year.</p></div> : <div className="semester-card-grid">{semesters.map((semester) => <article className={semester.id === semesterId ? "is-active" : ""} key={semester.id}><button onClick={() => setSemesterId(semester.id)} type="button"><span>{semester.termType === "AUTUMN" ? "Autumn term" : "Spring term"} · {semester.lifecycleStatus}</span><strong>{semester.name}</strong><small>{semester.startDate} – {semester.endDate}</small></button><div className="row-actions"><button onClick={() => { setEditingSemester(semester); setSemesterForm({ name: semester.name, semesterOrder: String(semester.semesterOrder), termType: semester.termType, startDate: semester.startDate, endDate: semester.endDate }); }} type="button">Edit</button><button className="danger-text" onClick={() => setDeletingSemester(semester)} type="button">Delete</button></div></article>)}</div>}</section>
+          <section className="management-panel curriculum-semesters"><header className="panel-header panel-header--bordered"><div><p className="management-kicker">{selectedYear?.label ?? "Academic year required"}</p><h2>{selectedLevel ? `${selectedLevel.name} Semesters` : "Select an Academic Level"}</h2><p>{selectedRuleProfile ? `Academic rules: ${selectedRuleProfile.name} · v${selectedRuleProfile.version}` : "Each academic year has its own semester structure and modules."}</p></div><div className="curriculum-header-actions"><button className="management-primary-button" disabled={!academicLevelId || !academicYearId} onClick={() => { const order = semesters.length + 1; const autumn = order % 2 === 1; setSemesterForm({ name: "", semesterOrder: String(order), termType: autumn ? "AUTUMN" : "SPRING", startDate: selectedYear ? `${autumn ? selectedYear.startYear : selectedYear.endYear}-${autumn ? "09-01" : "02-01"}` : "", endDate: selectedYear ? `${selectedYear.endYear}-${autumn ? "01-31" : "06-30"}` : "" }); setCreatingSemester(true); }} type="button">New Semester</button></div></header>{!academicYearId ? <div className="panel-empty"><strong>Select an academic year.</strong><p>The year determines which semesters and modules are displayed.</p></div> : !academicLevelId ? <div className="panel-empty"><strong>Select an academic level.</strong></div> : semestersQuery.isPending ? <div className="panel-empty">Loading semesters...</div> : semestersQuery.isError ? <div className="panel-empty panel-empty--error">{errorMessage(semestersQuery.error)}</div> : semesters.length === 0 ? <div className="panel-empty"><strong>No semesters configured.</strong><p>Create the first semester for this level and academic year.</p></div> : <div className="semester-card-grid">{semesters.map((semester) => <article className={semester.id === semesterId ? "is-active" : ""} key={semester.id}><button onClick={() => setSemesterId(semester.id)} type="button"><span>{semester.termType === "AUTUMN" ? "Autumn term" : "Spring term"} · {semester.lifecycleStatus}</span><strong>{semester.name}</strong><small>{semester.startDate} – {semester.endDate}</small></button><div className="row-actions"><button onClick={() => { setEditingSemester(semester); setSemesterForm({ name: semester.name, semesterOrder: String(semester.semesterOrder), termType: semester.termType, startDate: semester.startDate, endDate: semester.endDate }); }} type="button">Edit</button><button className="danger-text" onClick={() => setDeletingSemester(semester)} type="button">Delete</button></div></article>)}</div>}</section>
 
           <section className="management-panel curriculum-modules"><header className="panel-header panel-header--bordered"><div><p className="management-kicker">{selectedSemester?.name ?? "Semester modules"}</p><h2>Subject Modules</h2><p>{selectedSemester ? `Modules delivered in ${selectedSemester.name} for ${selectedYear?.label}.` : "Select a semester to manage its modules."}</p></div><button className="management-primary-button" disabled={!semesterId} onClick={() => { setModuleForm(emptyModuleForm); setCreatingModule(true); }} type="button">New Module</button></header>{!semesterId ? <div className="panel-empty"><strong>Select a semester.</strong></div> : modulesQuery.isPending ? <div className="panel-empty">Loading modules...</div> : modulesQuery.isError ? <div className="panel-empty panel-empty--error">{errorMessage(modulesQuery.error)}</div> : modules.length === 0 ? <div className="panel-empty"><strong>No modules configured.</strong><p>Create the first subject module for this semester.</p></div> : <div className="resource-table-wrapper"><table className="resource-table"><thead><tr><th>Module</th><th>Academic domains</th><th>Actions</th></tr></thead><tbody>{modules.map((module) => <tr key={module.id}><td><Link className="resource-name resource-name--link module-record-link" to={modulePathFor(module.id)}><span className="resource-monogram">{module.code.slice(0, 2)}</span><div><strong>{module.title}</strong><small>{module.code}</small></div></Link></td><td>{module.academicDomainIds.length ? module.academicDomainIds.map((id) => domainNames.get(id) ?? "Unknown domain").join(", ") : "No domain assigned"}</td><td><div className="row-actions"><button onClick={() => { setEditingModule(module); setModuleForm({ code: module.code, title: module.title, academicDomainIds: module.academicDomainIds }); }} type="button">Edit</button><button className="danger-text" onClick={() => setDeletingModule(module)} type="button">Delete</button></div></td></tr>)}</tbody></table></div>}</section>
         </> : activeSection === "students" ? <ProgramStudentCohort academicLevel={selectedLevel} academicLevels={levels} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} onSelectAcademicLevel={(levelId) => { setAcademicLevelId(levelId); setSemesterId(""); }} programFiliereId={programFiliereId} semesters={semesters} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />
@@ -349,13 +410,15 @@ export function ProgramCurriculumPage() {
           : activeSection === "schedule" ? <SemesterTimetableWorkspace academicLevelId={academicLevelId} academicLevelName={selectedLevel?.name} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} onSelectSemester={setSemesterId} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />
           : activeSection === "exam-planning" ? <ExamPlanningWorkspace academicLevelId={academicLevelId} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} programName={program.name} onSelectSemester={setSemesterId} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />
           : activeSection === "grades" ? <GradeManagementWorkspace academicLevelId={academicLevelId} academicLevelName={selectedLevel?.name} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} moduleValidationThreshold={selectedRuleProfile?.moduleValidationThreshold} modules={modules} onOpenOriginalSemester={(yearId, levelId, originalSemesterId) => { setPendingSemesterId(originalSemesterId); setAcademicYearId(yearId); setAcademicLevelId(levelId); }} onSelectSemester={setSemesterId} programName={program.name} programPathName={selectedProgramPath?.name} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />
+          : activeSection === "progression" ? <ProgressionWorkspace academicLevelId={academicLevelId} academicLevelName={selectedLevel?.name} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} terminalLevel={selectedLevel?.terminalLevel} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />
+          : activeSection === "graduation" && selectedLevel?.terminalLevel ? <GraduationWorkspace academicLevelId={academicLevelId} academicLevelName={selectedLevel.name} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />
           : <TeachingPlanWorkspace academicLevelName={selectedLevel?.name} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} onSelectSemester={setSemesterId} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />}
       </main>
     </div>
 
     {(creatingLevel || editingLevel) && <ManagementModal
       title={creatingRuleProfile ? "Create Academic Rule Profile" : `${editingLevel ? "Edit" : "Create"} Academic Level`}
-      description={creatingRuleProfile ? "Define the rules that will govern this level for the selected academic year." : editingLevel ? "Update the level identity and ordering." : "Create the level and its initial academic rule assignment."}
+      description={creatingRuleProfile ? "Define the rules that will govern this level for the selected academic year." : editingLevel ? `Update the level and its rules for ${selectedYear?.label ?? "the selected academic year"}.` : "Create the level and its initial academic rule assignment."}
       onClose={closeLevelForm}
     >
       {creatingRuleProfile ? <div className="management-form management-form--two-columns">
@@ -369,21 +432,24 @@ export function ProgramCurriculumPage() {
         <div className="form-field"><label htmlFor="rule-carried-modules">Maximum carried modules</label><input id="rule-carried-modules" min="0" onChange={(event) => setRuleProfileForm({ ...ruleProfileForm, maximumCarriedModules: event.target.value })} type="number" value={ruleProfileForm.maximumCarriedModules} /></div>
         <div className="form-field"><label htmlFor="rule-absence-limit">Maximum unjustified absences</label><input id="rule-absence-limit" min="0" onChange={(event) => setRuleProfileForm({ ...ruleProfileForm, maximumUnjustifiedAbsences: event.target.value })} type="number" value={ruleProfileForm.maximumUnjustifiedAbsences} /></div>
         <div className="form-field"><label htmlFor="rule-absence-policy">Absence exclusion policy</label><select id="rule-absence-policy" onChange={(event) => setRuleProfileForm({ ...ruleProfileForm, absenceExclusionPolicy: event.target.value as RuleProfileForm["absenceExclusionPolicy"] })} value={ruleProfileForm.absenceExclusionPolicy}><option value="NORMAL_ONLY">Normal session only</option><option value="NORMAL_AND_RATTRAPAGE">Normal and rattrapage</option></select></div>
-        <label className="form-field form-field--wide curriculum-policy-check"><input checked={ruleProfileForm.allowProgressionWithDebt} onChange={(event) => setRuleProfileForm({ ...ruleProfileForm, allowProgressionWithDebt: event.target.checked })} type="checkbox" /><span><strong>Allow progression with module debt</strong><small>Students may progress while carrying modules within the configured limit.</small></span></label>
+        <label className="form-field form-field--wide curriculum-policy-check"><input checked={ruleProfileForm.allowProgressionWithDebt} onChange={(event) => { if (event.target.checked && levelForm.terminalLevel) { setFormError("Progression with debt is not available for a final academic level because there is no next level to promote the student into."); return; } setRuleProfileForm({ ...ruleProfileForm, allowProgressionWithDebt: event.target.checked }); setFormError(null); }} type="checkbox" /><span><strong>Allow progression with module debt</strong><small>Students may progress while carrying modules within the configured limit.</small></span></label>
         {formError && <div className="management-alert management-alert--error">{formError}</div>}
         {ruleProfileMutation.isError && <div className="management-alert management-alert--error">{errorMessage(ruleProfileMutation.error)}</div>}
         <footer className="form-actions"><button className="secondary-button" onClick={() => { setCreatingRuleProfile(false); setFormError(null); }} type="button">Back</button><button className="management-primary-button" disabled={ruleProfileMutation.isPending} onClick={submitRuleProfile} type="button">{ruleProfileMutation.isPending ? "Creating..." : "Create and select"}</button></footer>
       </div> : <div className="management-form management-form--two-columns">
         <div className="form-field"><label htmlFor="level-name">Name</label><input autoFocus id="level-name" maxLength={100} onChange={(event) => { setLevelForm({ ...levelForm, name: event.target.value }); setFormError(null); }} placeholder="M1" value={levelForm.name} /></div>
         <div className="form-field"><label htmlFor="level-order">Order</label><input id="level-order" min="1" onChange={(event) => { setLevelForm({ ...levelForm, levelOrder: event.target.value }); setFormError(null); }} type="number" value={levelForm.levelOrder} /></div>
+        <label className="form-field form-field--wide curriculum-policy-check"><input checked={levelForm.terminalLevel} onChange={(event) => setTerminalLevel(event.target.checked)} type="checkbox" /><span><strong>Final level of the program</strong><small>Successful annual decisions validate this level instead of promoting the student.</small></span></label>
         {!editingLevel && <>
           <div className="form-field"><label htmlFor="level-year">Initial academic year</label><select id="level-year" onChange={(event) => setLevelForm({ ...levelForm, initialAcademicYearId: event.target.value })} value={levelForm.initialAcademicYearId}>{yearsQuery.data?.map((year) => <option key={year.id} value={year.id}>{year.label}</option>)}</select></div>
-          <div className="form-field"><label htmlFor="level-rule">Academic rule profile</label><select id="level-rule" onChange={(event) => setLevelForm({ ...levelForm, academicRuleProfileId: event.target.value })} value={levelForm.academicRuleProfileId}><option value="">Select a rule profile</option>{activeProfiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name} · v{profile.version}</option>)}</select></div>
-          <div className="form-field form-field--wide curriculum-rule-create"><span>{activeProfiles.length ? "Need a different policy?" : "No active rule profile is available."}</span><button className="secondary-button secondary-button--compact" onClick={() => { setCreatingRuleProfile(true); setRuleProfileForm(emptyRuleProfileForm); setFormError(null); }} type="button">Create rule profile</button></div>
+        </>}
+        <div className="form-field"><label htmlFor="level-rule">{editingLevel ? `Rule profile · ${selectedYear?.label ?? "selected year"}` : "Academic rule profile"}</label><select id="level-rule" onChange={(event) => selectRuleProfile(event.target.value)} value={levelForm.academicRuleProfileId}><option value="">Select a rule profile</option>{activeProfiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name} · v{profile.version}</option>)}</select></div>
+        {!editingLevel && <>
+          <div className="form-field form-field--wide curriculum-rule-create"><span>{activeProfiles.length ? "Need a different policy?" : "No active rule profile is available."}</span><button className="secondary-button secondary-button--compact" onClick={() => { setCreatingRuleProfile(true); setRuleProfileForm({ ...emptyRuleProfileForm, allowProgressionWithDebt: levelForm.terminalLevel ? false : emptyRuleProfileForm.allowProgressionWithDebt, maximumCarriedModules: levelForm.terminalLevel ? "0" : emptyRuleProfileForm.maximumCarriedModules }); setFormError(null); }} type="button">Create rule profile</button></div>
         </>}
         {formError && <div className="management-alert management-alert--error">{formError}</div>}
         {levelMutation.isError && <div className="management-alert management-alert--error">{errorMessage(levelMutation.error)}</div>}
-        <footer className="form-actions"><button className="secondary-button" onClick={closeLevelForm} type="button">Cancel</button><button className="management-primary-button" disabled={levelMutation.isPending} onClick={submitLevel} type="button">{levelMutation.isPending ? "Saving..." : "Save"}</button></footer>
+        <footer className="form-actions"><button className="secondary-button" onClick={closeLevelForm} type="button">Cancel</button><button className="management-primary-button" disabled={levelMutation.isPending || hasIncompatibleTerminalRule} onClick={submitLevel} type="button">{levelMutation.isPending ? "Saving..." : "Save"}</button></footer>
       </div>}
     </ManagementModal>}
     {configuringGroupPolicy && academicYearId && <TeachingGroupPolicyModal academicLevelId={configuringGroupPolicy.id} academicLevelName={configuringGroupPolicy.name} academicYearId={academicYearId} academicYearLabel={selectedYear?.label ?? "Selected academic year"} onClose={() => setConfiguringGroupPolicy(null)} />}

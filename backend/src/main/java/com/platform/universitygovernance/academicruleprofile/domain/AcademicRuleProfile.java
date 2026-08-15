@@ -1,6 +1,8 @@
 package com.platform.universitygovernance.academicruleprofile.domain;
 
 import com.platform.universitygovernance.establishment.domain.Establishment;
+import com.platform.universitygovernance.academicruleprofile.domain.rules.AcademicRuleSet;
+import com.platform.universitygovernance.academicruleprofile.domain.rules.DefaultAcademicRuleSets;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -14,6 +16,8 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "academic_rule_profile")
@@ -43,6 +47,22 @@ public class AcademicRuleProfile {
 
     @Column(name = "annual_validation_average", precision = 5, scale = 2)
     private BigDecimal annualValidationAverage;
+
+    @Column(name = "minimum_individually_validated_modules_per_semester", nullable = false)
+    private int minimumIndividuallyValidatedModulesPerSemester;
+
+    @Column(name = "maximum_non_validated_modules_per_semester", nullable = false)
+    private int maximumNonValidatedModulesPerSemester = 999;
+
+    @Column(name = "allow_inter_semester_compensation", nullable = false)
+    private boolean allowInterSemesterCompensation;
+
+    @Column(name = "minimum_individually_validated_modules_per_academic_level", nullable = false)
+    private int minimumIndividuallyValidatedModulesPerAcademicLevel;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "rule_definition")
+    private AcademicRuleSet ruleDefinition;
 
     @Column(name = "maximum_module_inscriptions", nullable = false)
     private int maximumModuleInscriptions;
@@ -151,6 +171,46 @@ public class AcademicRuleProfile {
 
     public void setAnnualValidationAverage(BigDecimal annualValidationAverage) {
         this.annualValidationAverage = annualValidationAverage;
+    }
+
+    public int getMinimumIndividuallyValidatedModulesPerSemester() {
+        return minimumIndividuallyValidatedModulesPerSemester;
+    }
+
+    public void setMinimumIndividuallyValidatedModulesPerSemester(int value) {
+        this.minimumIndividuallyValidatedModulesPerSemester = value;
+    }
+
+    public int getMaximumNonValidatedModulesPerSemester() {
+        return maximumNonValidatedModulesPerSemester;
+    }
+
+    public void setMaximumNonValidatedModulesPerSemester(int value) {
+        this.maximumNonValidatedModulesPerSemester = value;
+    }
+
+    public boolean isAllowInterSemesterCompensation() {
+        return allowInterSemesterCompensation;
+    }
+
+    public void setAllowInterSemesterCompensation(boolean value) {
+        this.allowInterSemesterCompensation = value;
+    }
+
+    public int getMinimumIndividuallyValidatedModulesPerAcademicLevel() {
+        return minimumIndividuallyValidatedModulesPerAcademicLevel;
+    }
+
+    public void setMinimumIndividuallyValidatedModulesPerAcademicLevel(int value) {
+        this.minimumIndividuallyValidatedModulesPerAcademicLevel = value;
+    }
+
+    public AcademicRuleSet getRuleDefinition() {
+        return ruleDefinition == null ? DefaultAcademicRuleSets.standard() : ruleDefinition;
+    }
+
+    public void setRuleDefinition(AcademicRuleSet ruleDefinition) {
+        this.ruleDefinition = ruleDefinition;
     }
 
     public int getMaximumModuleInscriptions() {

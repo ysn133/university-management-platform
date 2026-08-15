@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 
 public record UpdateAcademicLevelRequest(
     @NotBlank @Size(max = 100) String name,
-    @Positive @Max(32767) int levelOrder
+    @Positive @Max(32767) int levelOrder,
+    boolean terminalLevel
 ) {
 }

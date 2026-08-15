@@ -3,6 +3,7 @@ package com.platform.universitygovernance.academicruleprofile.presentation.dto;
 import com.platform.universitygovernance.academicruleprofile.domain.AcademicRuleProfileStatus;
 import com.platform.universitygovernance.academicruleprofile.domain.AbsenceExclusionPolicy;
 import com.platform.universitygovernance.academicruleprofile.domain.SessionGradePolicy;
+import com.platform.universitygovernance.academicruleprofile.domain.rules.AcademicRuleSet;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -16,6 +17,10 @@ public record AcademicRuleProfileResponse(
     BigDecimal compensationMinimumThreshold,
     BigDecimal semesterValidationAverage,
     BigDecimal annualValidationAverage,
+    int minimumIndividuallyValidatedModulesPerSemester,
+    int maximumNonValidatedModulesPerSemester,
+    boolean allowInterSemesterCompensation,
+    int minimumIndividuallyValidatedModulesPerAcademicLevel,
     int maximumModuleInscriptions,
     SessionGradePolicy sessionGradePolicy,
     boolean allowProgressionWithDebt,
@@ -24,6 +29,7 @@ public record AcademicRuleProfileResponse(
     AbsenceExclusionPolicy absenceExclusionPolicy,
     AcademicRuleProfileStatus status,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    AcademicRuleSet ruleDefinition
 ) {
 }

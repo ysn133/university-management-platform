@@ -415,8 +415,7 @@ class GradeRecordServiceIntegrationTest {
         saveModuleResult(compensableRegistration, "8.00");
 
         semesterResultService.recalculateIfComplete(
-            firstModuleRegistration.getSemesterRegistration(),
-            ruleProfile
+            firstModuleRegistration.getSemesterRegistration()
         );
 
         assertThat(moduleResultRepository.findByModuleRegistrationId(
@@ -448,12 +447,31 @@ class GradeRecordServiceIntegrationTest {
     }
 
     @Test
+    void validatedTerminalAcademicLevelProducesLevelValidatedDecision() {
+        academicLevel.setTerminalLevel(true);
+        academicLevelRepository.save(academicLevel);
+        saveModuleResult(firstModuleRegistration, "12.00");
+
+        semesterResultService.recalculateIfComplete(
+            firstModuleRegistration.getSemesterRegistration()
+        );
+
+        assertThat(progressionDecisionRepository.findByAcademicRegistrationId(
+            firstModuleRegistration.getSemesterRegistration()
+                .getAcademicRegistration()
+                .getId()
+        ))
+            .get()
+            .extracting(decision -> decision.getDecisionStatus())
+            .isEqualTo(ProgressionDecisionStatus.LEVEL_VALIDATED);
+    }
+
+    @Test
     void nonValidatedSemesterCanProducePromotionWithDebt() {
         saveModuleResult(firstModuleRegistration, "6.00");
 
         semesterResultService.recalculateIfComplete(
-            firstModuleRegistration.getSemesterRegistration(),
-            ruleProfile
+            firstModuleRegistration.getSemesterRegistration()
         );
 
         assertThat(semesterResultRepository.findBySemesterRegistrationId(
@@ -483,8 +501,7 @@ class GradeRecordServiceIntegrationTest {
         saveModuleResult(firstModuleRegistration, "6.00");
 
         semesterResultService.recalculateIfComplete(
-            firstModuleRegistration.getSemesterRegistration(),
-            ruleProfile
+            firstModuleRegistration.getSemesterRegistration()
         );
 
         assertThat(progressionDecisionRepository.findByAcademicRegistrationId(

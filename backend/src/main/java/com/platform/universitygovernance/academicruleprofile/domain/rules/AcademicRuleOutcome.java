@@ -1,0 +1,16 @@
+package com.platform.universitygovernance.academicruleprofile.domain.rules;
+
+public enum AcademicRuleOutcome {
+    MODULE_VALIDATED,
+    MODULE_NON_VALIDATED,
+    SEMESTER_VALIDATED,
+    SEMESTER_VALIDATED_BY_COMPENSATION,
+    SEMESTER_NON_VALIDATED,
+    ACADEMIC_LEVEL_VALIDATED,
+    ACADEMIC_LEVEL_VALIDATED_BY_COMPENSATION,
+    ACADEMIC_LEVEL_NON_VALIDATED,
+    PROMOTED,
+    PROMOTED_WITH_DEBT,
+    REPEAT,
+    FAILED
+}
