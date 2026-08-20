@@ -6,6 +6,7 @@ export async function saveSchedulePdf(root: HTMLElement, contentSelector: string
   const exportDocument = document.createElement("article");
   exportDocument.className = "pdf-export-document";
   exportDocument.append(header.cloneNode(true), content.cloneNode(true));
+  exportDocument.querySelectorAll(".no-print").forEach((element) => element.remove());
   document.body.append(exportDocument);
 
   try {
