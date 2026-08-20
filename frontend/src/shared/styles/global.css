@@ -521,6 +521,111 @@
   gap: 10px;
 }
 
+.professor-grade-download-link {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--management-blue);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.professor-grade-download-link:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.professor-schedule-page-header {
+  align-items: flex-end;
+}
+
+.professor-schedule-period {
+  min-width: 190px;
+  padding: 14px 18px;
+  border: 1px solid #cddfeb;
+  border-left: 3px solid var(--management-blue);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  display: grid;
+  gap: 2px;
+}
+
+.professor-schedule-period span,
+.professor-schedule-period small {
+  color: #6f8496;
+  font-size: 0.68rem;
+}
+
+.professor-schedule-period span {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.professor-schedule-period strong {
+  color: #173955;
+  font-family: var(--management-display-font);
+  font-size: 1rem;
+}
+
+.professor-schedule-panel {
+  overflow: hidden;
+}
+
+.professor-schedule-panel-header {
+  align-items: flex-end;
+}
+
+.professor-schedule-selectors {
+  display: flex;
+  gap: 12px;
+}
+
+.professor-schedule-selectors label {
+  display: grid;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.professor-schedule-selectors label span {
+  color: #526d82;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.professor-schedule-selectors select {
+  min-height: 40px;
+  padding: 0 36px 0 12px;
+  border: 1px solid #ccdde9;
+  border-radius: 9px;
+  background: #fbfdff;
+  color: #27465f;
+  font: inherit;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 760px) {
+  .professor-schedule-page-header,
+  .professor-schedule-panel-header {
+    align-items: stretch;
+  }
+
+  .professor-schedule-period {
+    min-width: 0;
+  }
+
+  .professor-schedule-selectors {
+    display: grid;
+  }
+
+  .professor-schedule-selectors label {
+    min-width: 0;
+  }
+}
+
 .professor-grade-load-error {
   margin: 20px;
 }
@@ -4367,13 +4472,45 @@ a.workspace-module-card:hover {
   padding-top: 1rem;
 }
 
+.professor-schedule-page .professor-timetable-scroll {
+  padding: 0.85rem;
+}
+
+.professor-schedule-page .professor-weekly-timetable {
+  min-width: 51rem;
+}
+
+.professor-schedule-page .timetable-time-header,
+.professor-schedule-page .timetable-day-row {
+  grid-template-columns: 5rem minmax(45rem, 1fr);
+}
+
+.professor-schedule-page .timetable-time-header {
+  min-height: 2.4rem;
+}
+
+.professor-schedule-page .timetable-time-header > div span {
+  top: 0.68rem;
+  font-size: 0.65rem;
+}
+
 .professor-day-track {
   background-image: repeating-linear-gradient(to right, transparent 0, transparent calc(4.7619% - 1px), rgba(91, 112, 128, 0.28) calc(4.7619% - 1px), rgba(91, 112, 128, 0.28) 4.7619%);
 }
 
-.professor-weekly-timetable .timetable-session {
-  min-height: 102px;
+.professor-schedule-page .professor-weekly-timetable .timetable-session {
+  min-height: 82px;
+  padding: 0.4rem 0.45rem;
   cursor: default;
+}
+
+.professor-schedule-page .professor-weekly-timetable .timetable-session strong {
+  font-size: 0.68rem;
+}
+
+.professor-schedule-page .professor-weekly-timetable .timetable-session span,
+.professor-schedule-page .professor-weekly-timetable .timetable-session small {
+  font-size: 0.58rem;
 }
 
 .professor-schedule-toolbar label {
@@ -9600,6 +9737,400 @@ a.workspace-module-card:hover {
   color: var(--management-blue);
 }
 
+.professor-grades-panel {
+  overflow: hidden;
+}
+
+.professor-grades-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.4rem 1.6rem;
+  border-bottom: 1px solid #d7e4ee;
+  background: linear-gradient(115deg, #fff 58%, #f1f7fb);
+}
+
+.professor-grades-panel-header h2 {
+  margin: 0.15rem 0 0.25rem;
+  color: #173752;
+  font-family: var(--management-heading-font);
+  font-size: 1.55rem;
+}
+
+.professor-grades-panel-header p:last-child {
+  margin: 0;
+  color: #6c8193;
+  font-size: 0.78rem;
+}
+
+.professor-grades-panel-header > span {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  color: #71879a;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.professor-grades-panel-header > span strong {
+  color: #176da7;
+  font-size: 1.5rem;
+}
+
+.professor-grades-panel > .professor-grade-view-tabs {
+  padding: 0.7rem 1.5rem 0;
+  background: #f8fbfd;
+}
+
+.professor-grades-context {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(9rem, 0.7fr)) minmax(14rem, 1.3fr);
+  gap: 0.85rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #d7e4ee;
+  background: #f8fbfd;
+}
+
+.professor-grades-context--classes {
+  grid-template-columns: minmax(10rem, 0.7fr) minmax(10rem, 0.7fr) minmax(18rem, 1.6fr);
+}
+
+.professor-grade-class-grid {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: #f4f8fb;
+}
+
+.professor-grade-class-card {
+  overflow: hidden;
+  border: 1px solid #cfdeea;
+  border-radius: 0.85rem;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(27, 66, 94, 0.055);
+}
+
+.professor-grade-class-card > header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.9rem;
+  align-items: center;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid #dbe7ef;
+  background: #f9fcfe;
+}
+
+.professor-grade-class-mark {
+  display: grid;
+  place-items: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 0.7rem;
+  background: #176da7;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.professor-grade-class-card > header span {
+  color: #2478ae;
+  font-size: 0.65rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.professor-grade-class-card > header h2 {
+  margin: 0.1rem 0;
+  color: #1b3a53;
+  font-family: var(--management-heading-font);
+  font-size: 1.15rem;
+}
+
+.professor-grade-class-card > header p {
+  margin: 0;
+  color: #73889a;
+  font-size: 0.72rem;
+}
+
+.professor-grade-class-card > header > strong {
+  display: grid;
+  justify-items: end;
+  color: #1b5277;
+  font-size: 1.15rem;
+}
+
+.professor-grade-class-card > header > strong small {
+  color: #8092a1;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.professor-grade-class-modules {
+  display: grid;
+}
+
+.professor-grade-class-modules > div {
+  display: grid;
+  grid-template-columns: 4.25rem minmax(13rem, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  min-height: 4.5rem;
+  padding: 0.75rem 1.2rem;
+  border-bottom: 1px solid #e3ebf1;
+}
+
+.professor-grade-class-modules > div:last-child {
+  border-bottom: 0;
+}
+
+.professor-grade-class-modules > div > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.professor-grade-class-modules > div > div strong {
+  color: #244158;
+  font-size: 0.82rem;
+}
+
+.professor-grade-class-modules > div > div small {
+  color: #7b8e9e;
+  font-size: 0.68rem;
+}
+
+.professor-grade-class-modules nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.professor-grade-class-modules nav a,
+.professor-grade-class-modules nav span {
+  min-width: 5.25rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 0.45rem;
+  font-size: 0.69rem;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+}
+
+.professor-grade-class-modules nav a {
+  border: 1px solid #c8ddea;
+  color: #176da7;
+  background: #f7fbfe;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.professor-grade-class-modules nav a:hover {
+  border-color: #6ea9ce;
+  background: #eaf5fb;
+}
+
+.professor-grade-class-modules nav span {
+  color: #9aa9b5;
+  background: #f2f5f7;
+}
+
+.professor-grades-context label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.professor-grades-context label > span {
+  color: #526c81;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.professor-grades-context select,
+.professor-grades-context input {
+  width: 100%;
+  min-height: 2.55rem;
+  padding: 0 0.75rem;
+  border: 1px solid #cbdce9;
+  border-radius: 0.55rem;
+  outline: none;
+  background: #fff;
+  color: #203d56;
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.professor-grades-context select:focus,
+.professor-grades-context input:focus {
+  border-color: #2780b8;
+  box-shadow: 0 0 0 3px rgba(39, 128, 184, 0.1);
+}
+
+.professor-grade-directory {
+  display: grid;
+  border-bottom: 1px solid #d7e4ee;
+}
+
+.professor-grade-directory > button {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(15rem, 1.4fr) minmax(11rem, 0.75fr) auto;
+  gap: 1rem;
+  align-items: center;
+  min-height: 4.75rem;
+  padding: 0.8rem 1.5rem;
+  border: 0;
+  border-bottom: 1px solid #e2ebf2;
+  background: #fff;
+  color: #234159;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 140ms ease, box-shadow 140ms ease;
+}
+
+.professor-grade-directory > button:last-child {
+  border-bottom: 0;
+}
+
+.professor-grade-directory > button:hover {
+  background: #f7fbfe;
+}
+
+.professor-grade-directory > button[aria-pressed="true"] {
+  background: #eef7fc;
+  box-shadow: inset 3px 0 #1d76ad;
+}
+
+.professor-grade-directory > button > span:not(.professor-grade-directory-code) {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.professor-grade-directory strong {
+  font-size: 0.82rem;
+}
+
+.professor-grade-directory small {
+  color: #73889a;
+  font-size: 0.7rem;
+}
+
+.professor-grade-directory > button > span:last-child {
+  color: #176da7;
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.professor-grade-directory-code {
+  display: grid;
+  place-items: center;
+  min-height: 2.25rem;
+  border-radius: 0.45rem;
+  background: #e7f2f9;
+  color: #176da7;
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
+.professor-selected-grade-sheet > header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #d7e4ee;
+  background: linear-gradient(110deg, #fff 55%, #f3f8fb);
+}
+
+.professor-selected-grade-sheet > header h2 {
+  margin: 0.15rem 0 0.25rem;
+  color: #173752;
+  font-family: var(--management-heading-font);
+  font-size: 1.45rem;
+}
+
+.professor-selected-grade-sheet > header p:last-child {
+  margin: 0;
+  color: #6c8193;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 900px) {
+  .professor-grades-context {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .professor-grade-directory > button {
+    grid-template-columns: 3.8rem minmax(0, 1fr) auto;
+  }
+
+  .professor-grade-directory > button > span:nth-child(3) {
+    display: none;
+  }
+
+  .professor-grades-context--classes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .professor-grades-context--classes .professor-grades-search {
+    grid-column: 1 / -1;
+  }
+
+  .professor-grade-class-modules > div {
+    grid-template-columns: 3.75rem minmax(0, 1fr);
+  }
+
+  .professor-grade-class-modules nav {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 620px) {
+  .professor-grades-context {
+    grid-template-columns: 1fr;
+  }
+
+  .professor-grade-directory > button {
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+  }
+
+  .professor-grade-directory > button > span:last-child {
+    display: none;
+  }
+
+  .professor-grades-panel-header {
+    align-items: flex-start;
+  }
+
+  .professor-grades-panel-header > span {
+    display: none;
+  }
+
+  .professor-grades-context--classes {
+    grid-template-columns: 1fr;
+  }
+
+  .professor-grades-context--classes .professor-grades-search {
+    grid-column: auto;
+  }
+
+  .professor-grade-class-card > header {
+    grid-template-columns: auto 1fr;
+  }
+
+  .professor-grade-class-card > header > strong {
+    display: none;
+  }
+
+  .professor-grade-class-modules nav {
+    grid-column: 1 / -1;
+  }
+
+  .professor-grade-class-modules nav a,
+  .professor-grade-class-modules nav span {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 .final-results-table-wrap { border-top: 0; }
 .final-results-table td > span { display: block; color: var(--muted-text); font-size: 0.78rem; margin-top: 0.2rem; }
 .final-result-status { display: inline-flex !important; border-radius: 999px; font-size: 0.72rem !important; font-weight: 800; padding: 0.35rem 0.6rem; }
@@ -9607,6 +10138,7 @@ a.workspace-module-card:hover {
 .final-result-status--av { background: #e7f1fb; color: #17639a !important; }
 .final-result-status--nv { background: #fae9e7; color: #a43d35 !important; }
 .final-result-status--pending { background: #eef2f6; color: #607085 !important; }
+.grade-value--not-validated { color: #b23b34; }
 .final-result-sheet-summary { color: #527089; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
 .final-result-sheet-list { padding: 0; }
 .final-result-view-tabs { border-bottom: 1px solid #d9e4ee; display: flex; gap: 0.25rem; margin-bottom: 1rem; }
