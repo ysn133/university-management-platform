@@ -32,8 +32,14 @@ import com.platform.assessment.semesterresult.domain.SemesterResultStatus;
 import com.platform.assessment.semesterresult.infrastructure.SemesterResultRepository;
 import com.platform.attendance.absencerecord.application.AbsenceRecordService;
 import com.platform.attendance.absencerecord.infrastructure.AbsenceRecordRepository;
+import com.platform.attendance.absencerecord.presentation.dto.ConfirmAttendanceRequest;
 import com.platform.attendance.absencerecord.presentation.dto.CreateAbsenceRequest;
 import com.platform.attendance.absencerecord.presentation.dto.UpdateAbsenceJustificationRequest;
+import com.platform.attendance.qrcheckin.application.AttendanceQrSessionService;
+import com.platform.attendance.qrcheckin.domain.AttendanceQrSession;
+import com.platform.attendance.qrcheckin.infrastructure.AttendanceQrSessionStore;
+import com.platform.attendance.qrcheckin.presentation.dto.AttendanceQrCheckInRequest;
+import com.platform.attendance.qrcheckin.presentation.dto.StartAttendanceQrSessionRequest;
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.AccountStatus;
 import com.platform.identityaccess.domain.Admin;
@@ -122,7 +128,12 @@ import com.platform.universitygovernance.university.infrastructure.UniversityRep
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -717,6 +728,74 @@ class GradeRecordServiceIntegrationTest {
             );
     }
 
+    @Test
+    void professorConfirmsAttendanceAndCanCorrectTheSameRegister() {
+        LocalDate attendanceDate = LocalDate.now().minusDays(1);
+        UUID firstStudentId = firstModuleRegistration.getSemesterRegistration()
+            .getAcademicRegistration().getStudent().getId();
+        UUID secondStudentId = secondModuleRegistration.getSemesterRegistration()
+            .getAcademicRegistration().getStudent().getId();
+
+        var firstConfirmation = absenceRecordService.confirmAttendance(
+            professorPrincipal,
+            teachingAssignment.getId(),
+            new ConfirmAttendanceRequest(attendanceDate, Set.of(firstStudentId))
+        );
+
+        assertThat(firstConfirmation)
+            .extracting(response -> response.studentId())
+            .containsExactly(firstStudentId);
+
+        var correctedConfirmation = absenceRecordService.confirmAttendance(
+            professorPrincipal,
+            teachingAssignment.getId(),
+            new ConfirmAttendanceRequest(attendanceDate, Set.of(secondStudentId))
+        );
+
+        assertThat(correctedConfirmation)
+            .extracting(response -> response.studentId())
+            .containsExactly(secondStudentId);
+        assertThat(absenceRecordRepository
+            .findByTeachingAssignmentIdAndAbsenceDateOrderByCreatedAtAsc(
+                teachingAssignment.getId(),
+                attendanceDate
+            ))
+            .extracting(absence -> absence.getModuleRegistration().getId())
+            .containsExactly(secondModuleRegistration.getId());
+    }
+
+    @Test
+    void rosterStudentChecksInThroughTemporaryQrSession() {
+        AttendanceQrSessionService qrService = new AttendanceQrSessionService(
+            new InMemoryAttendanceQrSessionStore(),
+            teachingAssignmentRepository,
+            teachingGroupMembershipRepository,
+            moduleRegistrationRepository
+        );
+        var session = qrService.startSession(
+            professorPrincipal,
+            teachingAssignment.getId(),
+            new StartAttendanceQrSessionRequest(LocalDate.now())
+        );
+        AuthenticatedUserPrincipal studentPrincipal = principal(
+            AccountRoleType.STUDENT,
+            firstStudent.getId(),
+            establishment.getId()
+        );
+
+        qrService.checkIn(
+            studentPrincipal,
+            new AttendanceQrCheckInRequest(session.sessionId(), session.token())
+        );
+
+        assertThat(qrService.getSession(professorPrincipal, session.sessionId())
+            .checkedInStudentIds()).containsExactly(firstStudent.getId());
+        assertThatThrownBy(() -> qrService.checkIn(
+            studentPrincipal,
+            new AttendanceQrCheckInRequest(session.sessionId(), "invalid")
+        )).isInstanceOf(ResponseStatusException.class).hasMessageContaining("410 GONE");
+    }
+
     private SaveGradeSheetRequest completeGradeRequest() {
         return new SaveGradeSheetRequest(List.of(
             new GradeItemRequest(
@@ -954,6 +1033,39 @@ class GradeRecordServiceIntegrationTest {
         responsibility.setSemester(semester);
         responsibility.setStatus(ModuleClassResponsibilityStatus.ACTIVE);
         return responsibilityRepository.save(responsibility);
+    }
+
+    private static final class InMemoryAttendanceQrSessionStore
+        implements AttendanceQrSessionStore {
+
+        private final Map<UUID, AttendanceQrSession> sessions = new HashMap<>();
+        private final Map<UUID, Set<UUID>> checkIns = new HashMap<>();
+
+        @Override
+        public void save(AttendanceQrSession session, Duration ttl) {
+            sessions.put(session.id(), session);
+        }
+
+        @Override
+        public Optional<AttendanceQrSession> find(UUID sessionId) {
+            return Optional.ofNullable(sessions.get(sessionId));
+        }
+
+        @Override
+        public void recordCheckIn(UUID sessionId, UUID studentId, Duration ttl) {
+            checkIns.computeIfAbsent(sessionId, ignored -> new HashSet<>()).add(studentId);
+        }
+
+        @Override
+        public Set<UUID> findCheckedInStudentIds(UUID sessionId) {
+            return Set.copyOf(checkIns.getOrDefault(sessionId, Set.of()));
+        }
+
+        @Override
+        public void delete(UUID sessionId) {
+            sessions.remove(sessionId);
+            checkIns.remove(sessionId);
+        }
     }
 
     private SubjectModule saveSubjectModule(Semester savedSemester) {

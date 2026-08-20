@@ -7,6 +7,7 @@ import com.platform.attendance.absencerecord.domain.AbsenceRecord;
 import com.platform.attendance.absencerecord.infrastructure.AbsenceRecordRepository;
 import com.platform.attendance.absencerecord.presentation.dto.AbsenceRecordResponse;
 import com.platform.attendance.absencerecord.presentation.dto.CreateAbsenceRequest;
+import com.platform.attendance.absencerecord.presentation.dto.ConfirmAttendanceRequest;
 import com.platform.attendance.absencerecord.presentation.dto.UpdateAbsenceJustificationRequest;
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.application.AdminPermissionAuthorizationService;
@@ -18,7 +19,11 @@ import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
 import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -91,6 +96,75 @@ public class AbsenceRecordService {
         findAssignedTeachingAssignment(principal, teachingAssignmentId);
         return absenceRecordRepository
             .findByTeachingAssignmentIdOrderByAbsenceDateDesc(teachingAssignmentId)
+            .stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    @Transactional
+    public List<AbsenceRecordResponse> confirmAttendance(
+        AuthenticatedUserPrincipal principal,
+        UUID teachingAssignmentId,
+        ConfirmAttendanceRequest request
+    ) {
+        TeachingAssignment assignment = findAssignedTeachingAssignment(
+            principal,
+            teachingAssignmentId
+        );
+        validateAbsenceDate(request.attendanceDate());
+
+        Map<UUID, ModuleRegistration> rosterByStudentId = attendanceRoster(assignment)
+            .stream()
+            .collect(Collectors.toMap(
+                registration -> registration.getSemesterRegistration()
+                    .getAcademicRegistration().getStudent().getId(),
+                Function.identity(),
+                (first, ignored) -> first
+            ));
+        Set<UUID> absentStudentIds = request.absentStudentIds();
+        if (!rosterByStudentId.keySet().containsAll(absentStudentIds)) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "An absent student does not belong to this teaching assignment"
+            );
+        }
+
+        List<AbsenceRecord> existing = absenceRecordRepository
+            .findByTeachingAssignmentIdAndAbsenceDateOrderByCreatedAtAsc(
+                teachingAssignmentId,
+                request.attendanceDate()
+            );
+        Map<UUID, AbsenceRecord> existingByStudentId = existing.stream()
+            .collect(Collectors.toMap(
+                absence -> absence.getModuleRegistration().getSemesterRegistration()
+                    .getAcademicRegistration().getStudent().getId(),
+                Function.identity(),
+                (first, ignored) -> first
+            ));
+
+        List<AbsenceRecord> removed = existing.stream()
+            .filter(absence -> !absentStudentIds.contains(
+                absence.getModuleRegistration().getSemesterRegistration()
+                    .getAcademicRegistration().getStudent().getId()
+            ))
+            .toList();
+        absenceRecordRepository.deleteAll(removed);
+
+        List<AbsenceRecord> created = absentStudentIds.stream()
+            .filter(studentId -> !existingByStudentId.containsKey(studentId))
+            .map(studentId -> newAbsence(
+                rosterByStudentId.get(studentId),
+                assignment,
+                request.attendanceDate()
+            ))
+            .toList();
+        absenceRecordRepository.saveAll(created);
+
+        return absenceRecordRepository
+            .findByTeachingAssignmentIdAndAbsenceDateOrderByCreatedAtAsc(
+                teachingAssignmentId,
+                request.attendanceDate()
+            )
             .stream()
             .map(this::toResponse)
             .toList();
@@ -258,6 +332,38 @@ public class AbsenceRecordService {
                 "Absence date cannot be in the future"
             );
         }
+    }
+
+    private List<ModuleRegistration> attendanceRoster(TeachingAssignment assignment) {
+        UUID subjectModuleId = assignment.getTeachingRequirement()
+            .getModuleTeachingComponent().getSubjectModule().getId();
+        return membershipRepository
+            .findByTeachingGroupId(
+                assignment.getTeachingRequirement().getTeachingGroup().getId()
+            )
+            .stream()
+            .flatMap(membership -> moduleRegistrationRepository
+                .findBySemesterRegistrationIdAndStatus(
+                    membership.getSemesterRegistration().getId(),
+                    ModuleRegistrationStatus.ACTIVE
+                )
+                .stream())
+            .filter(registration -> registration.getSubjectModule().getId()
+                .equals(subjectModuleId))
+            .toList();
+    }
+
+    private AbsenceRecord newAbsence(
+        ModuleRegistration registration,
+        TeachingAssignment assignment,
+        LocalDate absenceDate
+    ) {
+        AbsenceRecord absence = new AbsenceRecord();
+        absence.setModuleRegistration(registration);
+        absence.setTeachingAssignment(assignment);
+        absence.setAbsenceDate(absenceDate);
+        absence.setJustified(false);
+        return absence;
     }
 
     private String normalizeNote(String note) {
