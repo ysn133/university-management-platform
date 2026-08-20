@@ -26,7 +26,13 @@ const statusLabels: Record<ProgressionDecision["decisionStatus"], string> = {
   REPEAT: "Repeat level",
   FAILED: "Failed",
 };
-const allStatuses = Object.keys(statusLabels) as ProgressionDecision["decisionStatus"][];
+const nonTerminalStatuses: ProgressionDecision["decisionStatus"][] = [
+  "PROMOTED",
+  "PROMOTED_BY_COMPENSATION",
+  "PROMOTED_WITH_DEBT",
+  "REPEAT",
+  "FAILED",
+];
 const terminalStatuses: ProgressionDecision["decisionStatus"][] = ["LEVEL_VALIDATED", "REPEAT", "FAILED"];
 
 function errorMessage(error: unknown) {
@@ -46,9 +52,10 @@ export function ProgressionWorkspace({
   const [status, setStatus] = useState<ProgressionDecision["decisionStatus"] | "ALL">("ALL");
   const [exporting, setExporting] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search.trim().toLowerCase());
-  const applicableStatuses = terminalLevel ? terminalStatuses : allStatuses;
+  const applicableStatuses = terminalLevel ? terminalStatuses : nonTerminalStatuses;
   useEffect(() => {
-    if (terminalLevel && status !== "ALL" && !terminalStatuses.includes(status)) {
+    const statuses = terminalLevel ? terminalStatuses : nonTerminalStatuses;
+    if (status !== "ALL" && !statuses.includes(status)) {
       setStatus("ALL");
     }
   }, [status, terminalLevel]);
@@ -97,7 +104,7 @@ export function ProgressionWorkspace({
       {!terminalLevel && <article className="is-promoted"><span>Promoted</span><strong>{count("PROMOTED")}</strong></article>}
       {!terminalLevel && <article className="is-compensated"><span>By compensation</span><strong>{count("PROMOTED_BY_COMPENSATION")}</strong></article>}
       {!terminalLevel && <article className="is-debt"><span>With module debt</span><strong>{count("PROMOTED_WITH_DEBT")}</strong></article>}
-      <article className="is-promoted"><span>Level validated</span><strong>{count("LEVEL_VALIDATED")}</strong></article>
+      {terminalLevel && <article className="is-promoted"><span>Level validated</span><strong>{count("LEVEL_VALIDATED")}</strong></article>}
       <article className="is-repeat"><span>Repeat level</span><strong>{count("REPEAT")}</strong></article>
       <article className="is-failed"><span>Failed</span><strong>{count("FAILED")}</strong></article>
     </div>}

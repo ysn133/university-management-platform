@@ -5,6 +5,9 @@ import { ProfessorModulesPage } from "@/workspaces/professor/pages/ProfessorModu
 import { ProfessorModuleDetailsPage } from "@/workspaces/professor/pages/ProfessorModuleDetailsPage";
 import { ProfessorClassPage } from "@/workspaces/professor/pages/ProfessorClassPage";
 import { ProfessorExamSchedulePage } from "@/workspaces/professor/pages/ProfessorExamSchedulePage";
+import { ProfessorSchedulePage } from "@/workspaces/professor/pages/ProfessorSchedulePage";
+import { ProfessorGradesPage } from "@/workspaces/professor/pages/ProfessorGradesPage";
+import { ProfessorGradeDetailsPage } from "@/workspaces/professor/pages/ProfessorGradeDetailsPage";
 import { ChangePasswordPage } from "@/features/auth/pages/ChangePasswordPage";
 
 export const professorRoutes: RouteObject = {
@@ -15,7 +18,10 @@ export const professorRoutes: RouteObject = {
     { path: "modules", element: <ProfessorModulesPage /> },
     { path: "modules/:subjectModuleId", element: <ProfessorModuleDetailsPage /> },
     { path: "modules/:subjectModuleId/classes/:classGroupId", element: <ProfessorClassPage /> },
+    { path: "schedule", element: <ProfessorSchedulePage /> },
     { path: "exams", element: <ProfessorExamSchedulePage /> },
+    { path: "grades", element: <ProfessorGradesPage /> },
+    { path: "grades/modules/:subjectModuleId/classes/:classGroupId", element: <ProfessorGradeDetailsPage /> },
     { path: "account/password", element: <ChangePasswordPage /> },
   ],
 };

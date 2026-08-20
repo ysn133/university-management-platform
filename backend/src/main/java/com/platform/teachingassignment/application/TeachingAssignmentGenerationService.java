@@ -27,11 +27,13 @@ import com.platform.universitygovernance.academicyear.domain.AcademicYearStatus;
 import com.platform.universitygovernance.moduleteachingcomponent.domain.ModuleTeachingComponent;
 import com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingComponentType;
 import com.platform.universitygovernance.semester.domain.Semester;
+import com.platform.universitygovernance.semester.domain.SemesterLifecycleStatus;
 import com.platform.universitygovernance.semester.infrastructure.SemesterRepository;
 import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleDomainRepository;
 import com.platform.usermanagement.professor.expertise.infrastructure.ProfessorExpertiseRepository;
 import com.platform.usermanagement.professor.rank.domain.AcademicRankStatus;
 import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -402,6 +404,12 @@ public class TeachingAssignmentGenerationService {
         var semester = requirement.getTeachingGroup().getSemester();
         var academicLevel = semester.getAcademicLevel();
         var programFiliere = academicLevel.getProgramFiliere();
+        LocalDate today = LocalDate.now();
+        SemesterLifecycleStatus semesterLifecycleStatus = today.isBefore(semester.getStartDate())
+            ? SemesterLifecycleStatus.PLANNED
+            : today.isAfter(semester.getEndDate())
+                ? SemesterLifecycleStatus.FINISHED
+                : SemesterLifecycleStatus.ACTIVE;
         return new TeachingAssignmentResponse(
             assignment.getId(),
             programFiliere.getDepartment().getEstablishment().getId(),
@@ -417,8 +425,11 @@ public class TeachingAssignmentGenerationService {
             requirement.getTeachingGroup().getName(),
             semester.getId(),
             semester.getName(),
+            semester.getTermType(),
+            semesterLifecycleStatus,
             semester.getAcademicYear().getId(),
             semester.getAcademicYear().getLabel(),
+            semester.getAcademicYear().getStatus(),
             academicLevel.getId(),
             academicLevel.getName(),
             programFiliere.getId(),
