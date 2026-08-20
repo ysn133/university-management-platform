@@ -56,7 +56,7 @@ export function ProfessorModulesPage() {
       <header className="management-page-header management-page-header--compact">
         <div>
           <p className="management-kicker">Academic work</p>
-          <h1>My Modules</h1>
+          <h1>Module Responsibilities</h1>
           <p>Modules where you manage assessment and academic follow-up for assigned classes.</p>
         </div>
         <div className="professor-modules-total"><strong>{filteredModules.length}</strong><span>{filteredModules.length === modules.length ? "active modules" : `of ${modules.length} modules`}</span></div>
@@ -65,7 +65,7 @@ export function ProfessorModulesPage() {
       {loadError && <div className="management-alert management-alert--error">{errorMessage(loadError)}</div>}
 
       <section className="management-panel professor-modules-panel">
-        <header><div><p className="management-kicker">Current responsibility</p><h2>Module directory</h2></div><span>Assessment ownership</span></header>
+        <header><div><p className="management-kicker">Current responsibility</p><h2>Responsibility Directory</h2></div><span>Assessment ownership</span></header>
         <div className="professor-module-filters">
           <label><span>Academic Year</span><select onChange={(event) => setAcademicYearId(event.target.value)} value={academicYearId}><option value="">All academic years</option>{academicYears.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
           <label><span>Academic Level</span><select onChange={(event) => setAcademicLevelId(event.target.value)} value={academicLevelId}><option value="">All academic levels</option>{academicLevels.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
