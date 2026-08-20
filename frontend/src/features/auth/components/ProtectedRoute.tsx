@@ -21,7 +21,7 @@ export function ProtectedRoute({ portal }: ProtectedRouteProps) {
   }
 
   if (!user) {
-    return <Navigate replace state={{ returnTo: location.pathname }} to={getLoginPath(portal)} />;
+    return <Navigate replace state={{ returnTo: `${location.pathname}${location.search}` }} to={getLoginPath(portal)} />;
   }
 
   if (!portalRoles[portal].includes(user.role)) {

@@ -3,6 +3,7 @@ package com.platform.attendance.absencerecord.presentation;
 import com.platform.attendance.absencerecord.application.AbsenceRecordService;
 import com.platform.attendance.absencerecord.presentation.dto.AbsenceRecordResponse;
 import com.platform.attendance.absencerecord.presentation.dto.CreateAbsenceRequest;
+import com.platform.attendance.absencerecord.presentation.dto.ConfirmAttendanceRequest;
 import com.platform.attendance.absencerecord.presentation.dto.UpdateAbsenceJustificationRequest;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import jakarta.validation.Valid;
@@ -52,6 +53,20 @@ public class AbsenceRecordController {
         return absenceRecordService.getTeachingAssignmentAbsences(
             principal,
             teachingAssignmentId
+        );
+    }
+
+    @PutMapping("/teaching-assignments/{teachingAssignmentId}/attendance")
+    @PreAuthorize("hasRole('PROFESSOR')")
+    public List<AbsenceRecordResponse> confirmAttendance(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+        @PathVariable UUID teachingAssignmentId,
+        @Valid @RequestBody ConfirmAttendanceRequest request
+    ) {
+        return absenceRecordService.confirmAttendance(
+            principal,
+            teachingAssignmentId,
+            request
         );
     }
 
