@@ -126,9 +126,7 @@ public class ScheduleEntryService {
     public List<ScheduleEntryResponse> getMyScheduleEntries(
         AuthenticatedUserPrincipal principal
     ) {
-        if (principal == null || principal.role() != AccountRoleType.PROFESSOR) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Professor access required");
-        }
+        requireProfessor(principal);
         return scheduleEntryRepository
             .findProfessorSchedule(principal.roleEntityId(), SchedulePublicationStatus.PUBLISHED)
             .stream()
@@ -407,6 +405,12 @@ public class ScheduleEntryService {
             schedule.getEstablishment().getId(),
             PermissionCode.SEMESTER_SCHEDULE_VIEW
         );
+    }
+
+    private void requireProfessor(AuthenticatedUserPrincipal principal) {
+        if (principal == null || principal.role() != AccountRoleType.PROFESSOR) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Professor access required");
+        }
     }
 
     private void requireUpdatePermission(
