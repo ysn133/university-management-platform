@@ -20,58 +20,76 @@ const dayLabels = {
   SUNDAY: "Sunday",
 } as const;
 
+const dayOrder = Object.keys(dayLabels) as Array<keyof typeof dayLabels>;
+
 export function ProfessorOverviewPage() {
   const { user } = useAuth();
   const assignmentsQuery = useQuery({ queryKey: teachingPlanKeys.myAssignments(), queryFn: getMyTeachingAssignments });
   const responsibilitiesQuery = useQuery({ queryKey: professorOverviewKeys.responsibilities(), queryFn: getMyModuleResponsibilities });
   const scheduleQuery = useQuery({ queryKey: scheduleKeys.myEntries(), queryFn: getMyScheduleEntries });
-  const assignments = (assignmentsQuery.data ?? []).filter((assignment) => assignment.status === "ACTIVE");
-  const assignmentById = new Map(assignments.map((assignment) => [assignment.id, assignment]));
-  const scheduledEntries = scheduleQuery.data ?? [];
-  const activeResponsibilities = (responsibilitiesQuery.data ?? []).filter((responsibility) => responsibility.status === "ACTIVE");
+  const allAssignments = (assignmentsQuery.data ?? []).filter((assignment) => assignment.status === "ACTIVE");
+  const activeYearId = allAssignments.find((assignment) => assignment.academicYearStatus === "ACTIVE")?.academicYearId;
+  const yearAssignments = activeYearId ? allAssignments.filter((assignment) => assignment.academicYearId === activeYearId) : [];
+  const availableTerms = Array.from(new Set(yearAssignments.map((assignment) => assignment.semesterTermType)));
+  const currentTerm = yearAssignments.find((assignment) => assignment.semesterLifecycleStatus === "ACTIVE")?.semesterTermType ?? availableTerms[0];
+  const currentAssignments = yearAssignments.filter((assignment) => assignment.semesterTermType === currentTerm);
+  const currentYear = yearAssignments[0]?.academicYearLabel;
+  const currentYearIds = new Set(currentAssignments.map((assignment) => assignment.academicYearId));
+  const currentSemesterIds = new Set(currentAssignments.map((assignment) => assignment.semesterId));
+  const assignmentById = new Map(currentAssignments.map((assignment) => [assignment.id, assignment]));
+  const scheduledEntries = (scheduleQuery.data ?? [])
+    .filter((entry) => assignmentById.has(entry.teachingAssignmentId))
+    .sort((left, right) => dayOrder.indexOf(left.dayOfWeek) - dayOrder.indexOf(right.dayOfWeek) || left.startTime.localeCompare(right.startTime));
+  const activeResponsibilities = (responsibilitiesQuery.data ?? []).filter((responsibility) => responsibility.status === "ACTIVE"
+    && currentYearIds.has(responsibility.academicYearId)
+    && currentSemesterIds.has(responsibility.semesterId));
   const responsibilityModules = Array.from(
     activeResponsibilities.reduce((modules, responsibility) => {
-      const existing = modules.get(responsibility.subjectModuleId);
-      if (existing) {
-        existing.classGroups.add(responsibility.classGroupName);
-      } else {
-        modules.set(responsibility.subjectModuleId, {
-          ...responsibility,
-          classGroups: new Set([responsibility.classGroupName]),
-        });
-      }
+      const key = `${responsibility.subjectModuleId}:${responsibility.semesterId}`;
+      const existing = modules.get(key);
+      if (existing) existing.classGroups.add(responsibility.classGroupName);
+      else modules.set(key, { ...responsibility, classGroups: new Set([responsibility.classGroupName]) });
       return modules;
     }, new Map<string, (typeof activeResponsibilities)[number] & { classGroups: Set<string> }>()).values(),
   );
-  const assignmentModuleIds = Array.from(new Set(assignments.map((assignment) => assignment.subjectModuleId)));
-  const weeklySessions = assignments.reduce((total, assignment) => total + assignment.sessionsPerWeek, 0);
-  const loading = assignmentsQuery.isPending || responsibilitiesQuery.isPending;
+  const assignmentModuleIds = new Set(currentAssignments.map((assignment) => assignment.subjectModuleId));
+  const weeklySessions = currentAssignments.reduce((total, assignment) => total + assignment.sessionsPerWeek, 0);
+  const loading = assignmentsQuery.isPending || responsibilitiesQuery.isPending || scheduleQuery.isPending;
   const loadError = assignmentsQuery.error ?? responsibilitiesQuery.error ?? scheduleQuery.error;
-  const displayedAssignments = assignments.slice(0, 5);
+  const displayedAssignments = currentAssignments.slice(0, 5);
+  const displayedSessions = scheduledEntries.slice(0, 6);
+  const periodLabel = currentTerm === "AUTUMN" ? "Autumn period" : currentTerm === "SPRING" ? "Spring period" : "No active period";
 
   return (
     <div className="management-page professor-dashboard-page">
-      <header className="management-page-header professor-dashboard-header">
-        <div><p className="management-kicker">Professor workspace</p><h1>Welcome, {user?.firstName}</h1><p>Review your teaching activity, weekly planning, attendance, and assessment work from one place.</p></div>
-        <div className="professor-dashboard-identity"><span className="person-monogram">{user?.firstName[0]}{user?.lastName[0]}</span><div><strong>{user?.firstName} {user?.lastName}</strong><small>{user?.universityEmail}</small></div></div>
+      <header className="professor-dashboard-hero">
+        <div><p className="management-kicker">Professor workspace</p><h1>Good to see you, {user?.firstName}</h1><p>Your current teaching, timetable, and academic responsibilities in one place.</p></div>
+        <div className="professor-dashboard-period"><span>Current academic context</span><strong>{currentYear ?? "Not configured"}</strong><small>{periodLabel}</small></div>
       </header>
 
-      <section className="context-stat-strip professor-dashboard-stats" aria-label="Teaching summary">
-        <article><span>Assigned modules</span><strong>{loading ? "—" : assignmentModuleIds.length}</strong><small>Active teaching assignments</small></article>
-        <article><span>Weekly sessions</span><strong>{loading ? "—" : weeklySessions}</strong><small>Configured teaching delivery</small></article>
-        <article><span>Student groups</span><strong>{loading ? "—" : new Set(assignments.map((assignment) => assignment.teachingGroupId)).size}</strong><small>Course, TD, and TP audiences</small></article>
-        <article><span>Module responsibility</span><strong>{loading ? "—" : responsibilityModules.length}</strong><small>Modules under your responsibility</small></article>
+      <section className="professor-dashboard-stats" aria-label="Current teaching summary">
+        <Link to="/professor/teaching"><span>Teaching modules</span><strong>{loading ? "—" : assignmentModuleIds.size}</strong><small>Current period</small><i>View teaching →</i></Link>
+        <Link to="/professor/schedule"><span>Weekly sessions</span><strong>{loading ? "—" : weeklySessions}</strong><small>Published delivery</small><i>Open schedule →</i></Link>
+        <Link to="/professor/teaching"><span>Teaching groups</span><strong>{loading ? "—" : new Set(currentAssignments.map((assignment) => assignment.teachingGroupId)).size}</strong><small>Course, TD and TP</small><i>View groups →</i></Link>
+        <Link to="/professor/modules"><span>Responsibilities</span><strong>{loading ? "—" : responsibilityModules.length}</strong><small>Assessment ownership</small><i>Open modules →</i></Link>
       </section>
 
       {loadError && <div className="management-alert management-alert--error">{errorMessage(loadError)}</div>}
+      {!loading && currentAssignments.length === 0 && <div className="management-panel professor-dashboard-no-period"><span>Current period</span><strong>No active teaching context is available.</strong><p>The dashboard will populate when an active academic year and semester contain teaching assignments.</p></div>}
 
       <section className="professor-dashboard-grid">
-        <article className="management-panel professor-dashboard-card professor-dashboard-card--assignments"><header><div><p className="management-kicker">Teaching</p><h2>My assignments</h2></div><span>{assignments.length} active</span></header>{loading ? <div className="panel-empty">Loading teaching assignments...</div> : assignments.length === 0 ? <div className="panel-empty"><strong>No active teaching assignment.</strong><p>Your Course, TD, and TP assignments will appear here once assigned.</p></div> : <div className="professor-overview-assignment-list">{displayedAssignments.map((assignment) => <article key={assignment.id}><span className={`teaching-component-badge teaching-component-badge--${assignment.componentType.toLowerCase()}`}>{assignment.componentType === "COURSE" ? "Course" : assignment.componentType}</span><div><strong>{assignment.subjectModuleTitle}</strong><small>{assignment.subjectModuleCode} · {assignment.programFiliereCode} · {assignment.academicLevelName} · {assignment.semesterName} · {assignment.teachingGroupName}</small></div></article>)}{assignments.length > displayedAssignments.length && <small className="professor-overview-more">+{assignments.length - displayedAssignments.length} more assignments</small>}</div>}</article>
-        <article className="management-panel professor-dashboard-card professor-dashboard-card--delivery"><header><div><p className="management-kicker">Published timetable</p><h2>Weekly delivery</h2></div><span>{scheduledEntries.length} scheduled</span></header>{scheduleQuery.isPending || assignmentsQuery.isPending ? <div className="panel-empty">Loading weekly schedule...</div> : scheduledEntries.length === 0 ? <div className="panel-empty"><strong>No published sessions yet.</strong><p>Assigned teaching will appear here when its timetable is published.</p></div> : <div className="professor-weekly-schedule">{scheduledEntries.map((entry) => { const assignment = assignmentById.get(entry.teachingAssignmentId); return <article key={entry.id}><div className="professor-weekly-schedule-time"><strong>{dayLabels[entry.dayOfWeek]}</strong><span>{entry.startTime.slice(0, 5)} – {entry.endTime.slice(0, 5)}</span></div><div className="professor-weekly-schedule-session"><div><span className={`teaching-component-badge teaching-component-badge--${assignment?.componentType.toLowerCase() ?? "course"}`}>{assignment?.componentType === "COURSE" ? "Course" : assignment?.componentType ?? "Session"}</span><strong>{assignment?.subjectModuleTitle ?? "Scheduled session"}</strong></div><span>{assignment?.programFiliereCode} · {assignment?.academicLevelName} · {assignment?.semesterName} · {entry.teachingGroupName}</span></div><div className="professor-weekly-schedule-location"><strong>{entry.roomCode}</strong><span>{entry.blockCode ? `${entry.blockCode} · ${entry.blockName}` : "Standalone room"}</span></div></article>; })}</div>}</article>
-        <article className="management-panel professor-dashboard-card professor-dashboard-card--wide"><header><div><p className="management-kicker">Academic work</p><h2>My Modules</h2></div><Link className="professor-card-link" to="/professor/modules">View all</Link></header>{responsibilitiesQuery.isPending ? <div className="panel-empty">Loading your modules...</div> : responsibilityModules.length === 0 ? <div className="panel-empty"><strong>No active modules assigned.</strong></div> : <div className="professor-responsibility-list">{responsibilityModules.map((responsibility) => <Link key={responsibility.subjectModuleId} to={`/professor/modules/${responsibility.subjectModuleId}`}><span className="professor-responsibility-code">{responsibility.subjectModuleCode}</span><div><strong>{responsibility.subjectModuleTitle}</strong><span>{responsibility.academicYearLabel} · {responsibility.semesterName}</span></div><div className="professor-responsibility-groups"><small>Classes</small><strong>{Array.from(responsibility.classGroups).join(", ")}</strong></div></Link>)}</div>}</article>
-      </section>
+        <article className="management-panel professor-dashboard-card professor-dashboard-card--assignments">
+          <header><div><p className="management-kicker">Current delivery</p><h2>Teaching assignments</h2></div><Link className="professor-card-link" to="/professor/teaching">View all</Link></header>
+          {loading ? <div className="panel-empty">Loading teaching assignments...</div> : displayedAssignments.length === 0 ? <div className="panel-empty"><strong>No assignment in the active period.</strong></div> : <div className="professor-overview-assignment-list">{displayedAssignments.map((assignment) => <Link key={assignment.id} to={`/professor/teaching/${assignment.id}`}><span className={`teaching-component-badge teaching-component-badge--${assignment.componentType.toLowerCase()}`}>{assignment.componentType === "COURSE" ? "Course" : assignment.componentType}</span><div><strong>{assignment.subjectModuleTitle}</strong><small>{assignment.programFiliereCode} · {assignment.academicLevelName} · {assignment.semesterName} · {assignment.teachingGroupName}</small></div><i>→</i></Link>)}{currentAssignments.length > displayedAssignments.length && <Link className="professor-overview-more" to="/professor/teaching">View {currentAssignments.length - displayedAssignments.length} more assignments</Link>}</div>}
+        </article>
 
-      <footer className="management-panel professor-dashboard-security"><div><p className="management-kicker">Account</p><strong>Security settings</strong><span>Manage the password used to access your Professor workspace.</span></div><Link className="secondary-button" to="/professor/account/password">Change password</Link></footer>
+        <article className="management-panel professor-dashboard-card professor-dashboard-card--delivery">
+          <header><div><p className="management-kicker">This week</p><h2>Teaching agenda</h2></div><Link className="professor-card-link" to="/professor/schedule">Full schedule</Link></header>
+          {loading ? <div className="panel-empty">Loading weekly schedule...</div> : displayedSessions.length === 0 ? <div className="panel-empty"><strong>No published sessions in the active period.</strong></div> : <div className="professor-weekly-schedule">{displayedSessions.map((entry) => { const assignment = assignmentById.get(entry.teachingAssignmentId); return <Link key={entry.id} to={`/professor/teaching/${entry.teachingAssignmentId}`}><div className="professor-weekly-schedule-time"><strong>{dayLabels[entry.dayOfWeek]}</strong><span>{entry.startTime.slice(0, 5)} – {entry.endTime.slice(0, 5)}</span></div><div className="professor-weekly-schedule-session"><div><span className={`teaching-component-badge teaching-component-badge--${assignment?.componentType.toLowerCase() ?? "course"}`}>{assignment?.componentType === "COURSE" ? "Course" : assignment?.componentType ?? "Session"}</span><strong>{assignment?.subjectModuleTitle ?? "Scheduled session"}</strong></div><span>{assignment?.programFiliereCode} · {assignment?.academicLevelName} · {entry.teachingGroupName}</span></div><div className="professor-weekly-schedule-location"><strong>{entry.roomCode}</strong><span>{entry.blockName ?? "Standalone room"}</span></div></Link>; })}</div>}
+        </article>
+
+        {responsibilityModules.length > 0 && <article className="management-panel professor-dashboard-card professor-dashboard-card--wide"><header><div><p className="management-kicker">Assessment ownership</p><h2>Module responsibilities</h2></div><Link className="professor-card-link" to="/professor/modules">View all</Link></header><div className="professor-responsibility-list">{responsibilityModules.map((responsibility) => <Link key={`${responsibility.subjectModuleId}:${responsibility.semesterId}`} to={`/professor/modules/${responsibility.subjectModuleId}`}><span className="professor-responsibility-code">{responsibility.subjectModuleCode}</span><div><strong>{responsibility.subjectModuleTitle}</strong><span>{responsibility.semesterName} · {responsibility.academicYearLabel}</span></div><div className="professor-responsibility-groups"><small>Classes</small><strong>{Array.from(responsibility.classGroups).join(", ")}</strong></div><i>→</i></Link>)}</div></article>}
+      </section>
     </div>
   );
 }
