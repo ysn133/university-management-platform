@@ -5738,39 +5738,147 @@ a.workspace-module-card:hover {
 .professor-portal-security span { color: var(--muted); font-size: 0.68rem; }
 .professor-portal-security a { padding: 0.65rem 0.9rem; border-radius: 0.55rem; background: var(--navy); color: white; font-size: 0.68rem; font-weight: 750; white-space: nowrap; }
 
-.professor-dashboard-header {
-  align-items: center;
-}
-
-.professor-dashboard-identity {
+.professor-dashboard-hero {
+  position: relative;
   display: flex;
-  min-width: 17rem;
-  align-items: center;
-  gap: 0.8rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid var(--management-line);
-  border-radius: 0.8rem;
-  background: #fff;
-  box-shadow: 0 10px 28px rgba(31, 71, 102, 0.06);
+  overflow: hidden;
+  min-height: 12rem;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 2rem 2.2rem;
+  border: 1px solid #c9deed;
+  border-radius: 1.1rem;
+  background:
+    radial-gradient(circle at 82% 5%, rgba(55, 148, 207, 0.2), transparent 34%),
+    linear-gradient(125deg, #fafdff 0%, #eef7fc 58%, #e5f1f8 100%);
+  box-shadow: 0 18px 42px rgba(26, 74, 108, 0.08);
 }
 
-.professor-dashboard-identity > div {
+.professor-dashboard-hero::before {
+  position: absolute;
+  top: -4rem;
+  right: 14rem;
+  width: 10rem;
+  height: 10rem;
+  border: 1px solid rgba(23, 105, 170, 0.14);
+  border-radius: 50%;
+  content: "";
+}
+
+.professor-dashboard-hero > div:first-child {
+  position: relative;
+  max-width: 42rem;
+}
+
+.professor-dashboard-hero h1 {
+  margin: 0.25rem 0 0.45rem;
+  color: #163a55;
+  font-family: "Newsreader Variable", serif;
+  font-size: clamp(2.25rem, 4vw, 3.6rem);
+  font-weight: 590;
+  letter-spacing: -0.035em;
+}
+
+.professor-dashboard-hero p:last-child {
+  margin: 0;
+  color: #657f92;
+  font-size: 0.76rem;
+}
+
+.professor-dashboard-period {
+  position: relative;
+  display: grid;
+  min-width: 12.5rem;
+  gap: 0.2rem;
+  padding: 1rem 1.15rem;
+  border-left: 3px solid #1780bf;
+  border-radius: 0.25rem 0.75rem 0.75rem 0.25rem;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 10px 25px rgba(36, 89, 126, 0.08);
+}
+
+.professor-dashboard-period span,
+.professor-dashboard-period small {
+  color: #6f8798;
+  font-size: 0.58rem;
+}
+
+.professor-dashboard-period span {
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.professor-dashboard-period strong {
+  color: #173f5d;
+  font-size: 1.05rem;
+}
+
+.professor-dashboard-stats {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--management-line);
+  border-radius: 0.9rem;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(33, 72, 100, 0.05);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.professor-dashboard-stats > a {
   display: grid;
   min-width: 0;
-  gap: 0.2rem;
+  gap: 0.15rem;
+  padding: 1.15rem 1.25rem;
+  color: inherit;
+  text-decoration: none;
+  transition: background 160ms ease, transform 160ms ease;
 }
 
-.professor-dashboard-identity strong {
-  color: var(--management-ink);
-  font-size: 0.78rem;
+.professor-dashboard-stats > a + a {
+  border-left: 1px solid var(--management-line);
 }
 
-.professor-dashboard-identity small {
-  overflow: hidden;
+.professor-dashboard-stats > a:hover {
+  background: #f2f8fc;
+}
+
+.professor-dashboard-stats span,
+.professor-dashboard-stats small {
   color: var(--management-muted);
-  font-size: 0.62rem;
-  text-overflow: ellipsis;
+  font-size: 0.59rem;
 }
+
+.professor-dashboard-stats span {
+  font-weight: 780;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.professor-dashboard-stats strong {
+  color: #173f5d;
+  font-family: "Newsreader Variable", serif;
+  font-size: 2rem;
+  font-weight: 620;
+}
+
+.professor-dashboard-stats i {
+  margin-top: 0.45rem;
+  color: var(--management-blue);
+  font-size: 0.58rem;
+  font-style: normal;
+  font-weight: 750;
+}
+
+.professor-dashboard-no-period {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1.4rem;
+}
+
+.professor-dashboard-no-period span { color: var(--management-blue); font-size: 0.6rem; font-weight: 800; text-transform: uppercase; }
+.professor-dashboard-no-period strong { color: var(--management-ink); }
+.professor-dashboard-no-period p { margin: 0; color: var(--management-muted); font-size: 0.7rem; }
 
 .professor-dashboard-grid {
   display: grid;
@@ -5782,7 +5890,10 @@ a.workspace-module-card:hover {
   display: grid;
   min-height: 13rem;
   gap: 1rem;
-  padding: 1.35rem;
+  overflow: hidden;
+  padding: 1.4rem;
+  border-radius: 1rem;
+  box-shadow: 0 14px 34px rgba(30, 71, 101, 0.055);
 }
 
 .professor-dashboard-card--wide {
@@ -5844,19 +5955,37 @@ a.workspace-module-card:hover {
   border-top: 1px solid var(--management-line);
 }
 
-.professor-overview-assignment-list > article {
+.professor-overview-assignment-list > a {
   display: grid;
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 0;
   border-bottom: 1px solid var(--management-line);
+  color: inherit;
   grid-template-columns: auto minmax(0, 1fr);
+  text-decoration: none;
+  transition: padding 150ms ease, background 150ms ease;
 }
 
-.professor-overview-assignment-list > article > div {
+.professor-overview-assignment-list > a:hover {
+  padding-right: 0.35rem;
+  padding-left: 0.35rem;
+  background: #f7fbfd;
+}
+
+.professor-overview-assignment-list > a > div {
   display: grid;
   min-width: 0;
   gap: 0.15rem;
+}
+
+.professor-overview-assignment-list > a > i {
+  color: var(--management-blue);
+  font-style: normal;
+}
+
+.professor-overview-assignment-list > a:not(.professor-overview-more) {
+  grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
 .professor-overview-assignment-list strong {
@@ -5874,7 +6003,9 @@ a.workspace-module-card:hover {
 }
 
 .professor-overview-more {
-  padding-top: 0.7rem;
+  padding-top: 0.7rem !important;
+  border: 0 !important;
+  color: var(--management-blue) !important;
   font-weight: 700;
 }
 
@@ -5883,13 +6014,22 @@ a.workspace-module-card:hover {
   border-top: 1px solid var(--management-line);
 }
 
-.professor-weekly-schedule > article {
+.professor-weekly-schedule > a {
   display: grid;
   align-items: center;
   gap: 0.85rem;
   padding: 0.8rem 0;
   border-bottom: 1px solid var(--management-line);
+  color: inherit;
   grid-template-columns: 5.7rem minmax(0, 1fr) auto;
+  text-decoration: none;
+  transition: padding 150ms ease, background 150ms ease;
+}
+
+.professor-weekly-schedule > a:hover {
+  padding-right: 0.35rem;
+  padding-left: 0.35rem;
+  background: #f7fbfd;
 }
 
 .professor-weekly-schedule-time,
@@ -5940,8 +6080,48 @@ a.workspace-module-card:hover {
   white-space: nowrap;
 }
 
+@media (max-width: 980px) {
+  .professor-dashboard-hero {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .professor-dashboard-period {
+    width: 100%;
+  }
+
+  .professor-dashboard-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .professor-dashboard-stats > a:nth-child(3) {
+    border-top: 1px solid var(--management-line);
+    border-left: 0;
+  }
+
+  .professor-dashboard-stats > a:nth-child(4) {
+    border-top: 1px solid var(--management-line);
+  }
+}
+
 @media (max-width: 680px) {
-  .professor-weekly-schedule > article {
+  .professor-dashboard-hero {
+    min-height: 0;
+    padding: 1.4rem;
+  }
+
+  .professor-dashboard-grid,
+  .professor-dashboard-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .professor-dashboard-stats > a + a,
+  .professor-dashboard-stats > a:nth-child(3) {
+    border-top: 1px solid var(--management-line);
+    border-left: 0;
+  }
+
+  .professor-weekly-schedule > a {
     align-items: start;
     grid-template-columns: 5.2rem minmax(0, 1fr);
   }
@@ -5989,13 +6169,18 @@ a.workspace-module-card:hover {
   padding: 0.85rem 0;
   border-bottom: 1px solid var(--management-line);
   color: inherit;
-  grid-template-columns: 4.25rem minmax(0, 1fr) minmax(8rem, auto);
+  grid-template-columns: 4.25rem minmax(0, 1fr) minmax(8rem, auto) auto;
   text-decoration: none;
   transition: background 150ms ease;
 }
 
 .professor-responsibility-list > a:hover {
   background: #f8fbfd;
+}
+
+.professor-responsibility-list > a > i {
+  color: var(--management-blue);
+  font-style: normal;
 }
 
 .professor-responsibility-code {
