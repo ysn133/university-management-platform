@@ -28,8 +28,6 @@ import com.platform.universitygovernance.moduleteachingcomponent.domain.Teaching
 import com.platform.universitygovernance.semester.domain.SemesterLifecycleStatus;
 import com.platform.universitygovernance.subjectmodules.infrastructure.SubjectModuleDomainRepository;
 import com.platform.usermanagement.professor.expertise.infrastructure.ProfessorExpertiseRepository;
-import com.platform.scheduling.teachinggroup.domain.TeachingGroupMembership;
-import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupMembershipRepository;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
@@ -49,7 +47,7 @@ public class TeachingAssignmentService {
     private final SubjectModuleDomainRepository subjectModuleDomainRepository;
     private final ProfessorExpertiseRepository professorExpertiseRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
-    private final TeachingGroupMembershipRepository teachingGroupMembershipRepository;
+    private final TeachingAssignmentRosterService rosterService;
     private final UserProfileRepository userProfileRepository;
     private final ModuleClassResponsibilityService responsibilityService;
 
@@ -60,7 +58,7 @@ public class TeachingAssignmentService {
         SubjectModuleDomainRepository subjectModuleDomainRepository,
         ProfessorExpertiseRepository professorExpertiseRepository,
         AdminPermissionAuthorizationService permissionAuthorizationService,
-        TeachingGroupMembershipRepository teachingGroupMembershipRepository,
+        TeachingAssignmentRosterService rosterService,
         UserProfileRepository userProfileRepository,
         ModuleClassResponsibilityService responsibilityService
     ) {
@@ -70,7 +68,7 @@ public class TeachingAssignmentService {
         this.subjectModuleDomainRepository = subjectModuleDomainRepository;
         this.professorExpertiseRepository = professorExpertiseRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
-        this.teachingGroupMembershipRepository = teachingGroupMembershipRepository;
+        this.rosterService = rosterService;
         this.userProfileRepository = userProfileRepository;
         this.responsibilityService = responsibilityService;
     }
@@ -178,11 +176,10 @@ public class TeachingAssignmentService {
                 PermissionCode.TEACHING_ASSIGNMENT_VIEW
             );
         }
-        return teachingGroupMembershipRepository
-            .findByTeachingGroupId(assignment.getTeachingRequirement().getTeachingGroup().getId())
+        return rosterService.activeModuleRegistrations(assignment)
             .stream()
-            .map(TeachingGroupMembership::getSemesterRegistration)
-            .map(registration -> registration.getAcademicRegistration().getStudent())
+            .map(registration -> registration.getSemesterRegistration()
+                .getAcademicRegistration().getStudent())
             .distinct()
             .map(this::toStudentResponse)
             .sorted(java.util.Comparator

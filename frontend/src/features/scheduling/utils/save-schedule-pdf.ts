@@ -11,6 +11,7 @@ export async function saveSchedulePdf(root: HTMLElement, contentSelector: string
 
   try {
     await document.fonts.ready;
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
       import("html2canvas"),
       import("jspdf"),
@@ -20,9 +21,9 @@ export async function saveSchedulePdf(root: HTMLElement, contentSelector: string
       logging: false,
       scale: 2,
       useCORS: true,
-      width: exportDocument.scrollWidth,
-      height: exportDocument.scrollHeight,
-      windowWidth: exportDocument.scrollWidth,
+      width: exportDocument.offsetWidth,
+      height: exportDocument.offsetHeight,
+      windowWidth: exportDocument.offsetWidth,
     });
 
     const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });

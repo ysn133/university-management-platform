@@ -3,6 +3,8 @@ package com.platform.scheduling.semesterschedule.application;
 import com.platform.identityaccess.application.AdminPermissionAuthorizationService;
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.PermissionCode;
+import com.platform.identityaccess.domain.UserProfile;
+import com.platform.identityaccess.infrastructure.UserProfileRepository;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.scheduling.semesterschedule.domain.ScheduleEntry;
 import com.platform.scheduling.semesterschedule.domain.SemesterSchedule;
@@ -11,6 +13,7 @@ import com.platform.scheduling.semesterschedule.infrastructure.ScheduleEntryRepo
 import com.platform.scheduling.semesterschedule.infrastructure.SemesterScheduleRepository;
 import com.platform.scheduling.semesterschedule.presentation.dto.CreateScheduleEntryRequest;
 import com.platform.scheduling.semesterschedule.presentation.dto.ScheduleEntryResponse;
+import com.platform.scheduling.semesterschedule.presentation.dto.StudentScheduleEntryResponse;
 import com.platform.scheduling.semesterschedule.presentation.dto.UpdateScheduleEntryRequest;
 import com.platform.scheduling.teachinggroup.domain.TeachingGroup;
 import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupMembershipRepository;
@@ -45,6 +48,7 @@ public class ScheduleEntryService {
     private final TeachingGroupMembershipRepository membershipRepository;
     private final RoomRepository roomRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
+    private final UserProfileRepository userProfileRepository;
 
     public ScheduleEntryService(
         ScheduleEntryRepository scheduleEntryRepository,
@@ -52,7 +56,8 @@ public class ScheduleEntryService {
         TeachingAssignmentRepository teachingAssignmentRepository,
         TeachingGroupMembershipRepository membershipRepository,
         RoomRepository roomRepository,
-        AdminPermissionAuthorizationService permissionAuthorizationService
+        AdminPermissionAuthorizationService permissionAuthorizationService,
+        UserProfileRepository userProfileRepository
     ) {
         this.scheduleEntryRepository = scheduleEntryRepository;
         this.semesterScheduleRepository = semesterScheduleRepository;
@@ -60,6 +65,7 @@ public class ScheduleEntryService {
         this.membershipRepository = membershipRepository;
         this.roomRepository = roomRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
+        this.userProfileRepository = userProfileRepository;
     }
 
     @Transactional
@@ -136,6 +142,20 @@ public class ScheduleEntryService {
                 ).thenComparing(ScheduleEntry::getStartTime)
             )
             .map(this::toResponse)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<StudentScheduleEntryResponse> getStudentScheduleEntries(
+        AuthenticatedUserPrincipal principal
+    ) {
+        if (principal.role() != AccountRoleType.STUDENT) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Student access required");
+        }
+        return scheduleEntryRepository
+            .findStudentSchedule(principal.roleEntityId(), SchedulePublicationStatus.PUBLISHED)
+            .stream()
+            .map(this::toStudentResponse)
             .toList();
     }
 
@@ -469,6 +489,35 @@ public class ScheduleEntryService {
             room == null || room.getBlock() == null ? null : room.getBlock().getName(),
             entry.getCreatedAt(),
             entry.getUpdatedAt()
+        );
+    }
+
+    private StudentScheduleEntryResponse toStudentResponse(ScheduleEntry entry) {
+        SemesterSchedule schedule = entry.getSemesterSchedule();
+        TeachingRequirement requirement = entry.getTeachingAssignment().getTeachingRequirement();
+        var component = requirement.getModuleTeachingComponent();
+        var module = component.getSubjectModule();
+        var semester = schedule.getSemester();
+        var level = semester.getAcademicLevel();
+        var program = level.getProgramFiliere();
+        var room = entry.getRoom();
+        UserProfile professorProfile = userProfileRepository
+            .findByUserAccountId(entry.getTeachingAssignment().getProfessor().getUserAccount().getId())
+            .orElse(null);
+        String professorName = professorProfile == null
+            ? "Professor"
+            : professorProfile.getFirstName() + " " + professorProfile.getLastName();
+
+        return new StudentScheduleEntryResponse(
+            entry.getId(), schedule.getAcademicYear().getId(), schedule.getAcademicYear().getLabel(),
+            schedule.getAcademicYear().getStatus(), semester.getId(), semester.getName(), semester.getTermType(),
+            semester.getStartDate(), semester.getEndDate(), level.getId(), level.getName(), program.getId(),
+            program.getCode(), program.getName(), module.getId(), module.getCode(), module.getTitle(),
+            component.getComponentType(), requirement.getTeachingGroup().getAudienceType(),
+            requirement.getTeachingGroup().getName(), professorName, entry.getDayOfWeek(), entry.getStartTime(),
+            entry.getEndTime(), room == null ? null : room.getCode(), room == null ? null : room.getName(),
+            room == null || room.getBlock() == null ? null : room.getBlock().getCode(),
+            room == null || room.getBlock() == null ? null : room.getBlock().getName()
         );
     }
 }

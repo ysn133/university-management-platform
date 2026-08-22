@@ -1,34 +1,11 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getMyScheduleEntries, scheduleKeys, type ScheduleEntry } from "@/features/scheduling/api/schedule-api";
+import { getMyScheduleEntries, scheduleKeys } from "@/features/scheduling/api/schedule-api";
 import { getMyTeachingAssignments, teachingPlanKeys, type TeachingAssignment } from "@/features/teaching-planning/api/teaching-plan-api";
 import { ApiRequestError } from "@/shared/api/client/ApiRequestError";
+import { WeeklyTimetable } from "@/features/scheduling/components/WeeklyTimetable";
 
-const days = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SUNDAY"] as const;
-const dayLabels = { MONDAY: "Monday", TUESDAY: "Tuesday", WEDNESDAY: "Wednesday", THURSDAY: "Thursday", FRIDAY: "Friday", SATURDAY: "Saturday", SUNDAY: "Sunday" } as const;
 const termLabels = { AUTUMN: "Autumn", SPRING: "Spring" } as const;
-const gridStart = 8 * 60;
-const gridEnd = 18 * 60 + 30;
-const hourLabels = Array.from({ length: 11 }, (_, index) => 8 + index);
-
-function timeToMinutes(value: string): number {
-  const [hours, minutes] = value.split(":").map(Number);
-  return hours * 60 + minutes;
-}
-
-function assignLanes(entries: ScheduleEntry[]) {
-  const laneEnds: number[] = [];
-  return [...entries].sort((left, right) => left.startTime.localeCompare(right.startTime)).map((entry) => {
-    const start = timeToMinutes(entry.startTime);
-    let lane = laneEnds.findIndex((end) => end <= start);
-    if (lane < 0) {
-      lane = laneEnds.length;
-      laneEnds.push(0);
-    }
-    laneEnds[lane] = timeToMinutes(entry.endTime);
-    return { entry, lane };
-  });
-}
 
 function errorMessage(error: unknown): string {
   return error instanceof ApiRequestError ? error.message : "The schedule could not be loaded.";
@@ -74,6 +51,16 @@ export function ProfessorSchedulePage() {
   const selectedYear = years.find((year) => year.id === academicYearId);
   const loading = assignmentsQuery.isPending || entriesQuery.isPending;
   const loadError = assignmentsQuery.error ?? entriesQuery.error;
+  const timetableEntries = entries.map((entry) => {
+    const assignment = assignmentById.get(entry.teachingAssignmentId);
+    const componentType = assignment?.componentType ?? "COURSE";
+    return {
+      id: entry.id, dayOfWeek: entry.dayOfWeek, startTime: entry.startTime, endTime: entry.endTime,
+      title: assignment?.subjectModuleTitle ?? "Scheduled session", context: assignmentContext(assignment),
+      detail: `${componentType === "COURSE" ? "Course" : componentType} · ${entry.audienceType === "WHOLE_COHORT" ? "Whole Cohort" : entry.teachingGroupName}`,
+      room: entry.roomCode ?? "Room pending", componentType,
+    };
+  });
 
   return <div className="management-page professor-schedule-page">
     <header className="management-page-header professor-schedule-page-header">
@@ -93,17 +80,7 @@ export function ProfessorSchedulePage() {
       {loading ? <div className="panel-empty">Loading your schedule...</div>
         : loadError ? <div className="panel-empty panel-empty--error">{errorMessage(loadError)}</div>
         : entries.length === 0 ? <div className="panel-empty"><strong>No published sessions for this period.</strong><p>Select another academic year or semester to view historical schedules.</p></div>
-        : <div className="timetable-scroll professor-timetable-scroll"><div className="weekly-timetable professor-weekly-timetable"><div className="timetable-time-header"><span>Days</span><div>{hourLabels.map((hour) => <span key={hour} style={{ left: `${((hour * 60 - gridStart) / (gridEnd - gridStart)) * 100}%` }}>{hour}h</span>)}</div></div>{days.map((day) => {
-          const laidOut = assignLanes(entries.filter((entry) => entry.dayOfWeek === day));
-          const laneCount = Math.max(1, ...laidOut.map((item) => item.lane + 1));
-          return <div className="timetable-day-row" key={day}><strong>{dayLabels[day]}</strong><div className="timetable-day-track professor-day-track" style={{ minHeight: `${Math.max(92, laneCount * 92)}px` }}>{laidOut.map(({ entry, lane }) => {
-            const assignment = assignmentById.get(entry.teachingAssignmentId);
-            const componentType = assignment?.componentType ?? "COURSE";
-            const start = timeToMinutes(entry.startTime);
-            const end = timeToMinutes(entry.endTime);
-            return <article className={`timetable-session timetable-session--${componentType.toLowerCase()}`} key={entry.id} style={{ left: `${((start - gridStart) / (gridEnd - gridStart)) * 100}%`, top: `${lane * 88 + 4}px`, width: `${((end - start) / (gridEnd - gridStart)) * 100}%` }} title={assignmentContext(assignment)}><strong>{assignment?.subjectModuleTitle ?? "Scheduled session"}</strong><span>{assignmentContext(assignment)}</span><span>{componentType === "COURSE" ? "Course" : componentType} · {entry.audienceType === "WHOLE_COHORT" ? "Whole Cohort" : entry.teachingGroupName}</span><small>{entry.roomCode} · {entry.startTime.slice(0, 5)}–{entry.endTime.slice(0, 5)}</small></article>;
-          })}</div></div>;
-        })}</div></div>}
+        : <WeeklyTimetable entries={timetableEntries} />}
     </section>
   </div>;
 }

@@ -40,6 +40,7 @@ import com.platform.attendance.qrcheckin.domain.AttendanceQrSession;
 import com.platform.attendance.qrcheckin.infrastructure.AttendanceQrSessionStore;
 import com.platform.attendance.qrcheckin.presentation.dto.AttendanceQrCheckInRequest;
 import com.platform.attendance.qrcheckin.presentation.dto.StartAttendanceQrSessionRequest;
+import com.platform.teachingassignment.application.TeachingAssignmentRosterService;
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.AccountStatus;
 import com.platform.identityaccess.domain.Admin;
@@ -769,8 +770,10 @@ class GradeRecordServiceIntegrationTest {
         AttendanceQrSessionService qrService = new AttendanceQrSessionService(
             new InMemoryAttendanceQrSessionStore(),
             teachingAssignmentRepository,
-            teachingGroupMembershipRepository,
-            moduleRegistrationRepository
+            new TeachingAssignmentRosterService(
+                teachingGroupMembershipRepository,
+                moduleRegistrationRepository
+            )
         );
         var session = qrService.startSession(
             professorPrincipal,

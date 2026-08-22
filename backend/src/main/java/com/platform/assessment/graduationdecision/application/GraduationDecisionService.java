@@ -12,6 +12,7 @@ import com.platform.assessment.progressiondecision.domain.ProgressionDecisionSta
 import com.platform.assessment.progressiondecision.infrastructure.ProgressionDecisionRepository;
 import com.platform.identityaccess.application.AdminPermissionAuthorizationService;
 import com.platform.identityaccess.domain.PermissionCode;
+import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.UserProfile;
 import com.platform.identityaccess.infrastructure.UserProfileRepository;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
@@ -82,6 +83,26 @@ public class GraduationDecisionService {
             .stream()
             .map(this::response)
             .sorted((left, right) -> left.apogeeCode().compareToIgnoreCase(right.apogeeCode()))
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<GraduationDecisionResponse> getMine(
+        AuthenticatedUserPrincipal principal
+    ) {
+        if (principal == null || principal.role() != AccountRoleType.STUDENT) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Student access required");
+        }
+        Set<UUID> registrationIds = registrationRepository
+            .findByStudentIdOrderByAcademicYearStartYearDesc(principal.roleEntityId())
+            .stream()
+            .map(AcademicRegistration::getId)
+            .collect(java.util.stream.Collectors.toSet());
+        return graduationDecisionRepository
+            .findByTerminalAcademicRegistrationIdIn(registrationIds)
+            .stream()
+            .map(this::response)
+            .sorted((left, right) -> right.decidedAt().compareTo(left.decidedAt()))
             .toList();
     }
 

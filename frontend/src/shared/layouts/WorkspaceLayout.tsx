@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { getWorkspacePath } from "@/features/auth/model/auth-types";
@@ -71,6 +72,21 @@ export function WorkspaceLayout({
   accountPath = "/management/account/password",
 }: WorkspaceLayoutProps) {
   const { user, logout } = useAuth();
+  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileNavigationOpen) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileNavigationOpen(false);
+    };
+    document.body.classList.add("workspace-navigation-open");
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.classList.remove("workspace-navigation-open");
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileNavigationOpen]);
 
   if (variant === "management") {
     let currentGroup = "";
@@ -86,7 +102,18 @@ export function WorkspaceLayout({
           <Link className="global-rail-link global-rail-link--bottom" to="/management/account/password" title="Account security"><NavigationIcon icon="information" /><span>Account</span></Link>
         </aside>}
 
-        <aside className="workspace-sidebar">
+        <button
+          aria-label="Close navigation"
+          className={`workspace-mobile-backdrop${mobileNavigationOpen ? " is-open" : ""}`}
+          onClick={() => setMobileNavigationOpen(false)}
+          type="button"
+        />
+
+        <aside className={`workspace-sidebar${mobileNavigationOpen ? " is-mobile-open" : ""}`}>
+          <div className="workspace-mobile-sidebar-header">
+            <strong>{workspaceName}</strong>
+            <button aria-label="Close navigation" onClick={() => setMobileNavigationOpen(false)} type="button">×</button>
+          </div>
           {context && (
             <header className="management-context-card">
               <span className="management-context-monogram">{context.monogram}</span>
@@ -102,7 +129,7 @@ export function WorkspaceLayout({
               return (
                 <div className="workspace-nav-entry" key={item.to}>
                   {showGroup && <span className="workspace-nav-group">{item.group}</span>}
-                  <NavLink className={({ isActive }) => isActive ? "workspace-nav-link is-active" : "workspace-nav-link"} end={item.end} to={item.to}>
+                  <NavLink className={({ isActive }) => isActive ? "workspace-nav-link is-active" : "workspace-nav-link"} end={item.end} onClick={() => setMobileNavigationOpen(false)} to={item.to}>
                     <NavigationIcon icon={item.icon} />
                     <span>{item.label}</span>
                   </NavLink>
@@ -116,6 +143,15 @@ export function WorkspaceLayout({
 
         <div className="workspace-main">
           <header className="workspace-topbar">
+            <button
+              aria-expanded={mobileNavigationOpen}
+              aria-label="Open navigation"
+              className="workspace-mobile-menu-button"
+              onClick={() => setMobileNavigationOpen(true)}
+              type="button"
+            >
+              <span /><span /><span />
+            </button>
             <nav className="workspace-breadcrumbs" aria-label="Breadcrumb">
               {breadcrumbs.length > 0 ? breadcrumbs.map((crumb, index) => (
                 <span key={`${crumb.label}-${index}`}>
