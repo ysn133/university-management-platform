@@ -14,6 +14,7 @@ import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.scheduling.examcandidate.domain.ExamCandidate;
 import com.platform.scheduling.examcandidate.infrastructure.ExamCandidateRepository;
 import com.platform.scheduling.examcandidate.presentation.dto.ExamCandidateResponse;
+import com.platform.scheduling.examcandidate.presentation.dto.StudentExamInvitationResponse;
 import com.platform.scheduling.examgroup.infrastructure.ExamGroupMembershipRepository;
 import com.platform.scheduling.examgroup.infrastructure.ExamRoomAllocationRepository;
 import com.platform.scheduling.examschedule.domain.ExamSessionType;
@@ -142,7 +143,7 @@ public class ExamCandidateService {
     }
 
     @Transactional(readOnly = true)
-    public List<ExamCandidateResponse> getMyInvitations(
+    public List<StudentExamInvitationResponse> getMyInvitations(
         AuthenticatedUserPrincipal principal
     ) {
         if (principal == null || principal.role() != AccountRoleType.STUDENT) {
@@ -154,7 +155,7 @@ public class ExamCandidateService {
         return examCandidateRepository
             .findPublishedStudentInvitations(principal.roleEntityId())
             .stream()
-            .map(this::toResponse)
+            .map(this::toStudentInvitationResponse)
             .toList();
     }
 
@@ -321,6 +322,26 @@ public class ExamCandidateService {
             moduleExam.getStartTime(),
             roomCode,
             candidate.getCreatedAt()
+        );
+    }
+
+    private StudentExamInvitationResponse toStudentInvitationResponse(
+        ExamCandidate candidate
+    ) {
+        ExamCandidateResponse candidateResponse = toResponse(candidate);
+        ModuleExam moduleExam = candidate.getModuleExam();
+        var schedule = moduleExam.getExamSchedule();
+        var semester = schedule.getSemester();
+        var level = semester.getAcademicLevel();
+        var program = level.getProgramFiliere();
+        var module = moduleExam.getSubjectModule();
+        return new StudentExamInvitationResponse(
+            candidateResponse.id(), moduleExam.getId(), module.getId(), module.getCode(), module.getTitle(),
+            schedule.getAcademicYear().getId(), schedule.getAcademicYear().getLabel(), schedule.getAcademicYear().getStatus(),
+            semester.getId(), semester.getName(), semester.getStartDate(), semester.getEndDate(),
+            level.getId(), level.getName(), program.getId(), program.getCode(), program.getName(),
+            schedule.getSessionType(), moduleExam.getExamDate(), moduleExam.getStartTime(), moduleExam.getEndTime(),
+            candidateResponse.examGroupLabel(), candidateResponse.roomCode()
         );
     }
 }

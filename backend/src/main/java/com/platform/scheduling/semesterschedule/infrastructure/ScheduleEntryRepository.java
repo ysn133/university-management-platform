@@ -37,6 +37,41 @@ public interface ScheduleEntryRepository extends JpaRepository<ScheduleEntry, UU
     );
 
     @Query("""
+        select distinct entry
+        from ScheduleEntry entry, ModuleRegistration registration
+        where registration.semesterRegistration.academicRegistration.student.id = :studentId
+          and registration.status = com.platform.academicregistration.moduleregistration.domain.ModuleRegistrationStatus.ACTIVE
+          and registration.subjectModule = entry.teachingAssignment.teachingRequirement.moduleTeachingComponent.subjectModule
+          and registration.semesterRegistration.semester = entry.semesterSchedule.semester
+          and entry.teachingAssignment.status = com.platform.teachingassignment.domain.TeachingAssignmentStatus.ACTIVE
+          and entry.semesterSchedule.publicationStatus = :publicationStatus
+          and (
+            entry.teachingAssignment.teachingRequirement.teachingGroup.audienceType = com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingAudienceMode.WHOLE_COHORT
+            or (
+              entry.teachingAssignment.teachingRequirement.teachingGroup.audienceType = com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingAudienceMode.CLASS_GROUP
+              and exists (
+                select assignment.id from StudentClassAssignment assignment
+                where assignment.semesterRegistration = registration.semesterRegistration
+                  and assignment.classGroup = entry.teachingAssignment.teachingRequirement.teachingGroup.sourceClassGroup
+              )
+            )
+            or (
+              entry.teachingAssignment.teachingRequirement.teachingGroup.audienceType = com.platform.universitygovernance.moduleteachingcomponent.domain.TeachingAudienceMode.SUBGROUP
+              and exists (
+                select membership.id from TeachingGroupMembership membership
+                where membership.semesterRegistration = registration.semesterRegistration
+                  and membership.teachingGroup = entry.teachingAssignment.teachingRequirement.teachingGroup
+              )
+            )
+          )
+        order by entry.dayOfWeek, entry.startTime
+        """)
+    List<ScheduleEntry> findStudentSchedule(
+        @Param("studentId") UUID studentId,
+        @Param("publicationStatus") SchedulePublicationStatus publicationStatus
+    );
+
+    @Query("""
         select entry
         from ScheduleEntry entry
         where entry.semesterSchedule.establishment.id = :establishmentId

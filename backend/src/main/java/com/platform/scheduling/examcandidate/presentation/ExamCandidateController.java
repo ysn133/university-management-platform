@@ -3,6 +3,7 @@ package com.platform.scheduling.examcandidate.presentation;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.scheduling.examcandidate.application.ExamCandidateService;
 import com.platform.scheduling.examcandidate.presentation.dto.ExamCandidateResponse;
+import com.platform.scheduling.examcandidate.presentation.dto.StudentExamInvitationResponse;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -45,7 +46,7 @@ public class ExamCandidateController {
 
     @GetMapping("/me/exam-invitations")
     @PreAuthorize("hasRole('STUDENT')")
-    public List<ExamCandidateResponse> getMyInvitations(
+    public List<StudentExamInvitationResponse> getMyInvitations(
         @AuthenticationPrincipal AuthenticatedUserPrincipal principal
     ) {
         return examCandidateService.getMyInvitations(principal);

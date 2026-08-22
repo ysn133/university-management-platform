@@ -15,6 +15,7 @@ import com.platform.assessment.semesterresult.infrastructure.SemesterResultRepos
 import com.platform.academicregistration.semesterregistration.infrastructure.SemesterRegistrationRepository;
 import com.platform.identityaccess.application.AdminPermissionAuthorizationService;
 import com.platform.identityaccess.domain.PermissionCode;
+import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.UserProfile;
 import com.platform.identityaccess.infrastructure.UserProfileRepository;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
@@ -73,6 +74,17 @@ public class ManagedProgressionDecisionService {
         List<AcademicRegistration> registrations = registrations(academicLevelId, academicYearId);
         authorize(principal, registrations);
         return responses(registrations);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ManagedProgressionDecisionResponse> getMine(
+        AuthenticatedUserPrincipal principal
+    ) {
+        if (principal == null || principal.role() != AccountRoleType.STUDENT) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Student access required");
+        }
+        return responses(registrationRepository
+            .findByStudentIdOrderByAcademicYearStartYearDesc(principal.roleEntityId()));
     }
 
     @Transactional

@@ -1,7 +1,5 @@
 package com.platform.attendance.qrcheckin.application;
 
-import com.platform.academicregistration.moduleregistration.domain.ModuleRegistrationStatus;
-import com.platform.academicregistration.moduleregistration.infrastructure.ModuleRegistrationRepository;
 import com.platform.attendance.qrcheckin.domain.AttendanceQrSession;
 import com.platform.attendance.qrcheckin.infrastructure.AttendanceQrSessionStore;
 import com.platform.attendance.qrcheckin.presentation.dto.AttendanceQrCheckInRequest;
@@ -10,7 +8,7 @@ import com.platform.attendance.qrcheckin.presentation.dto.AttendanceQrSessionRes
 import com.platform.attendance.qrcheckin.presentation.dto.StartAttendanceQrSessionRequest;
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
-import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupMembershipRepository;
+import com.platform.teachingassignment.application.TeachingAssignmentRosterService;
 import com.platform.teachingassignment.domain.TeachingAssignment;
 import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
 import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
@@ -32,19 +30,16 @@ public class AttendanceQrSessionService {
 
     private final AttendanceQrSessionStore sessionStore;
     private final TeachingAssignmentRepository teachingAssignmentRepository;
-    private final TeachingGroupMembershipRepository membershipRepository;
-    private final ModuleRegistrationRepository moduleRegistrationRepository;
+    private final TeachingAssignmentRosterService rosterService;
 
     public AttendanceQrSessionService(
         AttendanceQrSessionStore sessionStore,
         TeachingAssignmentRepository teachingAssignmentRepository,
-        TeachingGroupMembershipRepository membershipRepository,
-        ModuleRegistrationRepository moduleRegistrationRepository
+        TeachingAssignmentRosterService rosterService
     ) {
         this.sessionStore = sessionStore;
         this.teachingAssignmentRepository = teachingAssignmentRepository;
-        this.membershipRepository = membershipRepository;
-        this.moduleRegistrationRepository = moduleRegistrationRepository;
+        this.rosterService = rosterService;
     }
 
     public AttendanceQrSessionResponse startSession(
@@ -194,19 +189,7 @@ public class AttendanceQrSessionService {
                 HttpStatus.NOT_FOUND,
                 "Teaching assignment not found"
             ));
-        UUID teachingGroupId = assignment.getTeachingRequirement()
-            .getTeachingGroup().getId();
-        UUID subjectModuleId = assignment.getTeachingRequirement()
-            .getModuleTeachingComponent().getSubjectModule().getId();
-        return membershipRepository.findByTeachingGroupId(teachingGroupId).stream()
-            .flatMap(membership -> moduleRegistrationRepository
-                .findBySemesterRegistrationIdAndStatus(
-                    membership.getSemesterRegistration().getId(),
-                    ModuleRegistrationStatus.ACTIVE
-                )
-                .stream())
-            .filter(registration -> registration.getSubjectModule().getId()
-                .equals(subjectModuleId))
+        return rosterService.activeModuleRegistrations(assignment).stream()
             .map(registration -> registration.getSemesterRegistration()
                 .getAcademicRegistration().getStudent().getId())
             .collect(Collectors.toSet());

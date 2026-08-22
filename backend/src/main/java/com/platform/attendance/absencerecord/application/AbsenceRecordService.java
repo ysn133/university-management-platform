@@ -17,6 +17,7 @@ import com.platform.scheduling.teachinggroup.infrastructure.TeachingGroupMembers
 import com.platform.teachingassignment.domain.TeachingAssignment;
 import com.platform.teachingassignment.domain.TeachingAssignmentStatus;
 import com.platform.teachingassignment.infrastructure.TeachingAssignmentRepository;
+import com.platform.teachingassignment.application.TeachingAssignmentRosterService;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ public class AbsenceRecordService {
     private final TeachingAssignmentRepository teachingAssignmentRepository;
     private final ModuleRegistrationRepository moduleRegistrationRepository;
     private final TeachingGroupMembershipRepository membershipRepository;
+    private final TeachingAssignmentRosterService rosterService;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
 
     public AbsenceRecordService(
@@ -43,12 +45,14 @@ public class AbsenceRecordService {
         TeachingAssignmentRepository teachingAssignmentRepository,
         ModuleRegistrationRepository moduleRegistrationRepository,
         TeachingGroupMembershipRepository membershipRepository,
+        TeachingAssignmentRosterService rosterService,
         AdminPermissionAuthorizationService permissionAuthorizationService
     ) {
         this.absenceRecordRepository = absenceRecordRepository;
         this.teachingAssignmentRepository = teachingAssignmentRepository;
         this.moduleRegistrationRepository = moduleRegistrationRepository;
         this.membershipRepository = membershipRepository;
+        this.rosterService = rosterService;
         this.permissionAuthorizationService = permissionAuthorizationService;
     }
 
@@ -335,22 +339,7 @@ public class AbsenceRecordService {
     }
 
     private List<ModuleRegistration> attendanceRoster(TeachingAssignment assignment) {
-        UUID subjectModuleId = assignment.getTeachingRequirement()
-            .getModuleTeachingComponent().getSubjectModule().getId();
-        return membershipRepository
-            .findByTeachingGroupId(
-                assignment.getTeachingRequirement().getTeachingGroup().getId()
-            )
-            .stream()
-            .flatMap(membership -> moduleRegistrationRepository
-                .findBySemesterRegistrationIdAndStatus(
-                    membership.getSemesterRegistration().getId(),
-                    ModuleRegistrationStatus.ACTIVE
-                )
-                .stream())
-            .filter(registration -> registration.getSubjectModule().getId()
-                .equals(subjectModuleId))
-            .toList();
+        return rosterService.activeModuleRegistrations(assignment);
     }
 
     private AbsenceRecord newAbsence(
@@ -380,6 +369,12 @@ public class AbsenceRecordService {
                 .getStudent()
                 .getId(),
             registration.getSubjectModule().getId(),
+            registration.getSubjectModule().getCode(),
+            registration.getSubjectModule().getTitle(),
+            registration.getSemesterRegistration().getSemester().getAcademicYear().getId(),
+            registration.getSemesterRegistration().getSemester().getAcademicYear().getLabel(),
+            registration.getSemesterRegistration().getSemester().getId(),
+            registration.getSemesterRegistration().getSemester().getName(),
             absence.getTeachingAssignment().getId(),
             absence.getTeachingAssignment().getProfessor().getId(),
             absence.getAbsenceDate(),
