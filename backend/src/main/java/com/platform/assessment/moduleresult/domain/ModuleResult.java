@@ -39,6 +39,13 @@ public class ModuleResult {
     @Column(name = "result_status", nullable = false)
     private ModuleResultStatus resultStatus;
 
+    @Column(name = "original_final_grade_value", precision = 5, scale = 2)
+    private BigDecimal originalFinalGradeValue;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "original_result_status")
+    private ModuleResultStatus originalResultStatus;
+
     @Column(name = "calculated_at", nullable = false)
     private Instant calculatedAt;
 
@@ -100,6 +107,22 @@ public class ModuleResult {
 
     public void setResultStatus(ModuleResultStatus resultStatus) {
         this.resultStatus = resultStatus;
+    }
+
+    public BigDecimal getOriginalFinalGradeValue() {
+        return originalFinalGradeValue;
+    }
+
+    public void setOriginalFinalGradeValue(BigDecimal originalFinalGradeValue) {
+        this.originalFinalGradeValue = originalFinalGradeValue;
+    }
+
+    public ModuleResultStatus getOriginalResultStatus() {
+        return originalResultStatus;
+    }
+
+    public void setOriginalResultStatus(ModuleResultStatus originalResultStatus) {
+        this.originalResultStatus = originalResultStatus;
     }
 
     public Instant getCalculatedAt() {

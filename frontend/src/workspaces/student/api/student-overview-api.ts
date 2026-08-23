@@ -18,6 +18,9 @@ const gradeSchema = z.object({
   finalGradeValue: z.number().nullable(),
   moduleResultStatus: z.enum(["V", "AV", "NV"]).nullable(),
   publishedAt: z.string(),
+  revised: z.boolean().default(false),
+  sourceAcademicYearId: z.string().uuid().nullable().optional(),
+  sourceSemesterId: z.string().uuid().nullable().optional(),
 });
 
 const invitationSchema = z.object({
@@ -92,7 +95,7 @@ export type StudentAbsence = z.infer<typeof absenceSchema>;
 export type StudentAcademicContext = z.infer<typeof academicContextSchema>;
 
 export const studentOverviewKeys = {
-  grades: () => ["student-overview", "grades"] as const,
+  grades: (resultView: "EFFECTIVE" | "ORIGINAL" = "EFFECTIVE") => ["student-overview", "grades", resultView] as const,
   exams: () => ["student-overview", "exam-invitations"] as const,
   absences: () => ["student-overview", "absences"] as const,
   academicContexts: () => ["student-overview", "academic-contexts"] as const,
@@ -103,8 +106,10 @@ async function parse<T>(result: { response: Response; data?: unknown; error?: un
   return schema.parse(result.data);
 }
 
-export async function getMyStudentGrades(): Promise<StudentOverviewGrade[]> {
-  return parse(await apiClient.GET("/api/v1/me/grades"), z.array(gradeSchema));
+export async function getMyStudentGrades(resultView: "EFFECTIVE" | "ORIGINAL" = "EFFECTIVE"): Promise<StudentOverviewGrade[]> {
+  const response = await authenticatedFetch(`${env.apiBaseUrl}/api/v1/me/grades?resultView=${resultView}`);
+  if (!response.ok) throw apiRequestError(response, undefined);
+  return z.array(gradeSchema).parse(await response.json());
 }
 
 export async function getMyExamInvitations(): Promise<StudentExamInvitation[]> {

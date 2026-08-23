@@ -1,9 +1,11 @@
 package com.platform.assessment.graderecord.application;
 
 import com.platform.academicregistration.moduleregistration.domain.ModuleRegistration;
+import com.platform.academicregistration.moduleregistration.infrastructure.ModuleRegistrationRepository;
 import com.platform.assessment.moduleresult.domain.ModuleResult;
 import com.platform.assessment.moduleresult.infrastructure.ModuleResultRepository;
 import com.platform.assessment.graderecord.domain.GradeRecord;
+import com.platform.assessment.graderecord.domain.GradeResultView;
 import com.platform.assessment.graderecord.domain.GradeWorkflowStatus;
 import com.platform.assessment.graderecord.domain.ZeroGradeReason;
 import com.platform.assessment.graderecord.infrastructure.GradeRecordRepository;
@@ -27,6 +29,7 @@ import com.platform.moduleclassresponsibility.domain.ModuleClassResponsibility;
 import com.platform.moduleclassresponsibility.domain.ModuleClassResponsibilityStatus;
 import com.platform.moduleclassresponsibility.infrastructure.ModuleClassResponsibilityRepository;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,6 +55,7 @@ public class GradeRecordService {
     private final ExamCandidateRepository examCandidateRepository;
     private final ModuleClassResponsibilityRepository responsibilityRepository;
     private final UserProfileRepository userProfileRepository;
+    private final ModuleRegistrationRepository moduleRegistrationRepository;
 
     public GradeRecordService(
         GradeRecordRepository gradeRecordRepository,
@@ -61,7 +65,8 @@ public class GradeRecordService {
         ModuleResultRepository moduleResultRepository,
         ExamCandidateRepository examCandidateRepository,
         ModuleClassResponsibilityRepository responsibilityRepository,
-        UserProfileRepository userProfileRepository
+        UserProfileRepository userProfileRepository,
+        ModuleRegistrationRepository moduleRegistrationRepository
     ) {
         this.gradeRecordRepository = gradeRecordRepository;
         this.moduleExamRepository = moduleExamRepository;
@@ -71,6 +76,7 @@ public class GradeRecordService {
         this.examCandidateRepository = examCandidateRepository;
         this.responsibilityRepository = responsibilityRepository;
         this.userProfileRepository = userProfileRepository;
+        this.moduleRegistrationRepository = moduleRegistrationRepository;
     }
 
     @Transactional(readOnly = true)
@@ -205,12 +211,27 @@ public class GradeRecordService {
         UUID academicLevelId,
         UUID semesterId
     ) {
+        return getMyGrades(
+            principal, academicYearId, academicLevelId, semesterId,
+            GradeResultView.EFFECTIVE
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<StudentGradeResponse> getMyGrades(
+        AuthenticatedUserPrincipal principal,
+        UUID academicYearId,
+        UUID academicLevelId,
+        UUID semesterId,
+        GradeResultView resultView
+    ) {
         requireStudent(principal);
         return findPublishedStudentGrades(
             principal.roleEntityId(),
             academicYearId,
             academicLevelId,
-            semesterId
+            semesterId,
+            resultView
         );
     }
 
@@ -221,6 +242,21 @@ public class GradeRecordService {
         UUID academicYearId,
         UUID academicLevelId,
         UUID semesterId
+    ) {
+        return getStudentGrades(
+            principal, studentId, academicYearId, academicLevelId, semesterId,
+            GradeResultView.EFFECTIVE
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<StudentGradeResponse> getStudentGrades(
+        AuthenticatedUserPrincipal principal,
+        UUID studentId,
+        UUID academicYearId,
+        UUID academicLevelId,
+        UUID semesterId,
+        GradeResultView resultView
     ) {
         Student student = studentRepository.findById(studentId)
             .orElseThrow(() -> new ResponseStatusException(
@@ -236,7 +272,8 @@ public class GradeRecordService {
             studentId,
             academicYearId,
             academicLevelId,
-            semesterId
+            semesterId,
+            resultView
         );
     }
 
@@ -244,14 +281,15 @@ public class GradeRecordService {
         UUID studentId,
         UUID academicYearId,
         UUID academicLevelId,
-        UUID semesterId
+        UUID semesterId,
+        GradeResultView resultView
     ) {
         List<GradeRecord> records = gradeRecordRepository.findStudentGrades(
             studentId,
             GradeWorkflowStatus.PUBLISHED,
-            academicYearId,
-            academicLevelId,
-            semesterId
+            resultView == GradeResultView.ORIGINAL ? academicYearId : null,
+            resultView == GradeResultView.ORIGINAL ? academicLevelId : null,
+            resultView == GradeResultView.ORIGINAL ? semesterId : null
         );
         if (records.isEmpty()) {
             return List.of();
@@ -266,12 +304,106 @@ public class GradeRecordService {
                 moduleResult -> moduleResult.getModuleRegistration().getId(),
                 Function.identity()
             ));
-        return records.stream()
-            .map(record -> toStudentGradeResponse(
-                record,
-                moduleResults.get(record.getModuleRegistration().getId())
-            ))
-            .toList();
+        if (resultView == GradeResultView.ORIGINAL) {
+            return records.stream()
+                .map(record -> toStudentGradeResponse(
+                    record,
+                    record.getModuleRegistration(),
+                    originalResult(moduleResults.get(record.getModuleRegistration().getId())),
+                    false
+                ))
+                .toList();
+        }
+
+        Map<UUID, ModuleRegistration> originalByRegistration = records.stream()
+            .map(GradeRecord::getModuleRegistration)
+            .distinct()
+            .collect(Collectors.toMap(
+                ModuleRegistration::getId,
+                registration -> originalRegistration(studentId, registration)
+            ));
+        Map<UUID, ModuleRegistration> effectiveByOriginal = new HashMap<>();
+        records.stream().map(GradeRecord::getModuleRegistration).distinct()
+            .filter(registration -> moduleResults.containsKey(registration.getId()))
+            .forEach(registration -> {
+                ModuleRegistration original = originalByRegistration.get(registration.getId());
+                effectiveByOriginal.merge(original.getId(), registration, (current, replacement) ->
+                    replacement.getInscriptionNumber() > current.getInscriptionNumber()
+                        ? replacement : current
+                );
+            });
+
+        List<StudentGradeResponse> responses = new ArrayList<>();
+        records.stream()
+            .filter(record -> {
+                ModuleRegistration source = record.getModuleRegistration();
+                ModuleRegistration original = originalByRegistration.get(source.getId());
+                ModuleRegistration effective = effectiveByOriginal.get(original.getId());
+                return effective != null && effective.getId().equals(source.getId());
+            })
+            .forEach(record -> {
+                ModuleRegistration source = record.getModuleRegistration();
+                ModuleRegistration original = originalByRegistration.get(source.getId());
+                ModuleResult result = moduleResults.get(source.getId());
+                boolean revised = !source.getId().equals(original.getId());
+                if (matchesGradeContext(original, academicYearId, academicLevelId, semesterId)) {
+                    responses.add(toStudentGradeResponse(
+                        record, original, result, revised
+                    ));
+                }
+                if (revised && matchesGradeContext(
+                    source, academicYearId, academicLevelId, semesterId
+                )) {
+                    responses.add(toStudentGradeResponse(
+                        record, source, result, false
+                    ));
+                }
+            });
+        return responses;
+    }
+
+    private boolean matchesGradeContext(
+        ModuleRegistration registration,
+        UUID academicYearId,
+        UUID academicLevelId,
+        UUID semesterId
+    ) {
+        var semesterRegistration = registration.getSemesterRegistration();
+        var academicRegistration = semesterRegistration.getAcademicRegistration();
+        return (academicYearId == null
+            || academicYearId.equals(academicRegistration.getAcademicYear().getId()))
+            && (academicLevelId == null
+                || academicLevelId.equals(academicRegistration.getAcademicLevel().getId()))
+            && (semesterId == null
+                || semesterId.equals(semesterRegistration.getSemester().getId()));
+    }
+
+    private ModuleRegistration originalRegistration(
+        UUID studentId,
+        ModuleRegistration registration
+    ) {
+        if (registration.getInscriptionNumber() <= 1) {
+            return registration;
+        }
+        List<ModuleRegistration> earlier = moduleRegistrationRepository.findEarlierInscription(
+            studentId,
+            registration.getSubjectModule().getCode(),
+            registration.getInscriptionNumber()
+        );
+        return earlier.isEmpty() ? registration : earlier.get(earlier.size() - 1);
+    }
+
+    private ModuleResult originalResult(ModuleResult result) {
+        if (result == null || result.getOriginalFinalGradeValue() == null) {
+            return result;
+        }
+        ModuleResult original = new ModuleResult();
+        original.setModuleRegistration(result.getModuleRegistration());
+        original.setAcademicRuleProfile(result.getAcademicRuleProfile());
+        original.setFinalGradeValue(result.getOriginalFinalGradeValue());
+        original.setResultStatus(result.getOriginalResultStatus());
+        original.setCalculatedAt(result.getCalculatedAt());
+        return original;
     }
 
     private GradeSheetResponse managementTransition(
@@ -504,23 +636,25 @@ public class GradeRecordService {
 
     private StudentGradeResponse toStudentGradeResponse(
         GradeRecord record,
-        ModuleResult moduleResult
+        ModuleRegistration contextRegistration,
+        ModuleResult moduleResult,
+        boolean revised
     ) {
-        ModuleRegistration registration = record.getModuleRegistration();
+        ModuleRegistration sourceRegistration = record.getModuleRegistration();
         return new StudentGradeResponse(
             record.getId(),
-            registration.getId(),
+            contextRegistration.getId(),
             record.getModuleExam().getId(),
-            registration.getSubjectModule().getId(),
-            registration.getSubjectModule().getCode(),
-            registration.getSubjectModule().getTitle(),
-            registration.getSemesterRegistration()
+            contextRegistration.getSubjectModule().getId(),
+            contextRegistration.getSubjectModule().getCode(),
+            contextRegistration.getSubjectModule().getTitle(),
+            contextRegistration.getSemesterRegistration()
                 .getAcademicRegistration()
                 .getAcademicYear()
                 .getId(),
-            registration.getSemesterRegistration().getSemester().getId(),
+            contextRegistration.getSemesterRegistration().getSemester().getId(),
             record.getModuleExam().getExamSchedule().getSessionType(),
-            registration.getInscriptionNumber(),
+            sourceRegistration.getInscriptionNumber(),
             record.getGradeValue(),
             record.getZeroGradeReason(),
             record.getPublishedAt(),
@@ -528,7 +662,11 @@ public class GradeRecordService {
             moduleResult == null ? null : moduleResult.getFinalGradeValue(),
             moduleResult == null ? null : moduleResult.getResultStatus(),
             moduleResult == null ? null : moduleResult.getAcademicRuleProfile().getId(),
-            moduleResult == null ? null : moduleResult.getCalculatedAt()
+            moduleResult == null ? null : moduleResult.getCalculatedAt(),
+            revised,
+            sourceRegistration.getSemesterRegistration().getAcademicRegistration()
+                .getAcademicYear().getId(),
+            sourceRegistration.getSemesterRegistration().getSemester().getId()
         );
     }
 

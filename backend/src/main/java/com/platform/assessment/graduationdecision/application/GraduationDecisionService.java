@@ -121,6 +121,20 @@ public class GraduationDecisionService {
         return get(principal, academicLevelId, academicYearId);
     }
 
+    @Transactional
+    public void recalculateExistingAfterHistoricalResultChange(
+        AcademicRegistration affectedRegistration
+    ) {
+        graduationDecisionRepository
+            .findByTerminalAcademicRegistrationStudentIdAndTerminalAcademicRegistrationProgramFiliereId(
+                affectedRegistration.getStudent().getId(),
+                affectedRegistration.getProgramFiliere().getId()
+            )
+            .ifPresent(decision -> recalculate(
+                decision.getTerminalAcademicRegistration()
+            ));
+    }
+
     private void recalculate(AcademicRegistration terminalRegistration) {
         Optional<List<ProgressionDecision>> completedDecisions = completedProgramDecisions(
             terminalRegistration

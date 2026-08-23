@@ -1,6 +1,7 @@
 package com.platform.assessment.graderecord.presentation;
 
 import com.platform.assessment.graderecord.application.GradeRecordService;
+import com.platform.assessment.graderecord.domain.GradeResultView;
 import com.platform.assessment.graderecord.presentation.dto.GradeSheetResponse;
 import com.platform.assessment.graderecord.presentation.dto.SaveGradeSheetRequest;
 import com.platform.assessment.graderecord.presentation.dto.StudentGradeResponse;
@@ -96,13 +97,15 @@ public class GradeRecordController {
         @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
         @RequestParam(required = false) UUID academicYearId,
         @RequestParam(required = false) UUID academicLevelId,
-        @RequestParam(required = false) UUID semesterId
+        @RequestParam(required = false) UUID semesterId,
+        @RequestParam(defaultValue = "EFFECTIVE") GradeResultView resultView
     ) {
         return gradeRecordService.getMyGrades(
             principal,
             academicYearId,
             academicLevelId,
-            semesterId
+            semesterId,
+            resultView
         );
     }
 
@@ -113,14 +116,16 @@ public class GradeRecordController {
         @PathVariable UUID studentId,
         @RequestParam(required = false) UUID academicYearId,
         @RequestParam(required = false) UUID academicLevelId,
-        @RequestParam(required = false) UUID semesterId
+        @RequestParam(required = false) UUID semesterId,
+        @RequestParam(defaultValue = "EFFECTIVE") GradeResultView resultView
     ) {
         return gradeRecordService.getStudentGrades(
             principal,
             studentId,
             academicYearId,
             academicLevelId,
-            semesterId
+            semesterId,
+            resultView
         );
     }
 }

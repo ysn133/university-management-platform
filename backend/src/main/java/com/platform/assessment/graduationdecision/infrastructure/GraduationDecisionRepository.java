@@ -9,6 +9,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface GraduationDecisionRepository extends JpaRepository<GraduationDecision, UUID> {
     Optional<GraduationDecision> findByTerminalAcademicRegistrationId(UUID registrationId);
+    Optional<GraduationDecision> findByTerminalAcademicRegistrationStudentIdAndTerminalAcademicRegistrationProgramFiliereId(
+        UUID studentId,
+        UUID programFiliereId
+    );
     List<GraduationDecision> findByTerminalAcademicRegistrationIdIn(Collection<UUID> registrationIds);
     void deleteByTerminalAcademicRegistrationId(UUID registrationId);
 }

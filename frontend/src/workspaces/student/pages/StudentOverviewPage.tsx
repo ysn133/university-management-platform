@@ -30,7 +30,7 @@ function ContextDetails({ context }: { context: StudentAcademicContext }) {
 
 export function StudentOverviewPage() {
   const { user } = useAuth();
-  const gradesQuery = useQuery({ queryKey: studentOverviewKeys.grades(), queryFn: getMyStudentGrades });
+  const gradesQuery = useQuery({ queryKey: studentOverviewKeys.grades(), queryFn: () => getMyStudentGrades() });
   const examsQuery = useQuery({ queryKey: studentOverviewKeys.exams(), queryFn: getMyExamInvitations });
   const absencesQuery = useQuery({ queryKey: studentOverviewKeys.absences(), queryFn: getMyAbsences });
   const contextsQuery = useQuery({ queryKey: studentOverviewKeys.academicContexts(), queryFn: getMyAcademicContexts });
