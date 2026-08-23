@@ -12817,7 +12817,7 @@ a.final-result-student-link:hover > strong { color: var(--management-blue); }
   background: #fff;
 }
 .student-grades-context > div { display: grid; gap: 0.2rem; }
-.student-grades-context > div:last-child {
+.student-grades-context__summary {
   min-width: 7.5rem;
   justify-items: end;
   padding-left: 1.4rem;
@@ -12827,7 +12827,7 @@ a.final-result-student-link:hover > strong { color: var(--management-blue); }
 .student-grades-context small { color: var(--management-muted); font-size: 0.6rem; }
 .student-grades-context span { font-weight: 800; letter-spacing: 0.055em; text-transform: uppercase; }
 .student-grades-context strong { color: #173f5d; font-family: "Newsreader Variable", serif; font-size: 1.35rem; font-weight: 620; }
-.student-grades-context > div:last-child strong { color: #176fa8; font-size: 1.8rem; }
+.student-grades-context__summary strong { color: #176fa8; font-size: 1.8rem; }
 
 .student-grades-table-wrap { overflow-x: auto; }
 .student-grades-table { width: 100%; border-collapse: collapse; }
@@ -12929,7 +12929,7 @@ a.final-result-student-link:hover > strong { color: var(--management-blue); }
   .student-grades-current { width: 100%; }
   .student-grades-selectors { align-items: stretch; flex-direction: column; }
   .student-grades-context { align-items: start; }
-  .student-grades-context > div:last-child { min-width: auto; justify-items: end; padding-left: 1rem; }
+  .student-grades-context__summary { min-width: auto; justify-items: end; padding-left: 1rem; }
   .student-year-decision { padding: 0.8rem; }
   .student-year-decision > header { align-items: start; padding: 1rem; }
   .student-year-decision > header > strong { font-size: 1.8rem; }
@@ -13116,7 +13116,7 @@ a.final-result-student-link:hover > strong { color: var(--management-blue); }
   .student-grades-toolbar .professor-grade-view-tabs { overflow-x: auto; }
   .student-grades-toolbar .professor-grade-view-tabs button { flex: 0 0 auto; min-width: 6rem; }
   .student-grades-context { padding: 1rem; }
-  .student-grades-context > div:last-child { padding-left: 0.75rem; }
+  .student-grades-context__summary { padding-left: 0.75rem; }
 }
 
 @media (max-width: 430px) {
@@ -13127,9 +13127,109 @@ a.final-result-student-link:hover > strong { color: var(--management-blue); }
   .student-context-details > div { border-right: 0; }
   .student-context-program { grid-column: auto; }
   .student-grades-context { display: grid; }
-  .student-grades-context > div:last-child { justify-items: start; padding: 0.75rem 0 0; border-top: 1px solid var(--management-line); border-left: 0; }
+  .student-grades-context__summary { justify-items: start; padding: 0.75rem 0 0; border-top: 1px solid var(--management-line); border-left: 0; }
 }
 
 @media (max-width: 900px) {
   .workspace-shell--management .workspace-sidebar nav { grid-template-columns: 1fr; }
+}
+.student-history-year-link { font-weight: 800; }
+.student-history-cell-link { color: inherit; display: block; text-decoration: none; }
+.student-history-cell-link:hover { color: var(--management-blue); }
+
+.managed-student-record-page { max-width: 1440px; }
+.managed-student-record-workspace { margin-top: 1rem; }
+.managed-student-record-primary-tabs {
+  align-items: center;
+  background: #fff;
+  border-bottom: 1px solid var(--management-line);
+  display: flex;
+  gap: 1.8rem;
+  overflow-x: auto;
+  padding: 0 1.5rem;
+}
+.managed-student-record-primary-tabs button {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: #647d8f;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 750;
+  padding: 1rem 0 0.85rem;
+  white-space: nowrap;
+}
+.managed-student-record-primary-tabs button:hover { color: #245f86; }
+.managed-student-record-primary-tabs button[aria-selected="true"] { border-bottom-color: #1777b7; color: #176fa8; }
+.managed-student-record-period {
+  align-items: center;
+  background: #f7fafc;
+  border-bottom: 1px solid var(--management-line);
+  display: flex;
+  gap: 1.1rem;
+  padding: 0.65rem 1.5rem;
+}
+.managed-student-record-period > span {
+  color: #71889a;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+.managed-student-record-period > div { display: flex; gap: 0.3rem; }
+.managed-student-record-period button {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #60798c;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.67rem;
+  font-weight: 760;
+  min-width: 3.25rem;
+  padding: 0.45rem 0.8rem;
+}
+.managed-student-record-period button[aria-selected="true"] {
+  background: #fff;
+  border-color: #cbdde8;
+  box-shadow: 0 2px 7px rgba(28, 74, 104, 0.08);
+  color: #176fa8;
+}
+.managed-student-record-page .student-grades-context strong,
+.managed-student-record-page .professor-schedule-panel-header h2,
+.managed-student-record-page .managed-student-module-list h3 {
+  font-family: "Manrope Variable", sans-serif;
+}
+.managed-student-record-page .student-grades-context strong { font-size: 1.2rem; font-weight: 760; }
+.managed-student-record-overview,
+.managed-student-record-table,
+.managed-student-record-schedule,
+.managed-student-record-decision { overflow: hidden; }
+.managed-student-record-facts { display: grid; grid-template-columns: repeat(4, 1fr); }
+.managed-student-record-facts > div { background: #fbfdfe; border-bottom: 1px solid var(--management-line); border-right: 1px solid var(--management-line); display: grid; gap: 0.3rem; padding: 1rem 1.2rem; }
+.managed-student-record-facts span,
+.managed-student-decision-card span { color: var(--management-muted); font-size: 0.65rem; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; }
+.managed-student-module-list { padding: 1.15rem 1.4rem 1.4rem; }
+.managed-student-module-list > header { align-items: center; display: flex; justify-content: space-between; margin-bottom: 0.75rem; }
+.managed-student-module-list h3 { color: #173f5d; font-size: 0.95rem; margin: 0; }
+.managed-student-module-list > header span { color: var(--management-muted); font-size: 0.65rem; }
+.managed-student-module-table { border: 1px solid var(--management-line); border-radius: 10px; overflow: hidden; }
+.managed-student-module-table td:first-child { width: 65%; }
+.managed-module-status { color: #40708f; font-size: 0.62rem; font-weight: 750; }
+.managed-student-decision-card { display: grid; grid-template-columns: repeat(4, 1fr); }
+.managed-student-decision-card > div { display: grid; gap: 0.35rem; padding: 1.35rem; }
+.managed-student-decision-card strong { color: #173f5d; font-size: 1rem; }
+.managed-student-timetable-frame { background: #fbfdfe; }
+
+@media (max-width: 800px) {
+  .managed-student-record-primary-tabs { gap: 1.2rem; }
+  .managed-student-record-period { align-items: flex-start; flex-direction: column; gap: 0.45rem; }
+  .managed-student-record-facts,
+  .managed-student-decision-card { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 520px) {
+  .managed-student-record-facts,
+  .managed-student-decision-card { grid-template-columns: 1fr; }
 }

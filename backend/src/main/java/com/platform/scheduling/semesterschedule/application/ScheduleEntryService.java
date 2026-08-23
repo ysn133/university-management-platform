@@ -5,6 +5,7 @@ import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.domain.PermissionCode;
 import com.platform.identityaccess.domain.UserProfile;
 import com.platform.identityaccess.infrastructure.UserProfileRepository;
+import com.platform.identityaccess.infrastructure.StudentRepository;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import com.platform.scheduling.semesterschedule.domain.ScheduleEntry;
 import com.platform.scheduling.semesterschedule.domain.SemesterSchedule;
@@ -49,6 +50,7 @@ public class ScheduleEntryService {
     private final RoomRepository roomRepository;
     private final AdminPermissionAuthorizationService permissionAuthorizationService;
     private final UserProfileRepository userProfileRepository;
+    private final StudentRepository studentRepository;
 
     public ScheduleEntryService(
         ScheduleEntryRepository scheduleEntryRepository,
@@ -57,7 +59,8 @@ public class ScheduleEntryService {
         TeachingGroupMembershipRepository membershipRepository,
         RoomRepository roomRepository,
         AdminPermissionAuthorizationService permissionAuthorizationService,
-        UserProfileRepository userProfileRepository
+        UserProfileRepository userProfileRepository,
+        StudentRepository studentRepository
     ) {
         this.scheduleEntryRepository = scheduleEntryRepository;
         this.semesterScheduleRepository = semesterScheduleRepository;
@@ -66,6 +69,7 @@ public class ScheduleEntryService {
         this.roomRepository = roomRepository;
         this.permissionAuthorizationService = permissionAuthorizationService;
         this.userProfileRepository = userProfileRepository;
+        this.studentRepository = studentRepository;
     }
 
     @Transactional
@@ -152,8 +156,30 @@ public class ScheduleEntryService {
         if (principal.role() != AccountRoleType.STUDENT) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Student access required");
         }
+        return studentSchedule(principal.roleEntityId());
+    }
+
+    @Transactional(readOnly = true)
+    public List<StudentScheduleEntryResponse> getManagedStudentScheduleEntries(
+        AuthenticatedUserPrincipal principal,
+        UUID studentId
+    ) {
+        var student = studentRepository.findById(studentId)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Student not found"
+            ));
+        permissionAuthorizationService.requirePermission(
+            principal,
+            student.getEstablishment().getId(),
+            PermissionCode.SEMESTER_SCHEDULE_VIEW
+        );
+        return studentSchedule(studentId);
+    }
+
+    private List<StudentScheduleEntryResponse> studentSchedule(UUID studentId) {
         return scheduleEntryRepository
-            .findStudentSchedule(principal.roleEntityId(), SchedulePublicationStatus.PUBLISHED)
+            .findStudentSchedule(studentId, SchedulePublicationStatus.PUBLISHED)
             .stream()
             .map(this::toStudentResponse)
             .toList();
