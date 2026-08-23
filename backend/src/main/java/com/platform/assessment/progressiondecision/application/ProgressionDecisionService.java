@@ -69,7 +69,11 @@ public class ProgressionDecisionService {
         List<ModuleResult> moduleResults = moduleResultRepository
             .findByModuleRegistrationSemesterRegistrationAcademicRegistrationId(
                 academicRegistration.getId()
-            );
+            ).stream()
+            .filter(result -> result.getModuleRegistration().getOriginAcademicLevel() == null
+                || result.getModuleRegistration().getOriginAcademicLevel().getId()
+                    .equals(academicRegistration.getAcademicLevel().getId()))
+            .toList();
         if (moduleResults.isEmpty()) {
             return;
         }

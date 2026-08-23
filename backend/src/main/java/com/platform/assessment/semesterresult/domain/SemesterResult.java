@@ -39,6 +39,13 @@ public class SemesterResult {
     @Column(name = "result_status", nullable = false)
     private SemesterResultStatus resultStatus;
 
+    @Column(name = "original_semester_average", precision = 5, scale = 2)
+    private BigDecimal originalSemesterAverage;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "original_result_status")
+    private SemesterResultStatus originalResultStatus;
+
     @Column(name = "evaluated_at", nullable = false)
     private Instant evaluatedAt;
 
@@ -100,6 +107,22 @@ public class SemesterResult {
 
     public void setResultStatus(SemesterResultStatus resultStatus) {
         this.resultStatus = resultStatus;
+    }
+
+    public BigDecimal getOriginalSemesterAverage() {
+        return originalSemesterAverage;
+    }
+
+    public void setOriginalSemesterAverage(BigDecimal originalSemesterAverage) {
+        this.originalSemesterAverage = originalSemesterAverage;
+    }
+
+    public SemesterResultStatus getOriginalResultStatus() {
+        return originalResultStatus;
+    }
+
+    public void setOriginalResultStatus(SemesterResultStatus originalResultStatus) {
+        this.originalResultStatus = originalResultStatus;
     }
 
     public Instant getEvaluatedAt() {

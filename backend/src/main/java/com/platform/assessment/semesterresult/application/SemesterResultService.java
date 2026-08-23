@@ -144,6 +144,17 @@ public class SemesterResultService {
         );
     }
 
+    @Transactional
+    public void preserveOriginalSnapshot(SemesterRegistration semesterRegistration) {
+        semesterResultRepository.findBySemesterRegistrationId(semesterRegistration.getId())
+            .filter(result -> result.getOriginalSemesterAverage() == null)
+            .ifPresent(result -> {
+                result.setOriginalSemesterAverage(result.getSemesterAverage());
+                result.setOriginalResultStatus(result.getResultStatus());
+                semesterResultRepository.save(result);
+            });
+    }
+
     private ModuleResultStatus resolveModuleStatus(
         BigDecimal finalGrade,
         boolean compensationAllowed,

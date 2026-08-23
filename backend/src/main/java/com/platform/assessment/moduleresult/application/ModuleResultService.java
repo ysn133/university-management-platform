@@ -1,9 +1,11 @@
 package com.platform.assessment.moduleresult.application;
 
 import com.platform.academicregistration.moduleregistration.domain.ModuleRegistration;
+import com.platform.academicregistration.moduleregistration.infrastructure.ModuleRegistrationRepository;
 import com.platform.assessment.graderecord.domain.GradeRecord;
 import com.platform.assessment.graderecord.domain.GradeWorkflowStatus;
 import com.platform.assessment.graderecord.infrastructure.GradeRecordRepository;
+import com.platform.assessment.graduationdecision.application.GraduationDecisionService;
 import com.platform.assessment.moduleresult.domain.ModuleResult;
 import com.platform.assessment.moduleresult.domain.ModuleResultStatus;
 import com.platform.assessment.moduleresult.infrastructure.ModuleResultRepository;
@@ -36,19 +38,25 @@ public class ModuleResultService {
     private final AcademicRuleProfileResolver ruleProfileResolver;
     private final SemesterResultService semesterResultService;
     private final AcademicRuleEvaluator ruleEvaluator;
+    private final ModuleRegistrationRepository moduleRegistrationRepository;
+    private final GraduationDecisionService graduationDecisionService;
 
     public ModuleResultService(
         ModuleResultRepository moduleResultRepository,
         GradeRecordRepository gradeRecordRepository,
         AcademicRuleProfileResolver ruleProfileResolver,
         SemesterResultService semesterResultService,
-        AcademicRuleEvaluator ruleEvaluator
+        AcademicRuleEvaluator ruleEvaluator,
+        ModuleRegistrationRepository moduleRegistrationRepository,
+        GraduationDecisionService graduationDecisionService
     ) {
         this.moduleResultRepository = moduleResultRepository;
         this.gradeRecordRepository = gradeRecordRepository;
         this.ruleProfileResolver = ruleProfileResolver;
         this.semesterResultService = semesterResultService;
         this.ruleEvaluator = ruleEvaluator;
+        this.moduleRegistrationRepository = moduleRegistrationRepository;
+        this.graduationDecisionService = graduationDecisionService;
     }
 
     @Transactional
@@ -113,6 +121,54 @@ public class ModuleResultService {
 
         semesterResultService.recalculateIfComplete(
             moduleRegistration.getSemesterRegistration()
+        );
+        propagateLaterInscription(moduleRegistration, moduleResult);
+    }
+
+    private void propagateLaterInscription(
+        ModuleRegistration registration,
+        ModuleResult latestResult
+    ) {
+        if (registration.getInscriptionNumber() <= 1) {
+            return;
+        }
+        UUID studentId = registration.getSemesterRegistration()
+            .getAcademicRegistration().getStudent().getId();
+        List<ModuleRegistration> earlier = moduleRegistrationRepository
+            .findEarlierInscription(
+                studentId,
+                registration.getSubjectModule().getCode(),
+                registration.getInscriptionNumber()
+            );
+        if (earlier.isEmpty()) {
+            return;
+        }
+
+        ModuleRegistration original = earlier.get(earlier.size() - 1);
+        ModuleResult effectiveOriginal = moduleResultRepository
+            .findByModuleRegistrationId(original.getId())
+            .orElseGet(ModuleResult::new);
+        if (effectiveOriginal.getId() != null
+            && effectiveOriginal.getOriginalFinalGradeValue() == null) {
+            effectiveOriginal.setOriginalFinalGradeValue(
+                effectiveOriginal.getFinalGradeValue()
+            );
+            effectiveOriginal.setOriginalResultStatus(
+                effectiveOriginal.getResultStatus()
+            );
+            semesterResultService.preserveOriginalSnapshot(
+                original.getSemesterRegistration()
+            );
+        }
+        effectiveOriginal.setModuleRegistration(original);
+        effectiveOriginal.setAcademicRuleProfile(latestResult.getAcademicRuleProfile());
+        effectiveOriginal.setFinalGradeValue(latestResult.getFinalGradeValue());
+        effectiveOriginal.setResultStatus(latestResult.getResultStatus());
+        effectiveOriginal.setCalculatedAt(Instant.now());
+        moduleResultRepository.save(effectiveOriginal);
+        semesterResultService.recalculateIfComplete(original.getSemesterRegistration());
+        graduationDecisionService.recalculateExistingAfterHistoricalResultChange(
+            original.getSemesterRegistration().getAcademicRegistration()
         );
     }
 

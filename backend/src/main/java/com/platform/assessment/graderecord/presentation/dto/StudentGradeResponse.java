@@ -25,6 +25,9 @@ public record StudentGradeResponse(
     BigDecimal finalGradeValue,
     ModuleResultStatus moduleResultStatus,
     UUID academicRuleProfileId,
-    Instant moduleResultCalculatedAt
+    Instant moduleResultCalculatedAt,
+    boolean revised,
+    UUID sourceAcademicYearId,
+    UUID sourceSemesterId
 ) {
 }
