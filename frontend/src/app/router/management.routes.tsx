@@ -20,6 +20,7 @@ import { SubjectModulePage } from "@/features/academic-structure/pages/SubjectMo
 import { DegreeCyclesPage, DepartmentsPage, ProgramPathsPage } from "@/features/academic-structure/pages/ReferenceCatalogPages";
 import { StudentDirectoryPage } from "@/features/student-registration/pages/StudentDirectoryPage";
 import { StudentDetailsPage } from "@/features/student-registration/pages/StudentDetailsPage";
+import { StudentAcademicRecordPage } from "@/features/student-registration/pages/StudentAcademicRecordPage";
 import { ProfessorManagementPage } from "@/features/professor-management/pages/ProfessorManagementPage";
 import { ProfessorDetailsPage } from "@/features/professor-management/pages/ProfessorDetailsPage";
 import { FacilitiesPage } from "@/features/facility-management/pages/FacilitiesPage";
@@ -39,6 +40,7 @@ export const managementRoutes: RouteObject = {
         { path: "establishments/:establishmentId/admins/:adminId", element: <AdminDetailsPage /> },
         { path: "establishments/:establishmentId/students", element: <StudentDirectoryPage /> },
         { path: "establishments/:establishmentId/students/:studentId", element: <StudentDetailsPage /> },
+        { path: "establishments/:establishmentId/students/:studentId/academic-record/:academicRegistrationId", element: <StudentAcademicRecordPage /> },
         { path: "establishments/:establishmentId/professors", element: <ProfessorManagementPage /> },
         { path: "establishments/:establishmentId/professors/:professorId", element: <ProfessorDetailsPage /> },
         { path: "establishments/:establishmentId/departments", element: <DepartmentsPage /> },
@@ -101,6 +103,7 @@ export const managementRoutes: RouteObject = {
         { path: "academic-years/:academicYearId/program-paths/:programPathId/programs/:programFiliereId/modules/:subjectModuleId", element: <SubjectModulePage /> },
         { path: "students", element: <StudentDirectoryPage /> },
         { path: "students/:studentId", element: <StudentDetailsPage /> },
+        { path: "students/:studentId/academic-record/:academicRegistrationId", element: <StudentAcademicRecordPage /> },
         { path: "professors", element: <ProfessorManagementPage /> },
         { path: "professors/:professorId", element: <ProfessorDetailsPage /> },
       ],

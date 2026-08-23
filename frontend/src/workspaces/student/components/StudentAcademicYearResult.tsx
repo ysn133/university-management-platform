@@ -1,5 +1,4 @@
 import { saveStudentAcademicYearResultPdf } from "@/features/assessment/utils/save-academic-year-results-pdf";
-import { saveGraduationDecisionPdf } from "@/features/assessment/utils/save-graduation-decision-pdf";
 import type { StudentAcademicContext } from "../api/student-overview-api";
 import type { StudentGraduationDecision, StudentProgressionDecision } from "../api/student-decisions-api";
 
@@ -31,7 +30,7 @@ export function StudentAcademicYearResult({
     return <div className="student-year-decision student-year-decision--graduation">
       <header><div><span>Graduation decision</span><h2>Graduated</h2><p>{graduation.degreeCycleName} · {graduation.programName}</p></div><strong>{graduation.graduationAverage.toFixed(2)}<small>/ 20</small></strong></header>
       <div className="student-year-decision-details"><div><span>Programme</span><strong>{graduation.programName}</strong></div><div><span>Final level</span><strong>{graduation.terminalAcademicLevelName}</strong></div><div><span>Academic year</span><strong>{graduation.academicYearLabel}</strong></div><div><span>Decision date</span><strong>{new Date(graduation.decidedAt).toLocaleDateString("en-GB")}</strong></div></div>
-      <footer><p>Your graduation decision has been finalized by the academic administration.</p><button onClick={() => void saveGraduationDecisionPdf(graduation)} type="button">Download graduation decision</button></footer>
+      <footer><p>Your graduation decision has been finalized by the academic administration.</p></footer>
     </div>;
   }
 
