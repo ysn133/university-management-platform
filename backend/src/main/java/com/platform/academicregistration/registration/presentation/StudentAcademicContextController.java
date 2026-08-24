@@ -2,6 +2,7 @@ package com.platform.academicregistration.registration.presentation;
 
 import com.platform.academicregistration.registration.application.StudentAcademicContextService;
 import com.platform.academicregistration.registration.presentation.dto.StudentAcademicContextResponse;
+import com.platform.academicregistration.registration.presentation.dto.StudentModuleRegistrationResponse;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,5 +27,12 @@ public class StudentAcademicContextController {
         @AuthenticationPrincipal AuthenticatedUserPrincipal principal
     ) {
         return service.getContexts(principal);
+    }
+
+    @GetMapping("/me/module-registrations")
+    public List<StudentModuleRegistrationResponse> getMyModuleRegistrations(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal
+    ) {
+        return service.getModuleRegistrations(principal);
     }
 }

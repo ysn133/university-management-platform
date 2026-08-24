@@ -2,6 +2,8 @@ import { z } from "zod";
 import type { components } from "@/shared/api/generated/schema";
 import { apiClient } from "@/shared/api/client/api-client";
 import { apiRequestError } from "@/shared/api/client/ApiRequestError";
+import { authenticatedFetch } from "@/shared/api/client/authenticated-fetch";
+import { env } from "@/shared/config/env";
 
 const studentSchema = z.object({
   studentId: z.string().uuid(),
@@ -30,6 +32,16 @@ const createStudentResponseSchema = z.object({
   establishmentId: z.string().uuid(),
   apogeeCode: z.string(),
   roleType: z.literal("STUDENT"),
+});
+
+const studentDirectoryPageSchema = z.object({
+  content: z.array(studentSchema),
+  page: z.number().int().nonnegative(),
+  size: z.number().int().positive(),
+  totalElements: z.number().int().nonnegative(),
+  totalPages: z.number().int().nonnegative(),
+  first: z.boolean(),
+  last: z.boolean(),
 });
 
 const academicRegistrationSchema = z.object({
@@ -70,6 +82,14 @@ export interface StudentDirectoryFilters {
   status?: StudentAccountStatus;
   enrolledFrom?: string;
   enrolledTo?: string;
+  academicYearId?: string;
+  programPathId?: string;
+  programFiliereId?: string;
+  academicLevelId?: string;
+  semesterId?: string;
+  registrationStatus?: AcademicRegistration["status"];
+  page?: number;
+  size?: number;
 }
 export interface AcademicRegistrationFilters {
   academicYearId?: string;
@@ -81,6 +101,7 @@ export interface AcademicRegistrationFilters {
 export type UpdateStudentRequest = components["schemas"]["UpdateStudentRequest"];
 export type StudentLifecycleAction = "lock" | "unlock" | "deactivate" | "archive";
 export type AcademicRegistration = z.infer<typeof academicRegistrationSchema>;
+export type StudentDirectoryPage = z.infer<typeof studentDirectoryPageSchema>;
 export type SemesterRegistration = z.infer<typeof semesterRegistrationSchema>;
 export type ModuleRegistration = z.infer<typeof moduleRegistrationSchema>;
 export type CreateStudentRequest = components["schemas"]["CreateStudentRequest"];
@@ -101,6 +122,18 @@ async function parseResponse<T>(result: { response: Response; data?: unknown; er
 
 export async function getStudents(establishmentId: string, filters: StudentDirectoryFilters = {}): Promise<Student[]> {
   return parseResponse(await apiClient.GET("/api/v1/establishments/{establishmentId}/students", { params: { path: { establishmentId }, query: filters } }), z.array(studentSchema));
+}
+
+export async function getStudentDirectory(establishmentId: string, filters: StudentDirectoryFilters = {}): Promise<StudentDirectoryPage> {
+  const parameters = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") parameters.set(key, String(value));
+  });
+  const query = parameters.size ? `?${parameters.toString()}` : "";
+  const response = await authenticatedFetch(`${env.apiBaseUrl}/api/v1/establishments/${establishmentId}/students/directory${query}`);
+  const payload: unknown = await response.json().catch(() => null);
+  if (!response.ok) throw apiRequestError(response, payload);
+  return studentDirectoryPageSchema.parse(payload);
 }
 
 export async function createStudent(establishmentId: string, request: CreateStudentRequest): Promise<{ studentId: string }> {

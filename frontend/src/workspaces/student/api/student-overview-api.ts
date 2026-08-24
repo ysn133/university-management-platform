@@ -89,16 +89,45 @@ const academicContextSchema = z.object({
   tpGroups: z.array(z.string()),
 });
 
+const moduleRegistrationSchema = z.object({
+  moduleRegistrationId: z.string().uuid(),
+  subjectModuleId: z.string().uuid(),
+  subjectModuleCode: z.string(),
+  subjectModuleTitle: z.string(),
+  academicRegistrationId: z.string().uuid(),
+  semesterRegistrationId: z.string().uuid(),
+  academicYearId: z.string().uuid(),
+  academicYearLabel: z.string(),
+  academicYearStatus: z.string(),
+  programPathId: z.string().uuid(),
+  programPathName: z.string(),
+  programFiliereId: z.string().uuid(),
+  programFiliereCode: z.string(),
+  programFiliereName: z.string(),
+  academicLevelId: z.string().uuid(),
+  academicLevelName: z.string(),
+  semesterId: z.string().uuid(),
+  semesterName: z.string(),
+  semesterStartDate: z.string(),
+  semesterEndDate: z.string(),
+  originAcademicLevelId: z.string().uuid().nullable(),
+  originAcademicLevelName: z.string().nullable(),
+  inscriptionNumber: z.number().int().positive(),
+  status: z.enum(["ACTIVE", "COMPLETED", "CANCELLED"]),
+});
+
 export type StudentOverviewGrade = z.infer<typeof gradeSchema>;
 export type StudentExamInvitation = z.infer<typeof invitationSchema>;
 export type StudentAbsence = z.infer<typeof absenceSchema>;
 export type StudentAcademicContext = z.infer<typeof academicContextSchema>;
+export type StudentModuleRegistration = z.infer<typeof moduleRegistrationSchema>;
 
 export const studentOverviewKeys = {
   grades: (resultView: "EFFECTIVE" | "ORIGINAL" = "EFFECTIVE") => ["student-overview", "grades", resultView] as const,
   exams: () => ["student-overview", "exam-invitations"] as const,
   absences: () => ["student-overview", "absences"] as const,
   academicContexts: () => ["student-overview", "academic-contexts"] as const,
+  moduleRegistrations: () => ["student-overview", "module-registrations"] as const,
 };
 
 async function parse<T>(result: { response: Response; data?: unknown; error?: unknown }, schema: z.ZodType<T>): Promise<T> {
@@ -124,4 +153,10 @@ export async function getMyAcademicContexts(): Promise<StudentAcademicContext[]>
   const response = await authenticatedFetch(`${env.apiBaseUrl}/api/v1/me/academic-contexts`);
   if (!response.ok) throw apiRequestError(response, undefined);
   return z.array(academicContextSchema).parse(await response.json());
+}
+
+export async function getMyModuleRegistrations(): Promise<StudentModuleRegistration[]> {
+  const response = await authenticatedFetch(`${env.apiBaseUrl}/api/v1/me/module-registrations`);
+  if (!response.ok) throw apiRequestError(response, undefined);
+  return z.array(moduleRegistrationSchema).parse(await response.json());
 }

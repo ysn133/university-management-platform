@@ -16,7 +16,9 @@ import com.platform.universitygovernance.establishment.infrastructure.Establishm
 import com.platform.usermanagement.student.presentation.dto.CreateStudentRequest;
 import com.platform.usermanagement.student.presentation.dto.CreateStudentResponse;
 import com.platform.usermanagement.student.presentation.dto.StudentProfileResponse;
+import com.platform.usermanagement.student.presentation.dto.StudentDirectoryPageResponse;
 import com.platform.usermanagement.student.presentation.dto.UpdateStudentRequest;
+import com.platform.academicregistration.registration.domain.AcademicRegistrationStatus;
 import com.platform.usermanagement.shared.presentation.dto.ResetManagedPasswordRequest;
 import com.platform.shared.presentation.ActionResponse;
 import java.time.LocalDate;
@@ -25,6 +27,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -164,6 +168,55 @@ public class StudentManagementService {
             .sorted(Comparator.comparing(StudentProfileResponse::lastName, String.CASE_INSENSITIVE_ORDER)
                 .thenComparing(StudentProfileResponse::firstName, String.CASE_INSENSITIVE_ORDER))
             .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public StudentDirectoryPageResponse getStudentDirectory(
+        AuthenticatedUserPrincipal principal,
+        UUID establishmentId,
+        String query,
+        AccountStatus status,
+        LocalDate enrolledFrom,
+        LocalDate enrolledTo,
+        UUID academicYearId,
+        UUID programPathId,
+        UUID programFiliereId,
+        UUID academicLevelId,
+        UUID semesterId,
+        AcademicRegistrationStatus registrationStatus,
+        int page,
+        int size
+    ) {
+        requirePermission(principal, establishmentId, PermissionCode.STUDENT_VIEW);
+        findEstablishment(establishmentId);
+        if (page < 0 || size < 1 || size > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Page must be non-negative and size must be between 1 and 100");
+        }
+
+        String normalizedQuery = normalizeQuery(query);
+        Page<Student> result = studentRepository.searchDirectory(
+            establishmentId,
+            normalizedQuery == null ? "" : normalizedQuery,
+            status,
+            enrolledFrom,
+            enrolledTo,
+            academicYearId,
+            programPathId,
+            programFiliereId,
+            academicLevelId,
+            semesterId,
+            registrationStatus,
+            PageRequest.of(page, size)
+        );
+        return new StudentDirectoryPageResponse(
+            result.getContent().stream().map(this::toResponse).toList(),
+            result.getNumber(),
+            result.getSize(),
+            result.getTotalElements(),
+            result.getTotalPages(),
+            result.isFirst(),
+            result.isLast()
+        );
     }
 
     @Transactional(readOnly = true)

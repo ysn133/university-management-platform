@@ -1,5 +1,5 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiRequestError } from "@/shared/api/client/ApiRequestError";
 import {
@@ -15,8 +15,7 @@ import { useEstablishmentScope } from "@/features/establishment-management/conte
 import { getEstablishment, rootGovernanceKeys } from "@/features/root-governance/api/root-governance-api";
 import { StatusBadge } from "@/features/root-governance/components/StatusBadge";
 import {
-  getAcademicRegistrations,
-  getStudents,
+  getStudentDirectory,
   studentRegistrationKeys,
   type AcademicRegistrationFilters,
   type StudentAccountStatus,
@@ -43,24 +42,30 @@ export function StudentDirectoryPage() {
   const [academicLevelId, setAcademicLevelId] = useState("");
   const [semesterId, setSemesterId] = useState("");
   const [registrationStatus, setRegistrationStatus] = useState<AcademicRegistrationFilters["status"] | "">("");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
   const deferredQuery = useDeferredValue(query.trim());
   const identityFilters: StudentDirectoryFilters = {
     ...(deferredQuery ? { query: deferredQuery } : {}),
     ...(status ? { status } : {}),
     ...(enrolledFrom ? { enrolledFrom } : {}),
     ...(enrolledTo ? { enrolledTo } : {}),
-  };
-  const academicFilters: AcademicRegistrationFilters = {
     ...(academicYearId ? { academicYearId } : {}),
+    ...(programPathId ? { programPathId } : {}),
     ...(programFiliereId ? { programFiliereId } : {}),
-    ...(academicLevelId && !semesterId ? { academicLevelId } : {}),
+    ...(academicLevelId ? { academicLevelId } : {}),
     ...(semesterId ? { semesterId } : {}),
-    ...(registrationStatus ? { status: registrationStatus } : {}),
+    ...(registrationStatus ? { registrationStatus } : {}),
+    page,
+    size: pageSize,
   };
-  const hasAcademicFilters = Boolean(academicYearId || programPathId || programFiliereId || academicLevelId || semesterId || registrationStatus);
+
+  useEffect(() => {
+    setPage(0);
+  }, [deferredQuery, status, enrolledFrom, enrolledTo, academicYearId, programPathId, programFiliereId, academicLevelId, semesterId, registrationStatus, pageSize]);
 
   const establishmentQuery = useQuery({ queryKey: rootGovernanceKeys.establishment(establishmentId ?? "missing"), queryFn: () => getEstablishment(establishmentId!), enabled: Boolean(establishmentId) });
-  const studentsQuery = useQuery({ queryKey: studentRegistrationKeys.students(establishmentId ?? "missing", identityFilters), queryFn: () => getStudents(establishmentId!, identityFilters), enabled: Boolean(establishmentId) });
+  const studentsQuery = useQuery({ queryKey: studentRegistrationKeys.students(establishmentId ?? "missing", identityFilters), queryFn: () => getStudentDirectory(establishmentId!, identityFilters), enabled: Boolean(establishmentId) });
   const departmentsQuery = useQuery({ queryKey: academicStructureKeys.departments(establishmentId ?? "missing"), queryFn: () => getDepartments(establishmentId!), enabled: Boolean(establishmentId) });
   const pathsQuery = useQuery({ queryKey: academicStructureKeys.programPaths(establishmentId ?? "missing"), queryFn: () => getProgramPaths(establishmentId!), enabled: Boolean(establishmentId) });
   const yearsQuery = useQuery({ queryKey: academicStructureKeys.academicYears(establishmentId ?? "missing"), queryFn: () => getAcademicYears(establishmentId!), enabled: Boolean(establishmentId) });
@@ -69,18 +74,16 @@ export function StudentDirectoryPage() {
   const availablePrograms = programPathId ? allPrograms.filter((program) => program.programPathId === programPathId) : allPrograms;
   const levelsQuery = useQuery({ queryKey: academicStructureKeys.academicLevels(programFiliereId || "missing"), queryFn: () => getAcademicLevels(programFiliereId), enabled: Boolean(programFiliereId) });
   const semestersQuery = useQuery({ queryKey: academicStructureKeys.semesters(academicLevelId || "missing", academicYearId || "missing"), queryFn: () => getSemesters(academicLevelId, academicYearId), enabled: Boolean(academicLevelId && academicYearId) });
-  const registrationsQuery = useQuery({ queryKey: studentRegistrationKeys.registrations(establishmentId ?? "missing", academicFilters), queryFn: () => getAcademicRegistrations(establishmentId!, academicFilters), enabled: Boolean(establishmentId && hasAcademicFilters) });
 
   if (!establishmentId || !workspacePath) return <div className="management-state management-state--error"><h1>No establishment assigned</h1></div>;
 
-  const pathProgramIds = programPathId ? new Set(availablePrograms.map((program) => program.id)) : null;
-  const academicStudentIds = hasAcademicFilters ? new Set((registrationsQuery.data ?? [])
-    .filter((registration) => !pathProgramIds || pathProgramIds.has(registration.programFiliereId))
-    .map((registration) => registration.studentId)) : null;
-  const students = (studentsQuery.data ?? []).filter((student) => !academicStudentIds || academicStudentIds.has(student.studentId));
-  const academicStructurePending = Boolean(programPathId && (departmentsQuery.isPending || programQueries.some((queryResult) => queryResult.isPending)));
-  const isPending = studentsQuery.isPending || (hasAcademicFilters && (registrationsQuery.isPending || academicStructurePending));
-  const requestError = studentsQuery.error ?? registrationsQuery.error;
+  const students = studentsQuery.data?.content ?? [];
+  const totalStudents = studentsQuery.data?.totalElements ?? 0;
+  const totalPages = studentsQuery.data?.totalPages ?? 0;
+  const firstStudent = totalStudents === 0 ? 0 : page * pageSize + 1;
+  const lastStudent = Math.min((page + 1) * pageSize, totalStudents);
+  const isPending = studentsQuery.isPending;
+  const requestError = studentsQuery.error;
   const establishmentName = establishmentQuery.data?.name ?? "this establishment";
 
   function clearAcademicDependants(scope: "path" | "program" | "level" | "year") {
@@ -117,17 +120,17 @@ export function StudentDirectoryPage() {
     </section>
 
     <section className="management-panel directory-panel">
-      <header className="panel-header panel-header--bordered"><div><h2>Student Directory</h2><p>{students.length} {students.length === 1 ? "Student" : "Students"} found</p></div></header>
+      <header className="panel-header panel-header--bordered"><div><h2>Student Directory</h2><p>{totalStudents} {totalStudents === 1 ? "Student" : "Students"} found</p></div></header>
       {isPending ? <div className="panel-empty">Loading Students...</div>
         : requestError ? <div className="panel-empty panel-empty--error">{errorMessage(requestError)}</div>
         : students.length === 0 ? <div className="panel-empty"><strong>No Student matches this view.</strong><p>Adjust the identity or academic filters.</p></div>
-        : <div className="resource-table-wrapper"><table className="resource-table resource-table--accounts student-directory-table"><thead><tr><th>Student</th><th>Institutional identity</th><th>Initial enrollment</th><th>Status</th><th>Actions</th></tr></thead><tbody>{students.map((student) => <tr className="resource-row--linked" key={student.studentId}>
+        : <><div className="resource-table-wrapper"><table className="resource-table resource-table--accounts student-directory-table"><thead><tr><th>Student</th><th>Institutional identity</th><th>Initial enrollment</th><th>Status</th><th>Actions</th></tr></thead><tbody>{students.map((student) => <tr className="resource-row--linked" key={student.studentId}>
           <td><Link className="resource-name resource-name--link" to={`${workspacePath}/students/${student.studentId}`}><span className="person-monogram">{student.firstName[0]}{student.lastName[0]}</span><div><strong>{student.firstName} {student.lastName}</strong><small>{student.apogeeCode}</small></div></Link></td>
           <td><div className="table-contact"><span>{student.universityEmail}</span><small>{[student.nationalStudentCode, student.cin].filter(Boolean).join(" · ") || "No secondary identifier"}</small></div></td>
           <td><div className="table-contact"><span>{displayDate(student.initialEnrollmentDate)}</span><small>{student.phoneNumber || "No phone number"}</small></div></td>
           <td><StatusBadge status={student.accountStatus} /></td>
           <td><div className="row-actions"><Link className="record-open-link" to={`${workspacePath}/students/${student.studentId}`}>View</Link></div></td>
-        </tr>)}</tbody></table></div>}
+        </tr>)}</tbody></table></div><footer className="directory-pagination"><p>Showing <strong>{firstStudent}-{lastStudent}</strong> of <strong>{totalStudents}</strong></p><div className="directory-pagination-controls"><label><span>Rows</span><select onChange={(event) => setPageSize(Number(event.target.value))} value={pageSize}><option value="25">25</option><option value="50">50</option><option value="100">100</option></select></label><button className="secondary-button secondary-button--compact" disabled={page === 0} onClick={() => setPage((current) => current - 1)} type="button">Previous</button><span>Page {page + 1} of {totalPages}</span><button className="secondary-button secondary-button--compact" disabled={page + 1 >= totalPages} onClick={() => setPage((current) => current + 1)} type="button">Next</button></div></footer></>}
     </section>
   </div>;
 }

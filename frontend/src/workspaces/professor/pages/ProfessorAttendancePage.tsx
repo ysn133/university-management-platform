@@ -3,6 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ApiRequestError } from "@/shared/api/client/ApiRequestError";
 import { getMyTeachingAssignments, teachingPlanKeys, type TeachingAssignment } from "@/features/teaching-planning/api/teaching-plan-api";
+import { ProfessorAbsenceJustificationsPanel } from "../components/ProfessorAbsenceJustificationsPanel";
+
+type AttendanceView = "registers" | "justifications";
 
 type AttendanceModule = {
   subjectModuleId: string;
@@ -20,6 +23,7 @@ function errorMessage(error: unknown): string {
 }
 
 export function ProfessorAttendancePage() {
+  const [activeView, setActiveView] = useState<AttendanceView>("registers");
   const [requestedYearId, setRequestedYearId] = useState("");
   const [requestedTerm, setRequestedTerm] = useState<"AUTUMN" | "SPRING" | "">("");
   const [search, setSearch] = useState("");
@@ -59,12 +63,13 @@ export function ProfessorAttendancePage() {
   const deliveryCount = visibleModules.reduce((total, module) => total + module.deliveries.length, 0);
 
   return <div className="management-page professor-attendance-directory">
-    <header className="management-page-header management-page-header--compact"><div><p className="management-kicker">Teaching operations</p><h1>Attendance</h1><p>Select a module, then open the Class Group whose attendance you want to record.</p></div></header>
+    <header className="management-page-header management-page-header--compact"><div><p className="management-kicker">Teaching operations</p><h1>Attendance</h1><p>Record attendance and review student absence justifications.</p></div></header>
     {assignmentsQuery.error && <div className="management-alert management-alert--error">{errorMessage(assignmentsQuery.error)}</div>}
+    <nav aria-label="Attendance workspace" className="professor-attendance-workspace-tabs" role="tablist"><button aria-selected={activeView === "registers"} onClick={() => setActiveView("registers")} role="tab" type="button">Attendance registers</button><button aria-selected={activeView === "justifications"} onClick={() => setActiveView("justifications")} role="tab" type="button">Justifications</button></nav>
     <section className="management-panel professor-attendance-directory-panel">
-      <header><div><p className="management-kicker">My teaching context</p><h2>Module Attendance</h2><p>{selectedYearLabel} · {selectedTermLabel}</p></div><div className="professor-attendance-directory-summary"><span><strong>{visibleModules.length}</strong> modules</span><span><strong>{deliveryCount}</strong> teaching groups</span></div></header>
-      <div className="professor-attendance-directory-filters"><label><span>Academic year</span><select onChange={(event) => { setRequestedYearId(event.target.value); setRequestedTerm(""); }} value={academicYearId}>{academicYears.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label><label><span>Academic term</span><select onChange={(event) => setRequestedTerm(event.target.value as "AUTUMN" | "SPRING")} value={term}>{terms.map((item) => <option key={item} value={item}>{item === "AUTUMN" ? "Autumn" : "Spring"}</option>)}</select></label><label className="professor-attendance-directory-search"><span>Search</span><input onChange={(event) => setSearch(event.target.value)} placeholder="Module, program, level, or class" value={search} /></label></div>
-      {assignmentsQuery.isPending ? <div className="panel-empty">Loading your modules...</div> : contextAssignments.length === 0 ? <div className="panel-empty"><strong>No teaching assignment is available for this academic period.</strong></div> : visibleModules.length === 0 ? <div className="panel-empty"><strong>{search ? "No module matches your search." : "No attendance register is available in this period."}</strong></div> : <div className="professor-attendance-module-grid">{visibleModules.sort((a, b) => a.title.localeCompare(b.title)).map((module) => <article key={`${module.subjectModuleId}:${module.semester}:${module.academicYear}`}>
+      <header><div><p className="management-kicker">{activeView === "registers" ? "My teaching context" : "Student submissions"}</p><h2>{activeView === "registers" ? "Module Attendance" : "Absence Justifications"}</h2><p>{selectedYearLabel} · {selectedTermLabel}</p></div><div className="professor-attendance-directory-summary">{activeView === "registers" ? <><span><strong>{visibleModules.length}</strong> modules</span><span><strong>{deliveryCount}</strong> teaching groups</span></> : <span><strong>{contextAssignments.length}</strong> teaching scopes</span>}</div></header>
+      <div className="professor-attendance-directory-filters"><label><span>Academic year</span><select onChange={(event) => { setRequestedYearId(event.target.value); setRequestedTerm(""); }} value={academicYearId}>{academicYears.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label><label><span>Academic term</span><select onChange={(event) => setRequestedTerm(event.target.value as "AUTUMN" | "SPRING")} value={term}>{terms.map((item) => <option key={item} value={item}>{item === "AUTUMN" ? "Autumn" : "Spring"}</option>)}</select></label><label className="professor-attendance-directory-search"><span>Search</span><input onChange={(event) => setSearch(event.target.value)} placeholder={activeView === "registers" ? "Module, program, level, or class" : "Student, Apogee, module, or group"} value={search} /></label></div>
+      {activeView === "justifications" ? <ProfessorAbsenceJustificationsPanel assignments={contextAssignments} search={deferredSearch} /> : assignmentsQuery.isPending ? <div className="panel-empty">Loading your modules...</div> : contextAssignments.length === 0 ? <div className="panel-empty"><strong>No teaching assignment is available for this academic period.</strong></div> : visibleModules.length === 0 ? <div className="panel-empty"><strong>{search ? "No module matches your search." : "No attendance register is available in this period."}</strong></div> : <div className="professor-attendance-module-grid">{visibleModules.sort((a, b) => a.title.localeCompare(b.title)).map((module) => <article key={`${module.subjectModuleId}:${module.semester}:${module.academicYear}`}>
         <header><span>{module.code}</span><div><h2>{module.title}</h2><p>{module.program} · {module.level}</p></div><strong>{module.deliveries.length}<small>{module.deliveries.length === 1 ? "group" : "groups"}</small></strong></header>
         <div className="professor-attendance-class-links">{module.deliveries.sort((a, b) => a.teachingGroupName.localeCompare(b.teachingGroupName)).map((delivery) => <Link key={delivery.id} to={`/professor/teaching/${delivery.id}?tab=attendance&from=attendance`}><div><span>{delivery.teachingGroupName}</span><small>{delivery.componentType === "COURSE" ? "Course" : delivery.componentType} · {module.semester}</small></div><strong>Open →</strong></Link>)}</div>
       </article>)}</div>}

@@ -8,7 +8,6 @@ import com.platform.attendance.absencerecord.infrastructure.AbsenceRecordReposit
 import com.platform.attendance.absencerecord.presentation.dto.AbsenceRecordResponse;
 import com.platform.attendance.absencerecord.presentation.dto.CreateAbsenceRequest;
 import com.platform.attendance.absencerecord.presentation.dto.ConfirmAttendanceRequest;
-import com.platform.attendance.absencerecord.presentation.dto.UpdateAbsenceJustificationRequest;
 import com.platform.identityaccess.domain.AccountRoleType;
 import com.platform.identityaccess.application.AdminPermissionAuthorizationService;
 import com.platform.identityaccess.domain.PermissionCode;
@@ -232,24 +231,6 @@ public class AbsenceRecordService {
             .toList();
     }
 
-    @Transactional
-    public AbsenceRecordResponse updateJustification(
-        AuthenticatedUserPrincipal principal,
-        UUID absenceId,
-        UpdateAbsenceJustificationRequest request
-    ) {
-        AbsenceRecord absence = findAbsence(absenceId);
-        findAssignedTeachingAssignment(
-            principal,
-            absence.getTeachingAssignment().getId()
-        );
-        absence.setJustified(request.justified());
-        absence.setJustificationNote(
-            request.justified() ? normalizeNote(request.justificationNote()) : null
-        );
-        return toResponse(absenceRecordRepository.save(absence));
-    }
-
     private TeachingAssignment findAssignedTeachingAssignment(
         AuthenticatedUserPrincipal principal,
         UUID teachingAssignmentId
@@ -278,14 +259,6 @@ public class AbsenceRecordService {
             .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.NOT_FOUND,
                 "Module registration not found"
-            ));
-    }
-
-    private AbsenceRecord findAbsence(UUID absenceId) {
-        return absenceRecordRepository.findById(absenceId)
-            .orElseThrow(() -> new ResponseStatusException(
-                HttpStatus.NOT_FOUND,
-                "Absence not found"
             ));
     }
 
@@ -353,10 +326,6 @@ public class AbsenceRecordService {
         absence.setAbsenceDate(absenceDate);
         absence.setJustified(false);
         return absence;
-    }
-
-    private String normalizeNote(String note) {
-        return note == null || note.isBlank() ? null : note.trim();
     }
 
     private AbsenceRecordResponse toResponse(AbsenceRecord absence) {

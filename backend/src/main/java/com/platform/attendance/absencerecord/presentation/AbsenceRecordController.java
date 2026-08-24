@@ -4,7 +4,6 @@ import com.platform.attendance.absencerecord.application.AbsenceRecordService;
 import com.platform.attendance.absencerecord.presentation.dto.AbsenceRecordResponse;
 import com.platform.attendance.absencerecord.presentation.dto.CreateAbsenceRequest;
 import com.platform.attendance.absencerecord.presentation.dto.ConfirmAttendanceRequest;
-import com.platform.attendance.absencerecord.presentation.dto.UpdateAbsenceJustificationRequest;
 import com.platform.platform.infrastructure.security.AuthenticatedUserPrincipal;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -98,16 +97,6 @@ public class AbsenceRecordController {
             subjectModuleId,
             justified
         );
-    }
-
-    @PutMapping("/absences/{absenceId}/justification")
-    @PreAuthorize("hasRole('PROFESSOR')")
-    public AbsenceRecordResponse updateJustification(
-        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
-        @PathVariable UUID absenceId,
-        @Valid @RequestBody UpdateAbsenceJustificationRequest request
-    ) {
-        return absenceRecordService.updateJustification(principal, absenceId, request);
     }
 
 }

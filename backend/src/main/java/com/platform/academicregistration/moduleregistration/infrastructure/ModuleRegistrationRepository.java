@@ -20,6 +20,16 @@ public interface ModuleRegistrationRepository extends JpaRepository<ModuleRegist
     );
 
     @Query("""
+        select registration
+        from ModuleRegistration registration
+        where registration.semesterRegistration.academicRegistration.student.id = :studentId
+        order by registration.semesterRegistration.academicRegistration.academicYear.startYear desc,
+                 registration.semesterRegistration.semester.semesterOrder asc,
+                 registration.subjectModule.code asc
+        """)
+    List<ModuleRegistration> findStudentModuleRegistrations(@Param("studentId") UUID studentId);
+
+    @Query("""
         select registration from ModuleRegistration registration
         where registration.semesterRegistration.academicRegistration.student.id = :studentId
           and lower(registration.subjectModule.code) = lower(:subjectModuleCode)

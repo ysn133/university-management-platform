@@ -145,6 +145,43 @@ class StudentManagementServiceIntegrationTest {
         assertThat(studentManagementService.getStudents(root, firstEstablishment.getId()))
             .extracting(StudentProfileResponse::studentId)
             .containsExactly(student.getId());
+        var directory = studentManagementService.getStudentDirectory(
+            root,
+            firstEstablishment.getId(),
+            "yassine",
+            AccountStatus.ACTIVE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            0,
+            25
+        );
+        assertThat(directory.content())
+            .extracting(StudentProfileResponse::studentId)
+            .containsExactly(student.getId());
+        assertThat(directory.totalElements()).isEqualTo(1);
+        assertThat(directory.totalPages()).isEqualTo(1);
+        assertThat(studentManagementService.getStudentDirectory(
+            root,
+            firstEstablishment.getId(),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            0,
+            25
+        ).totalElements()).isEqualTo(1);
 
         assertThatThrownBy(() -> studentManagementService.createStudent(
             root,

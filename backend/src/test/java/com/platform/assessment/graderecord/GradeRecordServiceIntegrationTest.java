@@ -34,7 +34,6 @@ import com.platform.attendance.absencerecord.application.AbsenceRecordService;
 import com.platform.attendance.absencerecord.infrastructure.AbsenceRecordRepository;
 import com.platform.attendance.absencerecord.presentation.dto.ConfirmAttendanceRequest;
 import com.platform.attendance.absencerecord.presentation.dto.CreateAbsenceRequest;
-import com.platform.attendance.absencerecord.presentation.dto.UpdateAbsenceJustificationRequest;
 import com.platform.attendance.qrcheckin.application.AttendanceQrSessionService;
 import com.platform.attendance.qrcheckin.domain.AttendanceQrSession;
 import com.platform.attendance.qrcheckin.infrastructure.AttendanceQrSessionStore;
@@ -716,11 +715,10 @@ class GradeRecordServiceIntegrationTest {
             assertThat(candidate.roomCode()).isEqualTo("Room A");
         });
 
-        absenceRecordService.updateJustification(
-            professorPrincipal,
-            firstAbsence.id(),
-            new UpdateAbsenceJustificationRequest(true, "Medical certificate")
-        );
+        var acceptedAbsence = absenceRecordRepository.findById(firstAbsence.id()).orElseThrow();
+        acceptedAbsence.setJustified(true);
+        acceptedAbsence.setJustificationNote("Medical certificate");
+        absenceRecordRepository.save(acceptedAbsence);
         assertThat(examCandidateService.generateCandidates(root, moduleExam.id()))
             .extracting(ExamCandidateResponse::moduleRegistrationId)
             .containsExactlyInAnyOrder(

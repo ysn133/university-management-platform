@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { changeStudentStatus, createAcademicRegistration, createStudent, getAcademicRegistrations, getRegistrationStudyContext, getStudents } from "./student-registration-api";
+import { changeStudentStatus, createAcademicRegistration, createStudent, getAcademicRegistrations, getRegistrationStudyContext, getStudentDirectory, getStudents } from "./student-registration-api";
 
 const establishmentId = "00000000-0000-4000-8000-000000000101";
 const studentId = "00000000-0000-4000-8000-000000000102";
@@ -31,6 +31,48 @@ describe("student registration API", () => {
     expect((fetchMock.mock.calls[0][0] as Request).url).toContain("query=Sara");
     expect((fetchMock.mock.calls[0][0] as Request).url).toContain("status=ACTIVE");
     expect((fetchMock.mock.calls[0][0] as Request).url).toContain("enrolledFrom=2025-09-01");
+  });
+
+  it("loads one filtered Student directory page", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      content: [{
+        studentId,
+        userAccountId: "00000000-0000-4000-8000-000000000103",
+        establishmentId,
+        apogeeCode: "220001",
+        initialEnrollmentDate: "2026-09-01",
+        universityEmail: "student@uiz.ac.ma",
+        roleType: "STUDENT",
+        accountStatus: "ACTIVE",
+        firstName: "Sara",
+        lastName: "Amrani",
+        birthDate: "2004-03-12",
+        placeOfBirth: "Agadir",
+        nationality: "Moroccan",
+        sex: "FEMALE",
+      }],
+      page: 1,
+      size: 25,
+      totalElements: 31,
+      totalPages: 2,
+      first: false,
+      last: true,
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getStudentDirectory(establishmentId, {
+      query: "Sara",
+      academicYearId: "00000000-0000-4000-8000-000000000106",
+      page: 1,
+      size: 25,
+    });
+
+    expect(result.content).toHaveLength(1);
+    expect(result.totalElements).toBe(31);
+    const requestUrl = (fetchMock.mock.calls[0][0] as Request).url;
+    expect(requestUrl).toContain("query=Sara");
+    expect(requestUrl).toContain("page=1");
+    expect(requestUrl).toContain("size=25");
   });
 
   it("creates a Student account", async () => {
