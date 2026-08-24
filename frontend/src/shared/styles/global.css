@@ -1153,38 +1153,158 @@ h3 {
 }
 
 .account-menu {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+  position: relative;
   letter-spacing: normal;
   text-transform: none;
 }
 
-.account-menu div {
-  display: grid;
-  text-align: right;
-}
-
-.account-menu strong {
-  color: var(--ink);
-  font-size: 0.78rem;
-}
-
-.account-menu small {
-  color: var(--muted);
-  font-size: 0.62rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.account-menu a,
-.account-menu button {
-  padding: 0.45rem 0.7rem;
-  border: 1px solid var(--line);
+.account-menu-trigger {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 0.45rem;
+  border: 0;
+  border-radius: 0.7rem;
   background: transparent;
-  color: var(--navy-soft);
   cursor: pointer;
+  color: inherit;
+  text-align: left;
+  transition: background 150ms ease;
+}
+
+.account-menu-trigger:hover,
+.account-menu-trigger[aria-expanded="true"] {
+  background: rgba(23, 105, 170, 0.07);
+}
+
+.account-menu-trigger__identity {
+  display: grid;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.account-menu-trigger__identity strong {
+  overflow: hidden;
+  color: var(--ink);
   font-size: 0.72rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-menu-trigger__identity small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.56rem;
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.account-menu-chevron {
+  width: 1rem;
+  height: 1rem;
+  color: var(--muted);
+  transition: transform 150ms ease;
+}
+
+.account-menu-trigger[aria-expanded="true"] .account-menu-chevron {
+  transform: rotate(180deg);
+}
+
+.account-menu-popover {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 0.6rem);
+  right: 0;
+  width: min(19rem, calc(100vw - 2rem));
+  overflow: hidden;
+  border: 1px solid var(--management-line, var(--line));
+  border-radius: 0.85rem;
+  background: #fff;
+  box-shadow: 0 18px 45px rgba(28, 62, 85, 0.16);
+  animation: account-menu-enter 130ms ease both;
+}
+
+.account-menu-popover > header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--management-line, var(--line));
+  background: #f7fafc;
+}
+
+.account-menu-popover > header > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 0.12rem;
+}
+
+.account-menu-popover > header strong,
+.account-menu-popover > header small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-menu-popover > header strong {
+  color: var(--management-ink, var(--ink));
+  font-size: 0.75rem;
+}
+
+.account-menu-popover > header small {
+  color: var(--management-muted, var(--muted));
+  font-size: 0.63rem;
+}
+
+.account-menu-popover__avatar {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--management-blue, var(--navy));
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.account-menu-popover > a,
+.account-menu-popover > button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.78rem 1rem;
+  border: 0;
+  border-bottom: 1px solid var(--management-line, var(--line));
+  border-radius: 0;
+  background: #fff;
+  color: var(--management-ink, var(--navy-soft));
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.account-menu-popover > button:last-child {
+  border-bottom: 0;
+  color: #a23f47;
+}
+
+.account-menu-popover > a:hover,
+.account-menu-popover > button:hover {
+  background: #f5f9fc;
+}
+
+.account-menu-popover svg {
+  width: 1.05rem;
+  height: 1.05rem;
 }
 
 .workspace-content {
@@ -1598,56 +1718,6 @@ h3 {
   letter-spacing: 0.04em;
 }
 
-.account-page h1 {
-  margin-bottom: 0.6rem;
-  color: var(--navy);
-  font-size: clamp(2.7rem, 5vw, 4.5rem);
-}
-
-.account-page > p:not(.eyebrow) {
-  margin-bottom: 2.5rem;
-  color: var(--muted);
-  line-height: 1.7;
-}
-
-.account-form {
-  display: grid;
-}
-
-.account-form label {
-  margin: 1.1rem 0 0.45rem;
-  color: var(--navy-soft);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.account-form input {
-  width: 100%;
-  padding: 0.9rem 0;
-  border: 0;
-  border-bottom: 1px solid rgba(16, 45, 53, 0.28);
-  outline: none;
-  background: transparent;
-  color: var(--ink);
-  transition: border-color 160ms ease;
-}
-
-.account-form input:focus {
-  border-color: var(--gold);
-}
-
-.account-page {
-  max-width: 42rem;
-}
-
-.account-form {
-  padding: 2rem;
-  border: 1px solid var(--line);
-  background: rgba(247, 244, 235, 0.72);
-  box-shadow: var(--shadow);
-}
-
 /* Management workspace */
 .workspace-shell--management {
   --management-blue: #1769aa;
@@ -1895,7 +1965,10 @@ h3 {
 }
 
 .workspace-shell--management .workspace-topbar {
+  position: relative;
+  z-index: 100;
   height: 4.4rem;
+  overflow: visible;
   padding: 0 clamp(1.5rem, 4vw, 3.5rem);
   border-color: var(--management-line);
   background: rgba(255, 255, 255, 0.88);
@@ -1965,13 +2038,7 @@ h3 {
   color: var(--management-muted);
 }
 
-.workspace-shell--management .account-menu a,
-.workspace-shell--management .account-menu button {
-  border-color: var(--management-line);
-  border-radius: 0.5rem;
-  background: #fff;
-  color: var(--management-blue-dark);
-}
+.workspace-shell--management .account-menu-popover > button:last-child { color: #a23f47; }
 
 .workspace-shell--management .account-menu a:hover,
 .workspace-shell--management .account-menu button:hover {
@@ -7376,6 +7443,212 @@ a.workspace-module-card:hover {
   color: var(--management-blue, var(--navy-soft));
   font-family: "Newsreader Variable", serif;
   font-size: 0.85rem;
+}
+
+/* Shared account workspace */
+.account-page {
+  display: grid;
+  width: min(100%, 68rem);
+  gap: 1.25rem;
+  margin: 0 auto;
+  animation: management-page-enter 260ms ease both;
+}
+
+.account-page__title {
+  padding-bottom: 1.15rem;
+  border-bottom: 1px solid var(--management-line, var(--line));
+}
+
+.account-page__title h1 {
+  margin: 0.2rem 0 0;
+  color: var(--management-ink, var(--navy));
+  font-family: var(--management-heading-font, "Newsreader Variable", serif);
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.05;
+}
+
+.account-profile-card,
+.account-security-card {
+  border: 1px solid var(--management-line, var(--line));
+  border-radius: 0.9rem;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(35, 75, 105, 0.05);
+}
+
+.account-profile-card {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1.3rem 1.4rem;
+}
+
+.account-profile-card__identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 1rem;
+}
+
+.account-profile-card__avatar {
+  display: grid;
+  width: 3.8rem;
+  height: 3.8rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8f2f9;
+  color: var(--management-blue-dark, var(--navy));
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.account-profile-card__identity h2 {
+  margin: 0;
+  color: var(--management-ink, var(--ink));
+  font-family: var(--management-heading-font, "Newsreader Variable", serif);
+  font-size: 1.65rem;
+  line-height: 1.1;
+}
+
+.account-profile-card__identity p {
+  overflow: hidden;
+  margin: 0.25rem 0 0;
+  color: var(--management-muted, var(--muted));
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-profile-card__facts {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2rem;
+  margin: 0;
+}
+
+.account-profile-card__facts > div {
+  display: grid;
+  min-width: 8rem;
+  gap: 0.3rem;
+}
+
+.account-profile-card__facts dt {
+  color: var(--management-muted, var(--muted));
+  font-size: 0.56rem;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.account-profile-card__facts dd {
+  margin: 0;
+  color: var(--management-ink, var(--ink));
+  font-size: 0.68rem;
+  font-weight: 750;
+  text-transform: capitalize;
+}
+
+.account-profile-status {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #277052 !important;
+}
+
+.account-profile-status > span {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: #2f8a62;
+}
+
+.account-security-card {
+  display: grid;
+  overflow: hidden;
+  grid-template-columns: minmax(14rem, 0.65fr) minmax(0, 1.35fr);
+}
+
+.account-security-card > header {
+  padding: 1.6rem;
+  border-right: 1px solid var(--management-line, var(--line));
+  background: #f7fafc;
+}
+
+.account-security-card > header h2 {
+  margin: 0.25rem 0 0.65rem;
+  color: var(--management-ink, var(--ink));
+  font-family: var(--management-heading-font, "Newsreader Variable", serif);
+  font-size: 1.55rem;
+}
+
+.account-security-card > header > p:last-child {
+  max-width: 19rem;
+  margin: 0;
+  color: var(--management-muted, var(--muted));
+  font-size: 0.68rem;
+  line-height: 1.65;
+}
+
+.account-password-form {
+  display: grid;
+  gap: 1.1rem;
+  padding: 1.6rem;
+}
+
+.account-password-form__new {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--management-line, var(--line));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.account-password-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.2rem;
+}
+
+@media (max-width: 800px) {
+  .account-profile-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .account-profile-card__facts {
+    width: 100%;
+    padding-top: 1rem;
+    border-top: 1px solid var(--management-line, var(--line));
+  }
+
+  .account-profile-card__facts > div { flex: 1; }
+
+  .account-security-card { grid-template-columns: 1fr; }
+  .account-security-card > header {
+    border-right: 0;
+    border-bottom: 1px solid var(--management-line, var(--line));
+  }
+  .account-security-card > header > p:last-child { max-width: 34rem; }
+}
+
+@media (max-width: 560px) {
+  .account-page { gap: 0.9rem; }
+  .account-page__title h1 { font-size: 2rem; }
+  .account-profile-card { gap: 1rem; padding: 1rem; }
+  .account-profile-card__avatar { width: 3.15rem; height: 3.15rem; }
+  .account-profile-card__identity h2 { font-size: 1.35rem; }
+  .account-profile-card__facts { gap: 1rem; }
+  .account-profile-card__facts > div { min-width: 0; }
+  .account-security-card > header,
+  .account-password-form { padding: 1rem; }
+  .account-password-form__new { grid-template-columns: 1fr; }
+  .account-password-form__actions button { width: 100%; }
+}
+
+@keyframes account-menu-enter {
+  from { opacity: 0; transform: translateY(-4px); }
 }
 
 @keyframes management-page-enter {
@@ -13235,26 +13508,36 @@ a.final-result-student-link:hover > strong { color: var(--management-blue); }
   border-bottom: 1px solid var(--management-line);
   background: #fbfdfe;
 }
-.student-grades-toolbar .professor-grade-view-tabs {
+.student-workspace-tabs {
+  display: flex;
   gap: 0.25rem;
+  width: fit-content;
+  max-width: 100%;
   padding: 0.25rem;
   border: 1px solid #d6e3ec;
   border-radius: 0.65rem;
-  background: #f1f6f9;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(35, 75, 105, 0.04);
 }
-.student-grades-toolbar .professor-grade-view-tabs button {
-  min-width: 6rem;
+
+.student-workspace-tabs button {
+  min-height: 2.35rem;
   padding: 0.55rem 0.85rem;
   border: 0;
   border-radius: 0.45rem;
+  background: transparent;
   color: #60798c;
+  cursor: pointer;
   font-size: 0.66rem;
+  font-weight: 740;
+  white-space: nowrap;
 }
-.student-grades-toolbar .professor-grade-view-tabs button[aria-selected="true"] {
+
+.student-workspace-tabs button[aria-selected="true"] {
   border: 0;
-  background: #fff;
-  color: #176fa8;
-  box-shadow: 0 3px 10px rgba(33, 83, 117, 0.1);
+  background: var(--management-blue-dark);
+  color: #fff;
+  box-shadow: 0 5px 14px rgba(15, 78, 127, 0.18);
 }
 
 .student-grades-selectors {
@@ -13414,8 +13697,8 @@ a.final-result-student-link:hover > strong { color: var(--management-blue); }
 
 @media (max-width: 860px) {
   .student-grades-toolbar { align-items: stretch; flex-direction: column; gap: 0.75rem; }
-  .student-grades-toolbar .professor-grade-view-tabs { width: 100%; }
-  .student-grades-toolbar .professor-grade-view-tabs button { flex: 1; min-width: 0; }
+  .student-grades-toolbar .student-workspace-tabs { width: 100%; }
+  .student-grades-toolbar .student-workspace-tabs button { flex: 1; min-width: 0; }
   .student-grades-toolbar__context { align-items: stretch; flex-direction: column; width: 100%; }
   .student-grades-selectors { width: 100%; }
   .student-grades-selectors label { flex: 1; }
@@ -13575,10 +13858,9 @@ a.final-result-student-link:hover > strong { color: var(--management-blue); }
     min-height: 3.8rem;
     padding: 0 0.85rem;
   }
-  .workspace-shell--management .account-menu { gap: 0.4rem; }
-  .workspace-shell--management .account-menu > div { display: none; }
-  .workspace-shell--management .account-menu a,
-  .workspace-shell--management .account-menu button { padding: 0.45rem 0.55rem; font-size: 0.6rem; }
+  .account-menu-trigger__identity { display: none; }
+  .account-menu-chevron { display: none; }
+  .account-menu-trigger { padding: 0.3rem; }
   .workspace-breadcrumbs { font-size: 0.62rem; }
   .workspace-breadcrumbs span:not(:last-child) { display: none; }
   .workspace-breadcrumbs span:last-child i { display: none; }
@@ -13611,15 +13893,14 @@ a.final-result-student-link:hover > strong { color: var(--management-blue); }
 
   .student-grades-panel { border-radius: 0.75rem; }
   .student-grades-toolbar { padding: 0.75rem; }
-  .student-grades-toolbar .professor-grade-view-tabs { overflow-x: auto; }
-  .student-grades-toolbar .professor-grade-view-tabs button { flex: 0 0 auto; min-width: 6rem; }
+  .student-workspace-tabs { overflow-x: auto; scrollbar-width: none; }
+  .student-workspace-tabs::-webkit-scrollbar { display: none; }
+  .student-grades-toolbar .student-workspace-tabs button { flex: 0 0 auto; min-width: 6rem; }
   .student-grades-context { padding: 1rem; }
   .student-grades-context__summary { padding-left: 0.75rem; }
 }
 
 @media (max-width: 430px) {
-  .workspace-shell--management .account-avatar { display: none; }
-  .workspace-shell--management .account-menu a { display: none; }
   .student-dashboard-stats { grid-template-columns: 1fr; }
   .student-context-details { grid-template-columns: 1fr; }
   .student-context-details > div { border-right: 0; }

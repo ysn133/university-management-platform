@@ -103,7 +103,7 @@ export function StudentSchedulePage() {
       <div><p className="management-kicker">Academic timetable</p><h1>My Schedule</h1><p>Your published classes for the selected academic period.</p></div>
       <div className="professor-schedule-period"><span>Current view</span><strong>{selectedYear?.label ?? "Academic year"}</strong><small>{selectedSemester?.name ?? "Semester"}</small></div>
     </header>
-    <nav aria-label="Schedule views" className="curriculum-section-tabs student-schedule-tabs" role="tablist"><button aria-selected={activeTab === "classes"} onClick={() => setActiveTab("classes")} role="tab" type="button">Class Schedule</button><button aria-selected={activeTab === "exams"} onClick={() => setActiveTab("exams")} role="tab" type="button">Exam Schedule</button></nav>
+    <nav aria-label="Schedule views" className="student-workspace-tabs" role="tablist"><button aria-selected={activeTab === "classes"} onClick={() => setActiveTab("classes")} role="tab" type="button">Class Schedule</button><button aria-selected={activeTab === "exams"} onClick={() => setActiveTab("exams")} role="tab" type="button">Exam Schedule</button></nav>
     <section className="management-panel professor-schedule-panel">
       <header className="panel-header panel-header--bordered professor-schedule-panel-header">
         <div><p className="management-kicker">Published planning</p><h2>{activeTab === "classes" ? "Weekly Schedule" : selectedExamSession === "RATTRAPAGE" ? "Rattrapage Session" : "Normal Session"}</h2><p>{activeTab === "classes" ? "Course, TD, and TP sessions assigned to your groups." : "Your generated examination invitations and assigned rooms."}</p></div>

@@ -14,7 +14,7 @@ export function ProfessorLayout() {
 
   return (
     <WorkspaceLayout
-      accountPath="/professor/account/password"
+      accountPath="/professor/account"
       breadcrumbs={[{ label: "Professor Workspace" }]}
       context={{
         name: user ? `${user.firstName} ${user.lastName}` : "Professor Workspace",

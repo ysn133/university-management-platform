@@ -7,7 +7,7 @@ export function StudentLayout() {
 
   return (
     <WorkspaceLayout
-      accountPath="/student/account/password"
+      accountPath="/student/account"
       breadcrumbs={[{ label: "Student Workspace" }]}
       context={{
         name: user ? `${user.firstName} ${user.lastName}` : "Student Workspace",

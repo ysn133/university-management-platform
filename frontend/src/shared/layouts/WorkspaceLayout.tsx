@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { getWorkspacePath } from "@/features/auth/model/auth-types";
 
 export interface WorkspaceNavigationItem {
   label: string;
@@ -33,6 +32,82 @@ interface WorkspaceLayoutProps {
   context?: WorkspaceContext;
   showGlobalRail?: boolean;
   accountPath?: string;
+}
+
+function AccountMenu({ accountPath }: { accountPath: string }) {
+  const { user, logout } = useAuth();
+  const [isOpen, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isOpen]);
+
+  if (!user) return null;
+
+  const initials = `${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`;
+  const roleLabel = user.role.replaceAll("_", " ");
+
+  return (
+    <div className="account-menu" ref={menuRef}>
+      <button
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        aria-label="Open account menu"
+        className="account-menu-trigger"
+        onClick={() => setOpen((current) => !current)}
+        type="button"
+      >
+        <span className="account-avatar">{initials}</span>
+        <span className="account-menu-trigger__identity">
+          <strong>{user.firstName} {user.lastName}</strong>
+          <small>{roleLabel}</small>
+        </span>
+        <svg aria-hidden="true" className="account-menu-chevron" fill="none" viewBox="0 0 20 20">
+          <path d="m6 8 4 4 4-4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="account-menu-popover" role="menu">
+          <header>
+            <span className="account-menu-popover__avatar">{initials}</span>
+            <span>
+              <strong>{user.firstName} {user.lastName}</strong>
+              <small>{user.universityEmail}</small>
+            </span>
+          </header>
+          <Link onClick={() => setOpen(false)} role="menuitem" to={accountPath}>
+            <svg aria-hidden="true" fill="none" viewBox="0 0 20 20">
+              <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M4.5 16c.5-3 2.3-4.5 5.5-4.5s5 1.5 5.5 4.5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" />
+            </svg>
+            Account settings
+          </Link>
+          <button onClick={() => void logout()} role="menuitem" type="button">
+            <svg aria-hidden="true" fill="none" viewBox="0 0 20 20">
+              <path d="M8 4H4.5v12H8M12 6l4 4-4 4M6 10h10" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+            </svg>
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function NavigationIcon({ icon }: { icon?: WorkspaceNavigationItem["icon"] }) {
@@ -69,9 +144,9 @@ export function WorkspaceLayout({
   breadcrumbs = [],
   context,
   showGlobalRail = true,
-  accountPath = "/management/account/password",
+  accountPath = "/management/account",
 }: WorkspaceLayoutProps) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
 
   useEffect(() => {
@@ -99,7 +174,7 @@ export function WorkspaceLayout({
             <Link className="global-rail-link" to="/management" title="University home"><NavigationIcon icon="overview" /><span>Home</span></Link>
             {user?.role === "ROOT_SUPER_ADMIN" && <Link className="global-rail-link" to="/management/establishments" title="Establishments"><NavigationIcon icon="establishments" /><span>Structure</span></Link>}
           </nav>
-          <Link className="global-rail-link global-rail-link--bottom" to="/management/account/password" title="Account security"><NavigationIcon icon="information" /><span>Account</span></Link>
+          <Link className="global-rail-link global-rail-link--bottom" to={accountPath} title="Account settings"><NavigationIcon icon="information" /><span>Account</span></Link>
         </aside>}
 
         <button
@@ -160,7 +235,7 @@ export function WorkspaceLayout({
                 </span>
               )) : <strong>University Management</strong>}
             </nav>
-            {user && <div className="account-menu"><span className="account-avatar">{user.firstName[0]}{user.lastName[0]}</span><div><strong>{user.firstName} {user.lastName}</strong><small>{user.role.replaceAll("_", " ")}</small></div><Link to={accountPath}>Security</Link><button onClick={() => void logout()} type="button">Sign out</button></div>}
+            <AccountMenu accountPath={accountPath} />
           </header>
           <main className="workspace-content"><Outlet /></main>
         </div>
@@ -203,16 +278,7 @@ export function WorkspaceLayout({
       <div className="workspace-main">
         <header className="workspace-topbar">
           <span>University Management Platform</span>
-          {user && (
-            <div className="account-menu">
-              <div>
-                <strong>{user.firstName} {user.lastName}</strong>
-                <small>{user.role.replaceAll("_", " ")}</small>
-              </div>
-              <Link to={`${getWorkspacePath(user.role)}/account/password`}>Security</Link>
-              <button onClick={() => void logout()} type="button">Sign out</button>
-            </div>
-          )}
+          <AccountMenu accountPath={accountPath} />
         </header>
         <main className="workspace-content">
           <Outlet />

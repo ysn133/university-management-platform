@@ -108,6 +108,7 @@ export const managementRoutes: RouteObject = {
         { path: "professors/:professorId", element: <ProfessorDetailsPage /> },
       ],
     },
+    { path: "account", element: <ChangePasswordPage /> },
     { path: "account/password", element: <ChangePasswordPage /> },
   ],
 };

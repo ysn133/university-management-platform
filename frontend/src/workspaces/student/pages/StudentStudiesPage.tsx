@@ -59,7 +59,7 @@ export function StudentStudiesPage() {
 
     <section className="management-panel student-studies-panel">
       <div className="student-studies-toolbar">
-        <div className="professor-grade-view-tabs" role="tablist">
+        <div className="student-workspace-tabs" role="tablist">
           {yearContexts.map((context) => <button aria-selected={semesterId === context.semesterId} key={context.semesterRegistrationId} onClick={() => setSemesterId(context.semesterId)} role="tab" type="button">{context.semesterName}</button>)}
         </div>
         <label className="student-studies-year"><span>Academic year</span><select disabled={contextsQuery.isPending || !years.length} onChange={(event) => { setAcademicYearId(event.target.value); setSemesterId(""); }} value={academicYearId}>{years.map((year) => <option key={year.id} value={year.id}>{year.label}</option>)}</select></label>

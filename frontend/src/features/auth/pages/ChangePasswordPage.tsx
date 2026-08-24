@@ -72,43 +72,45 @@ export function ChangePasswordPage() {
   }
 
   return (
-    <section className="security-page">
-      <header className="security-page-header">
-        <div>
-          <p className="management-kicker">Account control</p>
-          <h1>Security &amp; password</h1>
-          <p>Manage the password used to access your university account.</p>
-        </div>
-        <span className="security-state"><span /> Protected account</span>
+    <section className="account-page">
+      <header className="account-page__title">
+        <p className="management-kicker">Account</p>
+        <h1>Profile and security</h1>
       </header>
 
-      <div className="security-layout">
-        <article className="security-card security-card--form">
-          <header className="security-card-header">
-            <span className="security-icon" aria-hidden="true">
-              <svg fill="none" viewBox="0 0 24 24">
-                <rect height="10" rx="2" stroke="currentColor" strokeWidth="1.8" width="14" x="5" y="10" />
-                <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
-                <path d="M12 14v2" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
-              </svg>
-            </span>
-            <div>
-              <h2>Change your password</h2>
-              <p>Confirm your current password before choosing a new one.</p>
-            </div>
-          </header>
+      <article className="account-profile-card">
+        <div className="account-profile-card__identity">
+          <span className="account-profile-card__avatar">{user?.firstName.slice(0, 1)}{user?.lastName.slice(0, 1)}</span>
+          <div>
+            <h2>{user?.firstName} {user?.lastName}</h2>
+            <p>{user?.universityEmail}</p>
+          </div>
+        </div>
+        <dl className="account-profile-card__facts">
+          <div><dt>Role</dt><dd>{user?.role.replaceAll("_", " ")}</dd></div>
+          <div><dt>Status</dt><dd className="account-profile-status"><span /> {user?.accountStatus}</dd></div>
+        </dl>
+      </article>
 
-          <form className="security-form" noValidate onSubmit={handleSubmit(submit)}>
-            <PasswordField
-              autoComplete="current-password"
-              error={errors.currentPassword?.message}
-              id="current-password"
-              label="Current password"
-              {...register("currentPassword")}
-            />
+      <article className="account-security-card">
+        <header>
+          <div>
+            <p className="management-kicker">Security</p>
+            <h2>Change password</h2>
+          </div>
+          <p>Use at least 8 characters. Your university email can only be changed by authorized administration.</p>
+        </header>
 
-            <div className="security-form-divider"><span>New credentials</span></div>
+        <form className="account-password-form" noValidate onSubmit={handleSubmit(submit)}>
+          <PasswordField
+            autoComplete="current-password"
+            error={errors.currentPassword?.message}
+            id="current-password"
+            label="Current password"
+            {...register("currentPassword")}
+          />
 
+          <div className="account-password-form__new">
             <PasswordField
               autoComplete="new-password"
               error={errors.newPassword?.message}
@@ -123,50 +125,22 @@ export function ChangePasswordPage() {
               label="Confirm new password"
               {...register("confirmPassword")}
             />
+          </div>
 
-            {message && (
-              <div className={`security-alert security-alert--${message.type}`} role="status">
-                <strong>{message.type === "success" ? "Password updated" : "Update failed"}</strong>
-                <span>{message.text}</span>
-              </div>
-            )}
-
-            <footer className="security-form-actions">
-              <p>You will use the new password the next time you sign in.</p>
-              <button className="management-primary-button" disabled={isSubmitting} type="submit">
-                {isSubmitting ? "Updating..." : "Update password"}
-              </button>
-            </footer>
-          </form>
-        </article>
-
-        <aside className="security-aside">
-          <article className="security-card security-account-card">
-            <p className="management-kicker">Signed-in account</p>
-            <div className="security-account-identity">
-              <span>{user?.firstName.slice(0, 1)}{user?.lastName.slice(0, 1)}</span>
-              <div>
-                <strong>{user?.firstName} {user?.lastName}</strong>
-                <small>{user?.role.replaceAll("_", " ")}</small>
-              </div>
+          {message && (
+            <div className={`security-alert security-alert--${message.type}`} role="status">
+              <strong>{message.type === "success" ? "Password updated" : "Update failed"}</strong>
+              <span>{message.text}</span>
             </div>
-            <dl>
-              <div><dt>University email</dt><dd>{user?.universityEmail}</dd></div>
-              <div><dt>Account status</dt><dd className="account-active"><span /> {user?.accountStatus}</dd></div>
-            </dl>
-            <p className="security-account-note">Your university email is managed by authorized administration and cannot be changed here.</p>
-          </article>
+          )}
 
-          <article className="security-card security-guidance-card">
-            <h2>Password guidance</h2>
-            <ul>
-              <li><span>01</span> Use at least 8 characters.</li>
-              <li><span>02</span> Do not reuse a password from another service.</li>
-              <li><span>03</span> Keep your password private.</li>
-            </ul>
-          </article>
-        </aside>
-      </div>
+          <footer className="account-password-form__actions">
+            <button className="management-primary-button" disabled={isSubmitting} type="submit">
+              {isSubmitting ? "Updating..." : "Update password"}
+            </button>
+          </footer>
+        </form>
+      </article>
     </section>
   );
 }

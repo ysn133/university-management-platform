@@ -28,6 +28,7 @@ export const professorRoutes: RouteObject = {
     { path: "grades", element: <ProfessorGradesPage /> },
     { path: "grades/modules/:subjectModuleId/classes/:classGroupId", element: <ProfessorGradeDetailsPage /> },
     { path: "attendance", element: <ProfessorAttendancePage /> },
+    { path: "account", element: <ChangePasswordPage /> },
     { path: "account/password", element: <ChangePasswordPage /> },
   ],
 };

@@ -18,6 +18,7 @@ export const studentRoutes: RouteObject = {
     { path: "grades", element: <StudentGradesPage /> },
     { path: "attendance", element: <StudentAttendancePage /> },
     { path: "attendance/check-in", element: <StudentAttendanceCheckInPage /> },
+    { path: "account", element: <ChangePasswordPage /> },
     { path: "account/password", element: <ChangePasswordPage /> },
   ],
 };
