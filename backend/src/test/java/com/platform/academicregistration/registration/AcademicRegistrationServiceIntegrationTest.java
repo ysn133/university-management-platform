@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.platform.academicregistration.registration.application.AcademicRegistrationService;
+import com.platform.academicregistration.registration.application.StudentAcademicContextService;
 import com.platform.academicregistration.registration.domain.AcademicRegistrationStatus;
 import com.platform.academicregistration.registration.infrastructure.AcademicRegistrationRepository;
 import com.platform.academicregistration.registration.presentation.dto.AcademicRegistrationResponse;
@@ -65,6 +66,9 @@ class AcademicRegistrationServiceIntegrationTest {
 
     @Autowired
     private AcademicRegistrationService academicRegistrationService;
+
+    @Autowired
+    private StudentAcademicContextService studentAcademicContextService;
 
     @Autowired
     private AcademicRegistrationRepository academicRegistrationRepository;
@@ -230,6 +234,32 @@ class AcademicRegistrationServiceIntegrationTest {
                 new UpdateAcademicRegistrationRequest(AcademicRegistrationStatus.SUSPENDED)
             );
         assertThat(suspended.status()).isEqualTo(AcademicRegistrationStatus.SUSPENDED);
+    }
+
+    @Test
+    void studentCanListOwnModuleRegistrations() {
+        academicRegistrationService.createAcademicRegistration(
+            rootPrincipal(),
+            firstEstablishment.getId(),
+            request(firstYear, firstProgram, firstLevel)
+        );
+
+        AuthenticatedUserPrincipal studentPrincipal = new AuthenticatedUserPrincipal(
+            student.getUserAccount().getId(),
+            AccountRoleType.STUDENT,
+            student.getId(),
+            firstEstablishment.getId(),
+            student.getUserAccount().getUniversityEmail()
+        );
+
+        assertThat(studentAcademicContextService.getModuleRegistrations(studentPrincipal))
+            .hasSize(2)
+            .extracting(response -> response.subjectModuleCode())
+            .containsExactly("ALG", "DB");
+
+        assertThatThrownBy(() -> studentAcademicContextService.getModuleRegistrations(rootPrincipal()))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("403 FORBIDDEN");
     }
 
     @Test
