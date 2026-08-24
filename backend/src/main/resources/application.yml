@@ -21,6 +21,10 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
 
 server:
   port: ${SERVER_PORT:8080}
@@ -48,4 +52,8 @@ app:
       access-token-ttl-seconds: ${JWT_ACCESS_TOKEN_TTL_SECONDS:900}
       refresh-token-ttl-seconds: ${JWT_REFRESH_TOKEN_TTL_SECONDS:2592000}
   storage:
-    base-path: ${FILE_STORAGE_PATH:./storage}
+    endpoint: ${OBJECT_STORAGE_ENDPOINT:http://localhost:9000}
+    access-key: ${OBJECT_STORAGE_ACCESS_KEY:ysn_minio}
+    secret-key: ${OBJECT_STORAGE_SECRET_KEY:ysn_minio_secret}
+    bucket: ${OBJECT_STORAGE_BUCKET:university-documents}
+    maximum-file-size: ${OBJECT_STORAGE_MAXIMUM_FILE_SIZE:5242880}
