@@ -6,12 +6,14 @@ import { StudentAttendanceCheckInPage } from "@/workspaces/student/pages/Student
 import { StudentSchedulePage } from "@/workspaces/student/pages/StudentSchedulePage";
 import { StudentGradesPage } from "@/workspaces/student/pages/StudentGradesPage";
 import { StudentAttendancePage } from "@/workspaces/student/pages/StudentAttendancePage";
+import { StudentStudiesPage } from "@/workspaces/student/pages/StudentStudiesPage";
 
 export const studentRoutes: RouteObject = {
   path: "/student",
   element: <StudentLayout />,
   children: [
     { index: true, element: <StudentOverviewPage /> },
+    { path: "studies", element: <StudentStudiesPage /> },
     { path: "schedule", element: <StudentSchedulePage /> },
     { path: "grades", element: <StudentGradesPage /> },
     { path: "attendance", element: <StudentAttendancePage /> },
