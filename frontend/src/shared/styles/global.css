@@ -6790,6 +6790,37 @@ a.workspace-module-card:hover {
   width: 15rem;
 }
 
+.directory-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid var(--management-line);
+  color: var(--management-muted);
+  font-size: 0.72rem;
+}
+
+.directory-pagination p {
+  margin: 0;
+}
+
+.directory-pagination-controls,
+.directory-pagination-controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.directory-pagination-controls select {
+  min-height: 2.1rem;
+  padding: 0.35rem 1.8rem 0.35rem 0.55rem;
+  border: 1px solid var(--management-line);
+  border-radius: 0.45rem;
+  background: #fff;
+  color: var(--management-ink);
+}
+
 .admin-create-progress {
   display: grid;
   align-items: center;
@@ -9621,6 +9652,16 @@ a.workspace-module-card:hover {
 
   .student-academic-filters {
     grid-template-columns: 1fr;
+  }
+
+  .directory-pagination {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .directory-pagination-controls {
+    width: 100%;
+    flex-wrap: wrap;
   }
 
   .admin-record-header {

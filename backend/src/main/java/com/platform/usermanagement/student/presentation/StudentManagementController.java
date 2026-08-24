@@ -5,10 +5,12 @@ import com.platform.usermanagement.student.application.StudentManagementService;
 import com.platform.usermanagement.student.presentation.dto.CreateStudentRequest;
 import com.platform.usermanagement.student.presentation.dto.CreateStudentResponse;
 import com.platform.usermanagement.student.presentation.dto.StudentProfileResponse;
+import com.platform.usermanagement.student.presentation.dto.StudentDirectoryPageResponse;
 import com.platform.usermanagement.student.presentation.dto.UpdateStudentRequest;
 import com.platform.usermanagement.shared.presentation.dto.ResetManagedPasswordRequest;
 import com.platform.shared.presentation.ActionResponse;
 import com.platform.identityaccess.domain.AccountStatus;
+import com.platform.academicregistration.registration.domain.AcademicRegistrationStatus;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -55,6 +57,30 @@ public class StudentManagementController {
     ) {
         return studentManagementService.getStudents(
             principal, establishmentId, query, status, enrolledFrom, enrolledTo
+        );
+    }
+
+    @GetMapping("/establishments/{establishmentId}/students/directory")
+    public StudentDirectoryPageResponse getStudentDirectory(
+        @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+        @PathVariable UUID establishmentId,
+        @RequestParam(required = false) String query,
+        @RequestParam(required = false) AccountStatus status,
+        @RequestParam(required = false) LocalDate enrolledFrom,
+        @RequestParam(required = false) LocalDate enrolledTo,
+        @RequestParam(required = false) UUID academicYearId,
+        @RequestParam(required = false) UUID programPathId,
+        @RequestParam(required = false) UUID programFiliereId,
+        @RequestParam(required = false) UUID academicLevelId,
+        @RequestParam(required = false) UUID semesterId,
+        @RequestParam(required = false) AcademicRegistrationStatus registrationStatus,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "25") int size
+    ) {
+        return studentManagementService.getStudentDirectory(
+            principal, establishmentId, query, status, enrolledFrom, enrolledTo,
+            academicYearId, programPathId, programFiliereId, academicLevelId,
+            semesterId, registrationStatus, page, size
         );
     }
 
