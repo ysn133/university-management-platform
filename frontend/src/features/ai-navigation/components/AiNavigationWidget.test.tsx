@@ -70,7 +70,7 @@ describe("AiNavigationWidget", () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole("button", { name: "Ask" }));
+    await user.click(screen.getByRole("button", { name: /Ask/ }));
     await user.type(
       screen.getByRole("textbox", { name: "Describe the page or record" }),
       "Open Zakaria's grades",
@@ -100,7 +100,7 @@ describe("AiNavigationWidget", () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole("button", { name: "Ask" }));
+    await user.click(screen.getByRole("button", { name: /Ask/ }));
     await user.type(
       screen.getByRole("textbox", { name: "Describe the page or record" }),
       "Open Zakaria's grades",
@@ -135,7 +135,7 @@ describe("AiNavigationWidget", () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole("button", { name: "Ask" }));
+    await user.click(screen.getByRole("button", { name: /Ask/ }));
     await user.type(
       screen.getByRole("textbox", { name: "Describe the page or record" }),
       "When does Yassine teach?",
@@ -186,7 +186,7 @@ describe("AiNavigationWidget", () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole("button", { name: "Ask" }));
+    await user.click(screen.getByRole("button", { name: /Ask/ }));
     await user.type(
       screen.getByRole("textbox", { name: "Describe the page or record" }),
       "open Lina Idrissi's grades",
