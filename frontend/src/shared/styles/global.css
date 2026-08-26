@@ -4588,6 +4588,9 @@ a.workspace-module-card:hover {
   background: transparent;
 }
 
+.professor-record-period-filters { justify-content: flex-end; }
+.professor-record-period-filters label { min-width: 9.5rem; }
+
 .professor-timetable-scroll {
   padding-top: 1rem;
 }
