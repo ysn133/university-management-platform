@@ -77,6 +77,8 @@ const emptyRuleProfileForm: RuleProfileForm = {
   maximumUnjustifiedAbsences: "3",
   absenceExclusionPolicy: "NORMAL_AND_RATTRAPAGE",
 };
+const curriculumSections = ["curriculum", "students", "teaching-groups", "teaching-plan", "professors", "schedule", "exam-planning", "grades", "progression", "graduation"] as const;
+type CurriculumSection = typeof curriculumSections[number];
 
 function errorMessage(error: unknown): string {
   return error instanceof ApiRequestError ? error.message : "The request could not be completed.";
@@ -90,13 +92,16 @@ export function ProgramCurriculumPage() {
     departmentId: routeDepartmentId,
     degreeCycleId: routeDegreeCycleId,
   } = useParams<{ programFiliereId: string; academicYearId?: string; programPathId?: string; departmentId?: string; degreeCycleId?: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { establishmentId, workspacePath } = useEstablishmentScope();
   const queryClient = useQueryClient();
-  const [activeSection, setActiveSection] = useState<"curriculum" | "students" | "teaching-groups" | "teaching-plan" | "professors" | "schedule" | "exam-planning" | "grades" | "progression" | "graduation">(() => searchParams.get("section") === "teaching-plan" ? "teaching-plan" : searchParams.get("section") === "professors" ? "professors" : searchParams.get("section") === "schedule" ? "schedule" : searchParams.get("section") === "exam-planning" ? "exam-planning" : searchParams.get("section") === "grades" ? "grades" : searchParams.get("section") === "progression" ? "progression" : searchParams.get("section") === "graduation" ? "graduation" : "curriculum");
-  const [academicYearId, setAcademicYearId] = useState(() => routeAcademicYearId ?? searchParams.get("academicYearId") ?? "");
-  const [academicLevelId, setAcademicLevelId] = useState(() => searchParams.get("academicLevelId") ?? "");
-  const [semesterId, setSemesterId] = useState(() => searchParams.get("semesterId") ?? "");
+  const requestedSection = searchParams.get("section");
+  const activeSection: CurriculumSection = curriculumSections.includes(requestedSection as CurriculumSection)
+    ? requestedSection as CurriculumSection
+    : "curriculum";
+  const [academicYearId, setAcademicYearState] = useState(() => routeAcademicYearId ?? searchParams.get("academicYearId") ?? "");
+  const [academicLevelId, setAcademicLevelState] = useState(() => searchParams.get("academicLevelId") ?? "");
+  const [semesterId, setSemesterState] = useState(() => searchParams.get("semesterId") ?? "");
   const [pendingSemesterId, setPendingSemesterId] = useState("");
   const [levelForm, setLevelForm] = useState<LevelForm>(emptyLevelForm);
   const [semesterForm, setSemesterForm] = useState<SemesterForm>(emptySemesterForm);
@@ -117,6 +122,34 @@ export function ProgramCurriculumPage() {
   const [deletingModule, setDeletingModule] = useState<SubjectModule | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
+  function updateNavigationParameter(parameter: string, value: string, replace = false) {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (value) next.set(parameter, value);
+      else next.delete(parameter);
+      return next;
+    }, { replace });
+  }
+
+  function setActiveSection(section: CurriculumSection) {
+    updateNavigationParameter("section", section === "curriculum" ? "" : section);
+  }
+
+  function setAcademicYearId(value: string, replace = false) {
+    setAcademicYearState(value);
+    if (!routeAcademicYearId) updateNavigationParameter("academicYearId", value, replace);
+  }
+
+  function setAcademicLevelId(value: string, replace = false) {
+    setAcademicLevelState(value);
+    updateNavigationParameter("academicLevelId", value, replace);
+  }
+
+  function setSemesterId(value: string, replace = false) {
+    setSemesterState(value);
+    updateNavigationParameter("semesterId", value, replace);
+  }
+
   const programQuery = useQuery({ queryKey: academicStructureKeys.programFiliere(programFiliereId ?? "missing"), queryFn: () => getProgramFiliere(programFiliereId!), enabled: Boolean(programFiliereId) });
   const programPathsQuery = useQuery({ queryKey: academicStructureKeys.programPaths(establishmentId ?? "missing"), queryFn: () => getProgramPaths(establishmentId!), enabled: Boolean(establishmentId) });
   const levelsQuery = useQuery({ queryKey: academicStructureKeys.academicLevels(programFiliereId ?? "missing"), queryFn: () => getAcademicLevels(programFiliereId!), enabled: Boolean(programFiliereId) });
@@ -130,23 +163,32 @@ export function ProgramCurriculumPage() {
   const selectedLevelIsTerminal = levelsQuery.data?.find((level) => level.id === academicLevelId)?.terminalLevel;
 
   useEffect(() => {
+    const requestedYear = routeAcademicYearId ?? searchParams.get("academicYearId") ?? "";
+    const requestedLevel = searchParams.get("academicLevelId") ?? "";
+    const requestedSemester = searchParams.get("semesterId") ?? "";
+    if (requestedYear !== academicYearId) setAcademicYearState(requestedYear);
+    if (requestedLevel !== academicLevelId) setAcademicLevelState(requestedLevel);
+    if (requestedSemester !== semesterId) setSemesterState(requestedSemester);
+  }, [routeAcademicYearId, searchParams]);
+
+  useEffect(() => {
     if (!academicYearId && yearsQuery.data?.length) {
-      setAcademicYearId(yearsQuery.data.find((year) => year.status === "ACTIVE")?.id ?? yearsQuery.data[0].id);
+      setAcademicYearId(yearsQuery.data.find((year) => year.status === "ACTIVE")?.id ?? yearsQuery.data[0].id, true);
     }
   }, [academicYearId, yearsQuery.data]);
   useEffect(() => {
-    if (levelsQuery.data && !levelsQuery.data.some((level) => level.id === academicLevelId)) setAcademicLevelId(levelsQuery.data[0]?.id ?? "");
+    if (levelsQuery.data && !levelsQuery.data.some((level) => level.id === academicLevelId)) setAcademicLevelId(levelsQuery.data[0]?.id ?? "", true);
   }, [academicLevelId, levelsQuery.data]);
   useEffect(() => {
     if (!semestersQuery.data) return;
     if (pendingSemesterId) {
       if (semestersQuery.data.some((semester) => semester.id === pendingSemesterId)) {
-        setSemesterId(pendingSemesterId);
+        setSemesterId(pendingSemesterId, true);
         setPendingSemesterId("");
       }
       return;
     }
-    if (!semestersQuery.data.some((semester) => semester.id === semesterId)) setSemesterId(semestersQuery.data[0]?.id ?? "");
+    if (!semestersQuery.data.some((semester) => semester.id === semesterId)) setSemesterId(semestersQuery.data[0]?.id ?? "", true);
   }, [pendingSemesterId, semesterId, semestersQuery.data]);
   useEffect(() => {
     if (!editingLevel || !currentRuleAssignment) return;

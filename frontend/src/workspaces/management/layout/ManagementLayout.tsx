@@ -4,6 +4,7 @@ import { getEstablishment, rootGovernanceKeys } from "@/features/root-governance
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
 import { academicStructureKeys, getAcademicYears, getDegreeCycles, getDepartments, getProgramPaths } from "@/features/academic-structure/api/academic-structure-api";
+import { AiNavigationWidget } from "@/features/ai-navigation/components/AiNavigationWidget";
 import { getManagementNavigation } from "../navigation/management-navigation";
 
 export function ManagementLayout() {
@@ -182,25 +183,28 @@ export function ManagementLayout() {
     : [];
 
   return (
-    <WorkspaceLayout
-      breadcrumbs={breadcrumbs}
-      context={establishmentId ? {
-        name: establishment?.name ?? "Loading establishment...",
-        meta: establishment
-          ? `${establishment.type[0] + establishment.type.slice(1).toLowerCase()} · ${establishment.status}`
-          : "Establishment context",
-        monogram: establishment?.name.slice(0, 2).toUpperCase() ?? "--",
-        backLabel: user?.role === "ROOT_SUPER_ADMIN" ? "Back to establishments" : undefined,
-        backTo: user?.role === "ROOT_SUPER_ADMIN" ? "/management/establishments" : undefined,
-      } : {
-        name: "Université Ibn Zohr",
-        meta: "University governance",
-        monogram: "UIZ",
-      }}
-      navigation={getManagementNavigation(user?.role, establishmentId)}
-      scopeLabel={establishmentId ? "Establishment operations" : "University governance"}
-      variant="management"
-      workspaceName="Management"
-    />
+    <>
+      <WorkspaceLayout
+        breadcrumbs={breadcrumbs}
+        context={establishmentId ? {
+          name: establishment?.name ?? "Loading establishment...",
+          meta: establishment
+            ? `${establishment.type[0] + establishment.type.slice(1).toLowerCase()} · ${establishment.status}`
+            : "Establishment context",
+          monogram: establishment?.name.slice(0, 2).toUpperCase() ?? "--",
+          backLabel: user?.role === "ROOT_SUPER_ADMIN" ? "Back to establishments" : undefined,
+          backTo: user?.role === "ROOT_SUPER_ADMIN" ? "/management/establishments" : undefined,
+        } : {
+          name: "Université Ibn Zohr",
+          meta: "University governance",
+          monogram: "UIZ",
+        }}
+        navigation={getManagementNavigation(user?.role, establishmentId)}
+        scopeLabel={establishmentId ? "Establishment operations" : "University governance"}
+        variant="management"
+        workspaceName="Management"
+      />
+      {(user?.role === "SUPER_ADMIN" || user?.role === "ADMIN") && <AiNavigationWidget />}
+    </>
   );
 }

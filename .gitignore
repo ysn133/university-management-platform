@@ -1,5 +1,7 @@
 # Project documentation kept outside the public repository
-docs/
+docs/*
+!docs/ai/
+!docs/ai/**
 docs (copy)/
 
 # Editors and operating systems

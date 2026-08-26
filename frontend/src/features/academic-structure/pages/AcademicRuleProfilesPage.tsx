@@ -4,6 +4,7 @@ import { ApiRequestError } from "@/shared/api/client/ApiRequestError";
 import { useEstablishmentScope } from "@/features/establishment-management/context/useEstablishmentScope";
 import { ManagementModal } from "@/features/root-governance/components/ManagementModal";
 import { StatusBadge } from "@/features/root-governance/components/StatusBadge";
+import { useUrlSelection } from "@/shared/hooks/useUrlSelection";
 import { AcademicRanksSettings } from "../components/AcademicRanksSettings";
 import { TeachingPreferencesSettings } from "../components/TeachingPreferencesSettings";
 import { AcademicRuleBuilder } from "../components/AcademicRuleBuilder";
@@ -18,8 +19,8 @@ import {
 } from "../api/academic-structure-api";
 
 type ProfileStatusFilter = "ALL" | AcademicRuleProfile["status"];
-type SettingsSection = "rules" | "ranks" | "preferences";
 type RuleFormSection = "values" | "decisions" | "attendance";
+const settingsSections = ["rules", "ranks", "preferences"] as const;
 
 interface RuleProfileForm {
   name: string;
@@ -124,7 +125,7 @@ export function AcademicRuleProfilesPage() {
   const [editing, setEditing] = useState<AcademicRuleProfile | null>(null);
   const [form, setForm] = useState<RuleProfileForm>(emptyForm);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [section, setSection] = useState<SettingsSection>("rules");
+  const [section, setSection] = useUrlSelection("section", settingsSections, "rules");
   const [formSection, setFormSection] = useState<RuleFormSection>("values");
   const deferredSearch = useDeferredValue(search.trim().toLowerCase());
   const profilesQuery = useQuery({

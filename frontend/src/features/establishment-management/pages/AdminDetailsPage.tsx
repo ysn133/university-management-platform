@@ -19,6 +19,9 @@ import {
 } from "../api/establishment-admin-api";
 import { AdminForm, type AdminFormValues } from "../components/AdminForm";
 import { PermissionGrantForm } from "../components/PermissionGrantForm";
+import { useUrlSelection } from "@/shared/hooks/useUrlSelection";
+
+const adminSections = ["overview", "permissions"] as const;
 import { useEstablishmentScope } from "../context/useEstablishmentScope";
 
 function errorMessage(error: unknown): string {
@@ -39,7 +42,7 @@ export function AdminDetailsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<AdminLifecycleAction | null>(null);
-  const [activeSection, setActiveSection] = useState<"overview" | "permissions">("overview");
+  const [activeSection, setActiveSection] = useUrlSelection("tab", adminSections, "overview");
 
   const adminQuery = useQuery({
     queryKey: establishmentAdminKeys.admin(adminId ?? "missing"),
