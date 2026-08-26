@@ -16,6 +16,9 @@ import {
 } from "../api/professor-management-api";
 import { ProfessorForm, type ProfessorFormValues } from "../components/ProfessorForm";
 import { ProfessorAcademicWorkspace } from "../components/ProfessorAcademicWorkspace";
+import { useUrlSelection } from "@/shared/hooks/useUrlSelection";
+
+const professorSections = ["profile", "expertise", "teaching", "schedule"] as const;
 
 function errorMessage(error: unknown): string {
   return error instanceof ApiRequestError ? error.message : "The request could not be completed.";
@@ -40,7 +43,7 @@ export function ProfessorDetailsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<ProfessorLifecycleAction | null>(null);
-  const [activeTab, setActiveTab] = useState<"profile" | "expertise" | "teaching" | "schedule">("profile");
+  const [activeTab, setActiveTab] = useUrlSelection("tab", professorSections, "profile");
 
   const professorQuery = useQuery({
     queryKey: professorManagementKeys.professor(professorId ?? "missing"),
