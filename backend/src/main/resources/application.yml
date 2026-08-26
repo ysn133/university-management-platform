@@ -20,11 +20,26 @@ spring:
         format_sql: true
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations: classpath:db/migration,classpath:db/{vendor}
   servlet:
     multipart:
       max-file-size: 5MB
       max-request-size: 6MB
+  ai:
+    model:
+      embedding: transformers
+    embedding:
+      transformer:
+        onnx:
+          model-uri: ${AI_EMBEDDING_MODEL_URI:https://huggingface.co/intfloat/multilingual-e5-small/resolve/main/onnx/model_qint8_avx512_vnni.onnx}
+        tokenizer:
+          uri: ${AI_EMBEDDING_TOKENIZER_URI:https://huggingface.co/intfloat/multilingual-e5-small/resolve/main/onnx/tokenizer.json}
+          options:
+            padding: true
+            truncation: true
+            maxLength: 512
+        cache:
+          directory: ${AI_EMBEDDING_CACHE_DIRECTORY:../.local/models/embeddings}
 
 server:
   port: ${SERVER_PORT:8080}
@@ -57,3 +72,22 @@ app:
     secret-key: ${OBJECT_STORAGE_SECRET_KEY:ysn_minio_secret}
     bucket: ${OBJECT_STORAGE_BUCKET:university-documents}
     maximum-file-size: ${OBJECT_STORAGE_MAXIMUM_FILE_SIZE:5242880}
+  ai:
+    retrieval:
+      knowledge-pattern: ${AI_KNOWLEDGE_PATTERN:classpath*:ai/knowledge/*.md}
+      maximum-chunk-characters: ${AI_MAXIMUM_CHUNK_CHARACTERS:1800}
+      semantic-enabled: ${AI_SEMANTIC_RETRIEVAL_ENABLED:true}
+      semantic-weight: ${AI_SEMANTIC_RETRIEVAL_WEIGHT:0.65}
+      lexical-weight: ${AI_LEXICAL_RETRIEVAL_WEIGHT:0.35}
+    deepseek:
+      api-key: ${DEEPSEEK_API_KEY:}
+      base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+      model: ${DEEPSEEK_MODEL:deepseek-v4-pro}
+    agent:
+      diagnostics-enabled: ${AI_NAVIGATION_DIAGNOSTICS_ENABLED:false}
+      internal-api-base-url: ${AI_INTERNAL_API_BASE_URL:http://localhost:8080}
+      retrieval-limit: ${AI_RETRIEVAL_LIMIT:5}
+      maximum-api-calls: ${AI_MAXIMUM_API_CALLS:12}
+      maximum-fan-out: ${AI_MAXIMUM_FAN_OUT:20}
+      maximum-api-response-characters: ${AI_MAXIMUM_API_RESPONSE_CHARACTERS:50000}
+      maximum-answer-context-characters: ${AI_MAXIMUM_ANSWER_CONTEXT_CHARACTERS:20000}
