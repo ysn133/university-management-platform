@@ -1,7 +1,11 @@
-# Project documentation kept outside the public repository
+
+# Project documentation drafts kept outside the public repository
 docs/*
-!docs/ai/
-!docs/ai/**
+!docs/system-architecture.md
+!docs/domain-model.md
+!docs/focused-domain-diagrams.md
+!docs/database-design.md
+!docs/ai-navigation-architecture.md
 docs (copy)/
 
 # Editors and operating systems
