@@ -5,9 +5,10 @@ import { useEstablishmentScope } from "@/features/establishment-management/conte
 import { ConfirmActionModal } from "@/features/root-governance/components/ConfirmActionModal";
 import { ManagementModal } from "@/features/root-governance/components/ManagementModal";
 import { StatusBadge } from "@/features/root-governance/components/StatusBadge";
+import { useUrlSelection } from "@/shared/hooks/useUrlSelection";
 import { createBlock, createRoom, deactivateBlock, deactivateRoom, facilityKeys, getBlocks, getRooms, updateBlock, updateRoom, type Block, type BlockInput, type Room, type RoomInput, type RoomType } from "../api/facility-api";
 
-type Section = "rooms" | "blocks";
+const facilitySections = ["blocks", "rooms"] as const;
 type DeactivationTarget = { kind: "block"; value: Block } | { kind: "room"; value: Room };
 const emptyBlock: BlockInput = { code: "", name: "" };
 const emptyRoom: RoomInput = { code: "", name: "", roomType: "CLASSROOM", capacity: 30 };
@@ -23,7 +24,7 @@ function roomTypeLabel(type: RoomType): string {
 export function FacilitiesPage() {
   const { establishmentId } = useEstablishmentScope();
   const queryClient = useQueryClient();
-  const [section, setSection] = useState<Section>("blocks");
+  const [section, setSection] = useUrlSelection("section", facilitySections, "blocks");
   const [query, setQuery] = useState("");
   const [blockFilter, setBlockFilter] = useState("all");
   const [editingBlock, setEditingBlock] = useState<Block | null>(null);

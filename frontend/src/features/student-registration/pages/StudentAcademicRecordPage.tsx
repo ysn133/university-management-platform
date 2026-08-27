@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { WeeklyTimetable, type WeeklyTimetableEntry } from "@/features/scheduling/components/WeeklyTimetable";
 import { academicStructureKeys, getAcademicLevels, getAcademicYears, getProgramFiliere } from "@/features/academic-structure/api/academic-structure-api";
 import { useEstablishmentScope } from "@/features/establishment-management/context/useEstablishmentScope";
 import { ApiRequestError } from "@/shared/api/client/ApiRequestError";
+import { useUrlSelection } from "@/shared/hooks/useUrlSelection";
 import { getRegistrationStudyContext, getStudent, getStudentAcademicRegistrations, studentRegistrationKeys } from "../api/student-registration-api";
 import {
   getManagedStudentAbsences,
@@ -14,7 +15,8 @@ import {
   studentAcademicRecordKeys,
 } from "../api/student-academic-record-api";
 
-type RecordSection = "overview" | "grades" | "attendance" | "schedule" | "decision";
+const recordSections = ["overview", "grades", "attendance", "schedule", "decision"] as const;
+type RecordSection = typeof recordSections[number];
 const decisionLabels = { PROMOTED: "Promoted", PROMOTED_BY_COMPENSATION: "Promoted by compensation", PROMOTED_WITH_DEBT: "Promoted with module debt", LEVEL_VALIDATED: "Academic level validated", REPEAT: "Repeat academic level", FAILED: "Failed" } as const;
 const resultLabels = { V: "Validated", AV: "Compensated", NV: "Not validated" } as const;
 
@@ -25,8 +27,9 @@ function message(error: unknown) {
 export function StudentAcademicRecordPage() {
   const { studentId, academicRegistrationId } = useParams();
   const { establishmentId, workspacePath } = useEstablishmentScope();
-  const [section, setSection] = useState<RecordSection>("overview");
-  const [semesterId, setSemesterId] = useState("");
+  const [section, setSection] = useUrlSelection("tab", recordSections, "overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const semesterId = searchParams.get("semesterId") ?? "";
   const studentQuery = useQuery({ queryKey: studentRegistrationKeys.student(studentId ?? "missing"), queryFn: () => getStudent(studentId!), enabled: Boolean(studentId) });
   const registrationsQuery = useQuery({ queryKey: studentRegistrationKeys.studentRegistrations(studentId ?? "missing"), queryFn: () => getStudentAcademicRegistrations(studentId!), enabled: Boolean(studentId) });
   const registration = (registrationsQuery.data ?? []).find((item) => item.id === academicRegistrationId);
@@ -40,8 +43,18 @@ export function StudentAcademicRecordPage() {
   const progressionQuery = useQuery({ queryKey: studentAcademicRecordKeys.progression(academicRegistrationId ?? ""), queryFn: () => getManagedStudentProgression(academicRegistrationId!), enabled: Boolean(academicRegistrationId), retry: false });
   const semesters = studyQuery.data ?? [];
 
+  function selectSemester(nextSemesterId: string, replace = false) {
+    setSearchParams((current) => {
+      const nextParams = new URLSearchParams(current);
+      nextParams.set("semesterId", nextSemesterId);
+      return nextParams;
+    }, { replace });
+  }
+
   useEffect(() => {
-    if (semesters.length && !semesters.some((item) => item.semester.semesterId === semesterId)) setSemesterId(semesters[0].semester.semesterId);
+    if (semesters.length && !semesters.some((item) => item.semester.semesterId === semesterId)) {
+      selectSemester(semesters[0].semester.semesterId, true);
+    }
   }, [semesterId, semesters.map((item) => item.semester.semesterId).join(",")]);
 
   if (!studentId || !academicRegistrationId || !workspacePath) return <div className="management-state management-state--error"><h1>Academic context unavailable</h1></div>;
@@ -67,8 +80,8 @@ export function StudentAcademicRecordPage() {
     <div className="admin-page-toolbar"><Link className="record-back-link" to={`${workspacePath}/students/${studentId}`}>Back to {student.firstName} {student.lastName}</Link><span>{year?.label ?? "Academic year"} · {level?.name ?? "Level"}</span></div>
     <header className="management-page-header student-grades-header"><div><p className="management-kicker">Student academic record</p><h1>{student.firstName} {student.lastName}</h1><p>{programQuery.data?.name ?? "Program"} · {level?.name ?? "Level"}</p></div><div className="student-grades-current"><span>Selected registration</span><strong>{year?.label ?? "Academic year"}</strong><small>Apogee {student.apogeeCode} · {registration.status}</small></div></header>
     <section className="management-panel student-grades-panel managed-student-record-workspace">
-      <nav aria-label="Academic record sections" className="managed-student-record-primary-tabs" role="tablist">{(["overview", "grades", "attendance", "schedule", "decision"] as RecordSection[]).map((item) => <button aria-selected={section === item} key={item} onClick={() => setSection(item)} role="tab" type="button">{item[0].toUpperCase() + item.slice(1)}</button>)}</nav>
-      {section !== "decision" && <div className="managed-student-record-period"><span>Semester</span><div role="tablist">{semesters.map((item) => <button aria-selected={semesterId === item.semester.semesterId} key={item.semester.semesterId} onClick={() => setSemesterId(item.semester.semesterId)} role="tab" type="button">{item.semester.semesterName}</button>)}</div></div>}
+      <nav aria-label="Academic record sections" className="managed-student-record-primary-tabs" role="tablist">{recordSections.map((item) => <button aria-selected={section === item} key={item} onClick={() => setSection(item)} role="tab" type="button">{item[0].toUpperCase() + item.slice(1)}</button>)}</nav>
+      {section !== "decision" && <div className="managed-student-record-period"><span>Semester</span><div role="tablist">{semesters.map((item) => <button aria-selected={semesterId === item.semester.semesterId} key={item.semester.semesterId} onClick={() => selectSemester(item.semester.semesterId)} role="tab" type="button">{item.semester.semesterName}</button>)}</div></div>}
 
     {loadingSection ? <div className="panel-empty">Loading academic information...</div> : section === "overview" ? <section className="managed-student-record-overview"><header className="student-grades-context"><div className="student-grades-context__identity"><span>Registration context</span><strong>{programQuery.data?.name ?? "Program"}</strong><small>{level?.name ?? "Level"} · {selectedSemester?.semester.semesterName ?? "Semester"} · {year?.label ?? "Academic year"}</small></div></header><div className="managed-student-record-facts"><div><span>Program / Filière</span><strong>{programQuery.data?.name ?? "—"}</strong></div><div><span>Academic level</span><strong>{level?.name ?? "—"}</strong></div><div><span>Academic year</span><strong>{year?.label ?? "—"}</strong></div><div><span>Registration status</span><strong>{registration.status}</strong></div></div><div className="managed-student-module-list"><header><h3>Registered modules</h3><span>{modules.length} modules</span></header><div className="resource-table-wrapper"><table className="resource-table managed-student-module-table"><thead><tr><th>Module</th><th>Inscription</th><th>Status</th></tr></thead><tbody>{modules.map((module) => <tr key={module.id}><td><div className="table-contact"><strong>{module.subjectModuleTitle}</strong><small>{module.subjectModuleCode}</small></div></td><td>{module.inscriptionNumber > 1 ? <span className="second-inscription-badge">{module.inscriptionNumber === 2 ? "2nd" : `${module.inscriptionNumber}th`} inscription</span> : "First inscription"}</td><td><span className="managed-module-status">{module.status}</span></td></tr>)}</tbody></table></div></div></section>
       : section === "grades" ? <section className="managed-student-record-table"><header className="student-grades-context"><div className="student-grades-context__identity"><span>Published results</span><strong>{programQuery.data?.name ?? "Grades"}</strong><small>{level?.name ?? "Level"} · {selectedSemester?.semester.semesterName ?? "Semester"} · {year?.label ?? "Academic year"}</small></div></header>{finalGrades.length === 0 ? <div className="panel-empty"><strong>No finalized grades for this semester.</strong></div> : <div className="student-grades-table-wrap"><table className="student-grades-table managed-student-grades-table"><thead><tr><th>Module</th><th>Normal</th><th>Rattrapage</th><th>Final</th><th>Result</th></tr></thead><tbody>{finalGrades.map((finalGrade) => { const moduleGrades = grades.filter((item) => item.subjectModuleId === finalGrade.subjectModuleId); return <tr key={finalGrade.subjectModuleId}><td><span>{finalGrade.subjectModuleCode}</span><strong>{finalGrade.subjectModuleTitle}</strong></td><td><span className="student-grade-value"><strong>{moduleGrades.find((item) => item.sessionType === "NORMAL")?.gradeValue?.toFixed(2) ?? "—"}</strong><span>/ 20</span></span></td><td><span className="student-grade-value"><strong>{moduleGrades.find((item) => item.sessionType === "RATTRAPAGE")?.gradeValue?.toFixed(2) ?? "—"}</strong><span>/ 20</span></span></td><td><span className="student-grade-value"><strong>{finalGrade.finalGradeValue?.toFixed(2)}</strong><span>/ 20</span></span></td><td><span className={`student-result-status student-result-status--${finalGrade.moduleResultStatus?.toLowerCase()}`}>{finalGrade.moduleResultStatus ? resultLabels[finalGrade.moduleResultStatus] : "Pending"}</span></td></tr>; })}</tbody></table></div>}</section>

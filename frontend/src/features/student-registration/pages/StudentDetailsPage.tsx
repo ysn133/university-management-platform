@@ -17,6 +17,9 @@ import {
   type StudentLifecycleAction,
 } from "../api/student-registration-api";
 import { StudentProfileForm, type StudentProfileFormValues } from "../components/StudentProfileForm";
+import { useUrlSelection } from "@/shared/hooks/useUrlSelection";
+
+const studentSections = ["overview", "academic-history"] as const;
 
 function errorMessage(error: unknown): string {
   return error instanceof ApiRequestError ? error.message : "The request could not be completed.";
@@ -30,7 +33,7 @@ export function StudentDetailsPage() {
   const { studentId } = useParams();
   const { establishmentId, workspacePath } = useEstablishmentScope();
   const queryClient = useQueryClient();
-  const [activeSection, setActiveSection] = useState<"overview" | "academic-history">("overview");
+  const [activeSection, setActiveSection] = useUrlSelection("tab", studentSections, "overview");
   const [isEditing, setEditing] = useState(false);
   const [isResettingPassword, setResettingPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
