@@ -478,17 +478,59 @@ ysnUniversity/
 │   │   ├── platform/
 │   │   ├── shared/
 │   │   ├── identityaccess/
-│   │   ├── universitygovernance/
 │   │   ├── usermanagement/
+│   │   │   ├── superadmin/
+│   │   │   ├── admin/
+│   │   │   ├── professor/
+│   │   │   ├── student/
+│   │   │   └── permission/
+│   │   ├── universitygovernance/
+│   │   │   ├── university/
+│   │   │   ├── establishment/
+│   │   │   ├── department/
+│   │   │   ├── degreecycle/
+│   │   │   ├── programpath/
+│   │   │   ├── programfiliere/
+│   │   │   ├── academicyear/
+│   │   │   ├── academiclevel/
+│   │   │   ├── semester/
+│   │   │   ├── subjectmodules/
+│   │   │   ├── classgroup/
+│   │   │   ├── academicdomain/
+│   │   │   ├── academicruleprofile/
+│   │   │   ├── academiclevelruleassignment/
+│   │   │   ├── moduleteachingcomponent/
+│   │   │   ├── block/
+│   │   │   └── room/
 │   │   ├── academicregistration/
+│   │   │   ├── registration/
+│   │   │   ├── semesterregistration/
+│   │   │   ├── moduleregistration/
+│   │   │   └── classassignment/
 │   │   ├── teachingrequirement/
 │   │   ├── teachingassignment/
+│   │   │   └── rankpreference/
 │   │   ├── moduleclassresponsibility/
 │   │   ├── scheduling/
+│   │   │   ├── teachinggroup/
+│   │   │   ├── semesterschedule/
+│   │   │   ├── examschedule/
+│   │   │   ├── moduleexam/
+│   │   │   ├── examgroup/
+│   │   │   └── examcandidate/
 │   │   ├── assessment/
+│   │   │   ├── graderecord/
+│   │   │   ├── moduleresult/
+│   │   │   ├── semesterresult/
+│   │   │   ├── progressiondecision/
+│   │   │   └── graduationdecision/
 │   │   ├── attendance/
+│   │   │   ├── absencerecord/
+│   │   │   └── qrcheckin/
 │   │   ├── documents/
 │   │   └── ai/
+│   │       ├── retrieval/
+│   │       └── navigation/
 │   ├── src/main/resources/
 │   │   ├── db/migration/
 │   │   ├── application.yml
