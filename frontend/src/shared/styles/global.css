@@ -1735,6 +1735,14 @@ h3 {
   grid-template-columns: 17.5rem minmax(0, 1fr);
 }
 
+.workspace-shell--management.is-sidebar-collapsed {
+  grid-template-columns: 4.75rem 4.5rem minmax(0, 1fr);
+}
+
+.workspace-shell--management.workspace-shell--without-global-rail.is-sidebar-collapsed {
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+}
+
 .workspace-shell--management.workspace-shell--without-global-rail .workspace-sidebar {
   grid-column: 1;
 }
@@ -1809,6 +1817,34 @@ h3 {
   color: var(--management-ink);
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 5px 0 24px rgba(31, 71, 102, 0.035);
+  overflow: hidden;
+  transition: padding 180ms ease;
+}
+
+.workspace-shell--management.is-sidebar-collapsed .workspace-sidebar {
+  padding-inline: 0.65rem;
+}
+
+.workspace-shell--management.is-sidebar-collapsed .management-context-card,
+.workspace-shell--management.is-sidebar-collapsed .context-back-link,
+.workspace-shell--management.is-sidebar-collapsed .workspace-nav-group,
+.workspace-shell--management.is-sidebar-collapsed .workspace-nav-link > span,
+.workspace-shell--management.is-sidebar-collapsed .workspace-sidebar-footer {
+  display: none;
+}
+
+.workspace-shell--management.is-sidebar-collapsed .workspace-sidebar nav {
+  margin-top: 0.7rem;
+}
+
+.workspace-shell--management.is-sidebar-collapsed .workspace-nav-link {
+  justify-content: center;
+  padding: 0.8rem;
+}
+
+.workspace-shell--management.is-sidebar-collapsed .workspace-nav-icon {
+  width: 1.15rem;
+  height: 1.15rem;
 }
 
 .management-context-card {
@@ -1974,6 +2010,47 @@ h3 {
   background: rgba(255, 255, 255, 0.88);
   color: var(--management-muted);
   backdrop-filter: blur(12px);
+}
+
+.workspace-sidebar-head {
+  display: grid;
+  align-items: center;
+  gap: 0.55rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: 0.8rem;
+}
+
+.workspace-sidebar-head > .workspace-sidebar-toggle:only-child {
+  grid-column: 2;
+}
+
+.workspace-shell--management.is-sidebar-collapsed .workspace-sidebar-head {
+  display: flex;
+  justify-content: center;
+}
+
+.workspace-sidebar-toggle {
+  display: grid;
+  width: 2.15rem;
+  height: 2.15rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--management-line);
+  border-radius: 0.55rem;
+  background: #fff;
+  color: var(--management-blue-dark);
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.workspace-sidebar-toggle:hover {
+  border-color: rgba(23, 105, 170, 0.38);
+  background: var(--management-blue-soft);
+}
+
+.workspace-sidebar-toggle svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 .workspace-breadcrumbs {
@@ -5076,7 +5153,7 @@ a.workspace-module-card:hover {
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .exam-room-allocation-row {
     grid-template-columns: minmax(7rem, 0.35fr) minmax(10rem, 0.65fr) minmax(12rem, 1fr);
   }
@@ -8153,36 +8230,39 @@ a.workspace-module-card:hover {
   display: grid;
   align-items: start;
   gap: 1rem;
-  grid-template-columns: minmax(14rem, 0.25fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .curriculum-levels {
+  display: grid;
   overflow: hidden;
-  position: sticky;
-  top: 5.2rem;
+  position: static;
+  align-items: stretch;
+  grid-template-columns: auto minmax(0, 1fr);
 }
 
 .curriculum-levels > header {
   display: flex;
-  align-items: flex-start;
+  min-width: 10.5rem;
+  align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 1.25rem;
-  border-bottom: 1px solid var(--management-line);
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-right: 1px solid var(--management-line);
 }
 
 .curriculum-levels h2 {
-  margin: 0 0 0.25rem;
+  margin: 0;
   color: var(--management-ink);
-  font-family: "Newsreader Variable", serif;
-  font-size: 1.35rem;
-  font-weight: 620;
-  letter-spacing: -0.02em;
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 760;
+  letter-spacing: 0;
 }
 
+.curriculum-levels > header .management-kicker,
 .curriculum-levels > header > div > span {
-  color: var(--management-muted);
-  font-size: 0.65rem;
+  display: none;
 }
 
 .curriculum-levels > header .curriculum-level-add {
@@ -8210,13 +8290,17 @@ a.workspace-module-card:hover {
 }
 
 .curriculum-level-list {
-  display: grid;
-  gap: 0.55rem;
-  padding: 0.75rem;
+  display: flex;
+  min-width: 0;
+  align-items: stretch;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding: 0.55rem;
 }
 
 .curriculum-level-list article {
-  padding: 0.85rem;
+  min-width: 8.5rem;
+  padding: 0.65rem 0.75rem;
   border: 1px solid transparent;
   border-radius: 0.65rem;
   background: #f8fafc;
@@ -9532,6 +9616,11 @@ a.workspace-module-card:hover {
     grid-template-columns: 1fr;
   }
 
+  .workspace-shell--management.is-sidebar-collapsed,
+  .workspace-shell--management.workspace-shell--without-global-rail.is-sidebar-collapsed {
+    grid-template-columns: 1fr;
+  }
+
   .workspace-shell--management .workspace-main {
     grid-column: 1;
   }
@@ -9548,6 +9637,36 @@ a.workspace-module-card:hover {
     border-right: 1px solid var(--management-line);
     transform: translateX(-105%);
     transition: transform 220ms ease;
+  }
+
+  .workspace-shell--management.is-sidebar-collapsed .workspace-sidebar {
+    padding: 1.35rem 1rem;
+  }
+
+  .workspace-shell--management.is-sidebar-collapsed .management-context-card {
+    display: grid;
+  }
+
+  .workspace-shell--management.is-sidebar-collapsed .context-back-link {
+    display: block;
+  }
+
+  .workspace-shell--management.is-sidebar-collapsed .workspace-nav-group,
+  .workspace-shell--management.is-sidebar-collapsed .workspace-nav-link > span {
+    display: inline;
+  }
+
+  .workspace-shell--management.is-sidebar-collapsed .workspace-sidebar-footer {
+    display: grid;
+  }
+
+  .workspace-shell--management.is-sidebar-collapsed .workspace-sidebar nav {
+    margin-top: 1.25rem;
+  }
+
+  .workspace-shell--management.is-sidebar-collapsed .workspace-nav-link {
+    justify-content: flex-start;
+    padding: 0.72rem 0.8rem;
   }
 
   .workspace-shell--management .workspace-sidebar.is-mobile-open { transform: translateX(0); }
@@ -9596,6 +9715,10 @@ a.workspace-module-card:hover {
     background: #fff;
     cursor: pointer;
   }
+
+  .workspace-sidebar-head { display: block; }
+  .workspace-sidebar-head > .management-context-card { display: grid; }
+  .workspace-sidebar-head > .workspace-sidebar-toggle { display: none; }
 
   .workspace-mobile-menu-button span { height: 1px; background: var(--management-ink); }
   .workspace-mobile-backdrop {
@@ -9649,8 +9772,7 @@ a.workspace-module-card:hover {
   }
 
   .curriculum-level-list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
   }
 
   .module-workspace-header {
@@ -9824,6 +9946,15 @@ a.workspace-module-card:hover {
 }
 
 @media (max-width: 540px) {
+  .curriculum-levels {
+    grid-template-columns: 1fr;
+  }
+
+  .curriculum-levels > header {
+    border-right: 0;
+    border-bottom: 1px solid var(--management-line);
+  }
+
   .management-modal-backdrop {
     place-items: end center;
     padding: 0.6rem;

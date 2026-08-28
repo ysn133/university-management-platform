@@ -148,6 +148,11 @@ export function WorkspaceLayout({
 }: WorkspaceLayoutProps) {
   const { user } = useAuth();
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+    typeof window !== "undefined"
+      && typeof window.matchMedia === "function"
+      && window.matchMedia("(min-width: 1101px) and (max-width: 1536px)").matches,
+  );
 
   useEffect(() => {
     if (!mobileNavigationOpen) return;
@@ -167,7 +172,7 @@ export function WorkspaceLayout({
     let currentGroup = "";
 
     return (
-      <div className={`workspace-shell workspace-shell--management${showGlobalRail ? "" : " workspace-shell--without-global-rail"}`}>
+      <div className={`workspace-shell workspace-shell--management${showGlobalRail ? "" : " workspace-shell--without-global-rail"}${sidebarCollapsed ? " is-sidebar-collapsed" : ""}`}>
         {showGlobalRail && <aside className="management-global-rail" aria-label="Global navigation">
           <Link className="global-rail-brand" to="/management" aria-label="Université Ibn Zohr management">UIZ</Link>
           <nav>
@@ -189,12 +194,26 @@ export function WorkspaceLayout({
             <strong>{workspaceName}</strong>
             <button aria-label="Close navigation" onClick={() => setMobileNavigationOpen(false)} type="button">×</button>
           </div>
-          {context && (
-            <header className="management-context-card">
-              <span className="management-context-monogram">{context.monogram}</span>
-              <div><strong>{context.name}</strong><small>{context.meta}</small></div>
-            </header>
-          )}
+          <div className="workspace-sidebar-head">
+            {context && (
+              <header className="management-context-card">
+                <span className="management-context-monogram">{context.monogram}</span>
+                <div><strong>{context.name}</strong><small>{context.meta}</small></div>
+              </header>
+            )}
+            <button
+              aria-expanded={!sidebarCollapsed}
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="workspace-sidebar-toggle"
+              onClick={() => setSidebarCollapsed((current) => !current)}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              type="button"
+            >
+              <svg aria-hidden="true" fill="none" viewBox="0 0 20 20">
+                <path d={sidebarCollapsed ? "m8 5 5 5-5 5" : "m12 5-5 5 5 5"} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
+              </svg>
+            </button>
+          </div>
           {context?.backTo && <Link className="context-back-link" to={context.backTo}>← {context.backLabel}</Link>}
 
           <nav aria-label={`${workspaceName} navigation`}>
@@ -204,7 +223,7 @@ export function WorkspaceLayout({
               return (
                 <div className="workspace-nav-entry" key={item.to}>
                   {showGroup && <span className="workspace-nav-group">{item.group}</span>}
-                  <NavLink className={({ isActive }) => isActive ? "workspace-nav-link is-active" : "workspace-nav-link"} end={item.end} onClick={() => setMobileNavigationOpen(false)} to={item.to}>
+                  <NavLink className={({ isActive }) => isActive ? "workspace-nav-link is-active" : "workspace-nav-link"} end={item.end} onClick={() => setMobileNavigationOpen(false)} title={sidebarCollapsed ? item.label : undefined} to={item.to}>
                     <NavigationIcon icon={item.icon} />
                     <span>{item.label}</span>
                   </NavLink>

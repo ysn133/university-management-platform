@@ -99,9 +99,9 @@ export function ProgramCurriculumPage() {
   const activeSection: CurriculumSection = curriculumSections.includes(requestedSection as CurriculumSection)
     ? requestedSection as CurriculumSection
     : "curriculum";
-  const [academicYearId, setAcademicYearState] = useState(() => routeAcademicYearId ?? searchParams.get("academicYearId") ?? "");
-  const [academicLevelId, setAcademicLevelState] = useState(() => searchParams.get("academicLevelId") ?? "");
-  const [semesterId, setSemesterState] = useState(() => searchParams.get("semesterId") ?? "");
+  const academicYearId = routeAcademicYearId ?? searchParams.get("academicYearId") ?? "";
+  const academicLevelId = searchParams.get("academicLevelId") ?? "";
+  const semesterId = searchParams.get("semesterId") ?? "";
   const [pendingSemesterId, setPendingSemesterId] = useState("");
   const [levelForm, setLevelForm] = useState<LevelForm>(emptyLevelForm);
   const [semesterForm, setSemesterForm] = useState<SemesterForm>(emptySemesterForm);
@@ -136,18 +136,45 @@ export function ProgramCurriculumPage() {
   }
 
   function setAcademicYearId(value: string, replace = false) {
-    setAcademicYearState(value);
     if (!routeAcademicYearId) updateNavigationParameter("academicYearId", value, replace);
   }
 
   function setAcademicLevelId(value: string, replace = false) {
-    setAcademicLevelState(value);
     updateNavigationParameter("academicLevelId", value, replace);
   }
 
+  function selectAcademicLevel(value: string) {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set("academicLevelId", value);
+      next.delete("semesterId");
+      return next;
+    });
+  }
+
   function setSemesterId(value: string, replace = false) {
-    setSemesterState(value);
     updateNavigationParameter("semesterId", value, replace);
+  }
+
+  function selectAcademicYear(value: string) {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (value) next.set("academicYearId", value);
+      else next.delete("academicYearId");
+      next.delete("semesterId");
+      return next;
+    });
+  }
+
+  function openOriginalSemester(yearId: string, levelId: string, originalSemesterId: string) {
+    setPendingSemesterId(originalSemesterId);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (!routeAcademicYearId) next.set("academicYearId", yearId);
+      next.set("academicLevelId", levelId);
+      next.delete("semesterId");
+      return next;
+    });
   }
 
   const programQuery = useQuery({ queryKey: academicStructureKeys.programFiliere(programFiliereId ?? "missing"), queryFn: () => getProgramFiliere(programFiliereId!), enabled: Boolean(programFiliereId) });
@@ -163,21 +190,15 @@ export function ProgramCurriculumPage() {
   const selectedLevelIsTerminal = levelsQuery.data?.find((level) => level.id === academicLevelId)?.terminalLevel;
 
   useEffect(() => {
-    const requestedYear = routeAcademicYearId ?? searchParams.get("academicYearId") ?? "";
-    const requestedLevel = searchParams.get("academicLevelId") ?? "";
-    const requestedSemester = searchParams.get("semesterId") ?? "";
-    if (requestedYear !== academicYearId) setAcademicYearState(requestedYear);
-    if (requestedLevel !== academicLevelId) setAcademicLevelState(requestedLevel);
-    if (requestedSemester !== semesterId) setSemesterState(requestedSemester);
-  }, [routeAcademicYearId, searchParams]);
-
-  useEffect(() => {
     if (!academicYearId && yearsQuery.data?.length) {
       setAcademicYearId(yearsQuery.data.find((year) => year.status === "ACTIVE")?.id ?? yearsQuery.data[0].id, true);
     }
   }, [academicYearId, yearsQuery.data]);
   useEffect(() => {
-    if (levelsQuery.data && !levelsQuery.data.some((level) => level.id === academicLevelId)) setAcademicLevelId(levelsQuery.data[0]?.id ?? "", true);
+    if (!levelsQuery.data) return;
+    if (levelsQuery.data.some((level) => level.id === academicLevelId)) return;
+    const fallbackLevelId = levelsQuery.data[0]?.id ?? "";
+    updateNavigationParameter("academicLevelId", fallbackLevelId, true);
   }, [academicLevelId, levelsQuery.data]);
   useEffect(() => {
     if (!semestersQuery.data) return;
@@ -400,7 +421,7 @@ export function ProgramCurriculumPage() {
 
   return <div className="management-page curriculum-page">
     <Link className="context-back-link curriculum-back-link" to={programsBackPath}>← Back to programs</Link>
-    <header className="curriculum-header"><span className="curriculum-program-code">{program.code}</span><div><p className="management-kicker">Program curriculum</p><h1>{program.name}</h1><p>Manage levels, annual semesters, and the modules delivered in each semester.</p></div><label><span>Academic year</span><select disabled={Boolean(routeAcademicYearId)} onChange={(event) => { setAcademicYearId(event.target.value); setSemesterId(""); }} value={academicYearId}><option value="">Select academic year</option>{yearsQuery.data?.map((year) => <option key={year.id} value={year.id}>{year.label} · {year.status}</option>)}</select></label></header>
+    <header className="curriculum-header"><span className="curriculum-program-code">{program.code}</span><div><p className="management-kicker">Program curriculum</p><h1>{program.name}</h1><p>Manage levels, annual semesters, and the modules delivered in each semester.</p></div><label><span>Academic year</span><select disabled={Boolean(routeAcademicYearId)} onChange={(event) => selectAcademicYear(event.target.value)} value={academicYearId}><option value="">Select academic year</option>{yearsQuery.data?.map((year) => <option key={year.id} value={year.id}>{year.label} · {year.status}</option>)}</select></label></header>
 
     <nav aria-label="Program workspace" className="curriculum-section-tabs" role="tablist">
       <button aria-selected={activeSection === "curriculum"} onClick={() => setActiveSection("curriculum")} role="tab" type="button">Curriculum</button>
@@ -428,7 +449,7 @@ export function ProgramCurriculumPage() {
         {levelsQuery.isPending ? <div className="panel-empty">Loading levels...</div> : levelsQuery.isError ? <div className="panel-empty panel-empty--error">{errorMessage(levelsQuery.error)}</div> : levels.length === 0 ? <div className="panel-empty curriculum-level-empty"><strong>No levels configured</strong><p>{canCreateLevel ? "Add the first level and define its initial academic rules." : "Create an academic year before adding levels."}</p></div> : <div className="curriculum-level-list">{levels.map((level) => {
           const isSelected = level.id === academicLevelId;
           return <article className={isSelected ? "is-active" : ""} key={level.id}>
-            <button className="curriculum-level-select" onClick={() => { setAcademicLevelId(level.id); setSemesterId(""); }} type="button">
+            <button className="curriculum-level-select" onClick={() => selectAcademicLevel(level.id)} type="button">
               <strong>{level.name}</strong>
               <small>{isSelected ? "Currently viewing" : activeSection === "students" ? "View student cohort" : activeSection === "teaching-groups" ? "View TD and TP groups" : activeSection === "teaching-plan" ? "View required teaching delivery" : activeSection === "professors" ? "View assigned Professors" : activeSection === "schedule" ? "View weekly timetable" : activeSection === "exam-planning" ? "Plan examination periods" : activeSection === "grades" ? "Review and publish grades" : activeSection === "progression" ? "Review annual decisions" : activeSection === "graduation" ? "Review graduated students" : "View semesters and modules"}</small>
             </button>
@@ -446,12 +467,12 @@ export function ProgramCurriculumPage() {
           <section className="management-panel curriculum-semesters"><header className="panel-header panel-header--bordered"><div><p className="management-kicker">{selectedYear?.label ?? "Academic year required"}</p><h2>{selectedLevel ? `${selectedLevel.name} Semesters` : "Select an Academic Level"}</h2><p>{selectedRuleProfile ? `Academic rules: ${selectedRuleProfile.name} · v${selectedRuleProfile.version}` : "Each academic year has its own semester structure and modules."}</p></div><div className="curriculum-header-actions"><button className="management-primary-button" disabled={!academicLevelId || !academicYearId} onClick={() => { const order = semesters.length + 1; const autumn = order % 2 === 1; setSemesterForm({ name: "", semesterOrder: String(order), termType: autumn ? "AUTUMN" : "SPRING", startDate: selectedYear ? `${autumn ? selectedYear.startYear : selectedYear.endYear}-${autumn ? "09-01" : "02-01"}` : "", endDate: selectedYear ? `${selectedYear.endYear}-${autumn ? "01-31" : "06-30"}` : "" }); setCreatingSemester(true); }} type="button">New Semester</button></div></header>{!academicYearId ? <div className="panel-empty"><strong>Select an academic year.</strong><p>The year determines which semesters and modules are displayed.</p></div> : !academicLevelId ? <div className="panel-empty"><strong>Select an academic level.</strong></div> : semestersQuery.isPending ? <div className="panel-empty">Loading semesters...</div> : semestersQuery.isError ? <div className="panel-empty panel-empty--error">{errorMessage(semestersQuery.error)}</div> : semesters.length === 0 ? <div className="panel-empty"><strong>No semesters configured.</strong><p>Create the first semester for this level and academic year.</p></div> : <div className="semester-card-grid">{semesters.map((semester) => <article className={semester.id === semesterId ? "is-active" : ""} key={semester.id}><button onClick={() => setSemesterId(semester.id)} type="button"><span>{semester.termType === "AUTUMN" ? "Autumn term" : "Spring term"} · {semester.lifecycleStatus}</span><strong>{semester.name}</strong><small>{semester.startDate} – {semester.endDate}</small></button><div className="row-actions"><button onClick={() => { setEditingSemester(semester); setSemesterForm({ name: semester.name, semesterOrder: String(semester.semesterOrder), termType: semester.termType, startDate: semester.startDate, endDate: semester.endDate }); }} type="button">Edit</button><button className="danger-text" onClick={() => setDeletingSemester(semester)} type="button">Delete</button></div></article>)}</div>}</section>
 
           <section className="management-panel curriculum-modules"><header className="panel-header panel-header--bordered"><div><p className="management-kicker">{selectedSemester?.name ?? "Semester modules"}</p><h2>Subject Modules</h2><p>{selectedSemester ? `Modules delivered in ${selectedSemester.name} for ${selectedYear?.label}.` : "Select a semester to manage its modules."}</p></div><button className="management-primary-button" disabled={!semesterId} onClick={() => { setModuleForm(emptyModuleForm); setCreatingModule(true); }} type="button">New Module</button></header>{!semesterId ? <div className="panel-empty"><strong>Select a semester.</strong></div> : modulesQuery.isPending ? <div className="panel-empty">Loading modules...</div> : modulesQuery.isError ? <div className="panel-empty panel-empty--error">{errorMessage(modulesQuery.error)}</div> : modules.length === 0 ? <div className="panel-empty"><strong>No modules configured.</strong><p>Create the first subject module for this semester.</p></div> : <div className="resource-table-wrapper"><table className="resource-table"><thead><tr><th>Module</th><th>Academic domains</th><th>Actions</th></tr></thead><tbody>{modules.map((module) => <tr key={module.id}><td><Link className="resource-name resource-name--link module-record-link" to={modulePathFor(module.id)}><span className="resource-monogram">{module.code.slice(0, 2)}</span><div><strong>{module.title}</strong><small>{module.code}</small></div></Link></td><td>{module.academicDomainIds.length ? module.academicDomainIds.map((id) => domainNames.get(id) ?? "Unknown domain").join(", ") : "No domain assigned"}</td><td><div className="row-actions"><button onClick={() => { setEditingModule(module); setModuleForm({ code: module.code, title: module.title, academicDomainIds: module.academicDomainIds }); }} type="button">Edit</button><button className="danger-text" onClick={() => setDeletingModule(module)} type="button">Delete</button></div></td></tr>)}</tbody></table></div>}</section>
-        </> : activeSection === "students" ? <ProgramStudentCohort academicLevel={selectedLevel} academicLevels={levels} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} onSelectAcademicLevel={(levelId) => { setAcademicLevelId(levelId); setSemesterId(""); }} programFiliereId={programFiliereId} semesters={semesters} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />
+        </> : activeSection === "students" ? <ProgramStudentCohort academicLevel={selectedLevel} academicLevels={levels} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} onSelectAcademicLevel={selectAcademicLevel} programFiliereId={programFiliereId} semesters={semesters} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />
           : activeSection === "teaching-groups" ? <TeachingGroupWorkspace academicLevelName={selectedLevel?.name} semesters={semesters} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />
           : activeSection === "professors" ? <SemesterProfessorsWorkspace academicLevelName={selectedLevel?.name} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} onSelectSemester={setSemesterId} professorDetailsPath={(professorId) => `${workspacePath}/professors/${professorId}`} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />
           : activeSection === "schedule" ? <SemesterTimetableWorkspace academicLevelId={academicLevelId} academicLevelName={selectedLevel?.name} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} onSelectSemester={setSemesterId} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />
           : activeSection === "exam-planning" ? <ExamPlanningWorkspace academicLevelId={academicLevelId} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} programName={program.name} onSelectSemester={setSemesterId} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />
-          : activeSection === "grades" ? <GradeManagementWorkspace academicLevelId={academicLevelId} academicLevelName={selectedLevel?.name} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} moduleValidationThreshold={selectedRuleProfile?.moduleValidationThreshold} modules={modules} onOpenOriginalSemester={(yearId, levelId, originalSemesterId) => { setPendingSemesterId(originalSemesterId); setAcademicYearId(yearId); setAcademicLevelId(levelId); }} onSelectSemester={setSemesterId} programName={program.name} programPathName={selectedProgramPath?.name} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />
+          : activeSection === "grades" ? <GradeManagementWorkspace academicLevelId={academicLevelId} academicLevelName={selectedLevel?.name} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} moduleValidationThreshold={selectedRuleProfile?.moduleValidationThreshold} modules={modules} onOpenOriginalSemester={openOriginalSemester} onSelectSemester={setSemesterId} programName={program.name} programPathName={selectedProgramPath?.name} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />
           : activeSection === "progression" ? <ProgressionWorkspace academicLevelId={academicLevelId} academicLevelName={selectedLevel?.name} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} terminalLevel={selectedLevel?.terminalLevel} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />
           : activeSection === "graduation" && selectedLevel?.terminalLevel ? <GraduationWorkspace academicLevelId={academicLevelId} academicLevelName={selectedLevel.name} academicYearId={academicYearId} academicYearLabel={selectedYear?.label} studentDetailsPath={(studentId) => `${workspacePath}/students/${studentId}`} />
           : <TeachingPlanWorkspace academicLevelName={selectedLevel?.name} academicYearLabel={selectedYear?.label} establishmentId={establishmentId} modules={modules} onSelectSemester={setSemesterId} semesterId={semesterId} semesterName={selectedSemester?.name} semesters={semesters} />}
