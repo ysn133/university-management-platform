@@ -74,6 +74,7 @@ public class AdminPermissionManagementService {
         }
 
         adminPermissionGrantRepository.deleteByAdminId(adminId);
+        adminPermissionGrantRepository.flush();
 
         List<AdminPermissionGrant> grants = new ArrayList<>();
         for (Permission permission : permissions) {

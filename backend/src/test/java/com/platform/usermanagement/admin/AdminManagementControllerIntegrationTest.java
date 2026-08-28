@@ -517,14 +517,14 @@ class AdminManagementControllerIntegrationTest {
             rootAccessToken,
             """
                 {
-                  "permissions": ["PROFESSOR_VIEW"]
+                  "permissions": ["STUDENT_VIEW", "PROFESSOR_VIEW"]
                 }
                 """
         );
         assertThat(secondReplaceResponse.statusCode()).isEqualTo(200);
         assertThat(objectMapper.readTree(secondReplaceResponse.body()).get("permissions").toString())
-            .contains("PROFESSOR_VIEW")
-            .doesNotContain("DEPARTMENT_CREATE", "STUDENT_VIEW");
+            .contains("STUDENT_VIEW", "PROFESSOR_VIEW")
+            .doesNotContain("DEPARTMENT_CREATE");
     }
 
     @Test
