@@ -183,7 +183,7 @@ export function AiNavigationWidget() {
                   <h3>What would you like to find?</h3>
                   <p>Ask about students, professors, grades, schedules, or any page in the platform.</p>
                   <div className="ai-navigator-suggestions">
-                    <button onClick={() => setQuery("Open the current academic year")} type="button">Current academic year</button>
+                    <button onClick={() => setQuery("open the grades of the student with the apogee code 2601001")} type="button">Student grades</button>
                     <button onClick={() => setQuery("Show me the professors in this establishment")} type="button">Find professors</button>
                   </div>
                 </div>
